@@ -9,7 +9,7 @@ import {
 } from '../data/denge.js';
 import {
   BINA, kopya, mevcutCag, sonTur, bildir, zar, atamaDuzelt, kisiEkle, barinmaKapasitesi, binaBul,
-  isciYuvasi, SERBEST, SERBEST_ONEK, olayKilitli, OLAY_KILIDI, hataDon,
+  isciYuvasi, binaIsi, issizSayisi, SERBEST, SERBEST_ONEK, olayKilitli, OLAY_KILIDI, hataDon,
 } from './yardimci.js';
 
 // Penceredeki kayıplar: tur > d.tur − KAYIP_PENCERE (bu tur dahil son 3 tur).
@@ -107,4 +107,25 @@ export function isAta(durum, hedef, adet) {
   if (adet === 0) delete d.atama[hedef];
   else d.atama[hedef] = adet;
   return { durum: d };
+}
+
+// Komut: boştakileri otomatik ata. Boşta kalan kişileri, inşa sırasıyla, kurulu ve hasarsız binaların boş yuvalarına doldurur.
+// Mevcut atamalar değişmez; serbest işlere dokunulmaz.
+export function isOtoAta(durum) {
+  if (olayKilitli(durum)) return hataDon(durum, OLAY_KILIDI);
+  let kalan = issizSayisi(durum);
+  if (kalan <= 0) return hataDon(durum, 'Boşta kimse yok.');
+  const d = kopya(durum);
+  let atanan = 0;
+  for (const b of d.binalar) {
+    if (kalan <= 0) break;
+    if (b.hasarli || binaIsi(d, b) === 'insa') continue;
+    const bos = isciYuvasi(b) - (d.atama[b.uid] || 0);
+    if (bos <= 0) continue;
+    const n = Math.min(bos, kalan);
+    d.atama[b.uid] = (d.atama[b.uid] || 0) + n;
+    kalan -= n; atanan += n;
+  }
+  if (!atanan) return hataDon(durum, 'Boş iş yuvası yok.');
+  return { durum: d, atanan };
 }

@@ -1,5 +1,8 @@
 # CHANGELOG_DEV (yalnız son kayıtlar; eskiler `docs/CHANGELOG_ARSIV.md`)
 
+## 2026-10-26 — Boştakileri otomatik ata (Sonnet 5.5)
+- `isOtoAta` (src/core/nufus.js): boştaki kişileri inşa sırasıyla kurulu, hasarsız binaların boş yuvalarına doldurur; serbest işlere dokunmaz. İş sekmesinde "⚡ Boştakileri otomatik ata" düğmesi. Test eklendi (174). `npm run build` denenmedi (vite kurulu değil).
+
 ## 2026-10-26 — Tehdit MVP + çit/sur (Opus 5.5) + bina kartında iş atama (Sonnet 5.5)
 - Tehdit: Göçebe+Taş Devri 3 tehdit, gerginlik/uyarı/tavır/haraç/tahkimat/bekçi, zorluk (Barışçıl/Rahat/Normal/Zor), kayıt v3. Bot 50 tohum: 50/50 hedefte, tur 25/28/32, nüfus ≥3.
 - Çit/sur: `cit` binası, kapalı halka bonusu, `insaEtCok`. UI: bina kartı −/+/doldur/boşalt + 👷 rozeti.

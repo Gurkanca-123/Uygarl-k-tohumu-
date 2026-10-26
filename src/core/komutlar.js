@@ -6,7 +6,7 @@ import {
   olayKilitli, OLAY_KILIDI, hataDon, BULUS,
 } from './yardimci.js';
 
-export { isAta } from './nufus.js';
+export { isAta, isOtoAta } from './nufus.js';
 export { insaEt, insaEtCok, yukselt, onar, yik, ormanTemizle, yolYap, yolKaldir } from './insa.js';
 export { tehditTavir, tehditTavirSec, haracOde, tahkimatYap, bekciAta, zorlukAyarla } from './tehdit.js';
 export { arastirmaSec } from './arastirma.js';

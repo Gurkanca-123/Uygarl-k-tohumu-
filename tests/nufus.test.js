@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  adimAclik, adimNufus, kayipHakki, kayipSiniri, kayipUygula, dogumSartlari, dogumTuruMu, isAta,
+  adimAclik, adimNufus, kayipHakki, kayipSiniri, kayipUygula, dogumSartlari, dogumTuruMu, isAta, isOtoAta,
 } from '../src/core/nufus.js';
 import { etkinAtama, issizSayisi } from '../src/core/yardimci.js';
 import { rngBaslat } from '../src/core/rng.js';
@@ -97,4 +97,18 @@ test('yaralı işçiler çalışmaz: etkin atama sondan kırpılır', () => {
   const d = durum({ degistiriciler: [{ id: 'yarali', kalan: 2, etki: { yaraliIsci: 2 } }] });
   assert.deepEqual(etkinAtama(d), { 'serbest:toplayici': 1 });
   assert.equal(issizSayisi(d), 0);
+});
+
+test('isOtoAta: boştakileri boş yuvalara doldurur, inşaattaki/hasarlıyı atlar, boşta yoksa hata', () => {
+  let d = durum({ atama: {} });
+  d = binaEkle(d, 'oduncu_kampi', K + 5, K + 5, { uid: 'k' });
+  d = binaEkle(d, 'oduncu_kampi', K + 8, K + 5, { uid: 'i', insaKalan: 2 });
+  d = binaEkle(d, 'oduncu_kampi', K + 5, K + 8, { uid: 'h', hasarli: true });
+  const r = isOtoAta(d);
+  assert.equal(r.hata, undefined);
+  assert.equal(r.durum.atama.k, 2);
+  assert.equal(r.durum.atama.i, undefined);
+  assert.equal(r.durum.atama.h, undefined);
+  assert.equal(r.atanan, 2);
+  assert.equal(isOtoAta(isAta(d, 'serbest:toplayici', d.nufus).durum).hata, 'Boşta kimse yok.');
 });

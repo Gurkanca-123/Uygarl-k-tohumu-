@@ -7,7 +7,7 @@ import { CAGLAR } from '../data/caglar.js';
 import { SERBEST_ISLER, VERGI, YOL_CAG, YOL_MALIYET, YORGUNLUK_MAX, VARSAYILAN_EYLEM } from '../data/denge.js';
 import { KARO_ADLARI } from '../render/harita.js';
 import {
-  isAta, insaEt, yukselt, onar, yik, ormanTemizle, yolYap, yolKaldir, arastirmaSec, onderEylemiSec, cagAtla, vergiAyarla, vergiAcik,
+  isAta, isOtoAta, insaEt, yukselt, onar, yik, ormanTemizle, yolYap, yolKaldir, arastirmaSec, onderEylemiSec, cagAtla, vergiAyarla, vergiAcik,
 } from '../core/komutlar.js';
 import {
   KAYNAK, BINA, BULUS, CAG, kaynakAcik, cagAcik, issizSayisi, evsizSayisi, barinmaKapasitesi, isciYuvasi, binaIsi, kuruluSayisi,
@@ -141,6 +141,7 @@ export function isSekmesi(a) {
   const ust = h('div', { class: `oge ozet${issiz > 0 ? ' dikkat' : ''}` },
     h('div', { class: 'baslik' }, h('span', {}, issiz > 0 ? `👥 ${issiz} kişi boşta` : '✓ Herkesin işi var'), h('span', { class: 'soluk kucuk' }, `Nüfus ${d.nufus} · barınak ${barinmaKapasitesi(d)}`)),
     issiz > 0 ? h('div', { class: 'neden' }, 'İşsizler huzuru düşürür; aşağıdan + ile iş ver.') : null,
+    issiz > 0 ? h('button', { class: 'is-oto', onclick: () => a.islem(isOtoAta) }, '⚡ Boştakileri otomatik ata') : null,
     yaraliSayisi(d) ? h('div', { class: 'soluk kucuk' }, `Yaralı: ${yaraliSayisi(d)}`) : null,
     evsizSayisi(d) ? h('div', { class: 'neden' }, `Evsiz: ${evsizSayisi(d)} (konut kur)`) : null);
   const satir = (ad, alt, hedef, n, yuva) => h('div', { class: 'oge is-satir' },
