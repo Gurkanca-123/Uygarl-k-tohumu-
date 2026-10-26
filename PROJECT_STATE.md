@@ -32,5 +32,11 @@ Sıra tabanlı (tur = gün, mevsim 5 gün, yıl 20 gün), 5 çağ, Önder eylemi
 ## Yol haritası (kullanıcı sırası, 2026-10-26)
 1) görsel stil: BD seçildi ve varsayılan (bina modelleri oynanış onayından sonra) · 2) dış tehditler: `docs/TEHDIT.md` taslak yazıldı, 6 açık soru kullanıcıda (önerilerle devam onayı bekleniyor) · 3) kahraman/sefer görevleri (tasarım önce; ayı avı, keşif seferleri) · komşu köy/savaş kararı sonra · 4) çağ genişletme (kullanıcı düşünüyor): Sanayi ve Modern çağlar eklenebilir (7 çağ?); veri tabloları + çekirdek varsayımları önce tasarım belgesinde ele alınacak, şimdi uygulanmaz. Stil adayı D = referans konsept sanat (`?stil=d`).
 
+## DEVAM NOTU (yeni oturum için, 2026-10-26)
+- Kullanıcı kararları: BD stil varsayılan; tehdit belgesi `docs/TEHDIT.md` §11 önerileriyle ONAYLANDI (karar penceresi durdurmaz, 3 kademeli çip, Göçebe'de can kaybı yok, varsayılan Normal+Barışçıl, komşu=soyut kaynak, karşı saldırı yok).
+- Yarım iş (commit'lenmemiş olabilir; `git status` bak): (1) tehdit MVP çekirdeği + çit/sur (`src/data/tehditler.js`, `src/world/cevre.js`, savunma.js, kayıt v3), (2) bina kartında iş atama + işçi rozeti (src/ui). İkisi bitince `npm test`, `npm run build`, `npm run e2e` ile doğrula ve commit'le.
+- Sıradaki: çit çizme arayüzü (sürükleyerek, `insaEtCok`) + çit görseli + tehdit arayüzü (uyarı çipi, tavır penceresi, savunma göstergesi) → Sonnet; sonra kahraman/sefer tasarımı (ayı avı, keşif seferleri; Opus tasarım → onay), çağ genişletme (Sanayi/Modern) kararı, aşama 6 içerik (Haiku metin), aşama 7 denge, bina modelleri (oynanış onayından sonra; Tripo hesabı var, PC'den `TRIPO_API_KEY` ortam sırrı + `api.tripo3d.ai` izni gerekir).
+- Rol kuralı: tasarım/görsel ajanlarına "kıdemli oyun tasarımcısı/sanat yönetmeni" rolü ver. Fable yok → Opus tasarım/çekirdek, Sonnet UI/test, Haiku metin.
+
 ## Kayıt
 Sürüm 2, alan beyaz listeli (`DURUM_SEMASI`), tipik ~2,5 KB, göç zinciri `GOCLER`.
