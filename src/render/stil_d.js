@@ -12,6 +12,7 @@ import { merkezNokta } from '../world/harita.js';
 import { MEVSIM_STIL } from './harita.js';
 import { ORTAK, yamala } from './malzeme.js';
 
+export { hash, gurultu, fbm, ss, birlestir, bozuk, top, govde, yesil, GURULTU_GLSL, ZEMIN, SU_Y, OBEK, YUK_MIN, YUK_ARALIK };
 const BINA = Object.fromEntries(BINALAR.map((b) => [b.id, b]));
 const ZEMIN = 0.30, SU_Y = 0.17, OBEK = 20, YUK_MIN = -0.3, YUK_ARALIK = 2.2;
 const KORU = new Set(['sis', 'yolCikartma']); // harita katmanından görünür kalanlar
@@ -30,6 +31,7 @@ function gurultu(x, y, s = 0) {
 }
 const fbm = (x, y, s = 0) => gurultu(x, y, s) * 0.55 + gurultu(x * 2.13, y * 2.13, s + 1) * 0.3 + gurultu(x * 4.37, y * 4.37, s + 2) * 0.15;
 const ss = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+const yesil = (v, a = 0.12) => [1 - a + v * a * 2, 1 - a * 0.5 + (1 - v) * a, 1 - a + v * a * 1.4];
 const sinif = (t) => (t === 'su' ? 'su' : t === 'dag' ? 'dag' : t === 'tasli' || t === 'kayalik' ? 'kaya' : t === 'sis' ? 'sis' : 'kara');
 
 // ---------- ortak GLSL ----------
@@ -84,7 +86,7 @@ function bozuk(geo, miktar, tohum) {
 const top = (r, x, y, z, t, det = 0) => bozuk(new THREE.IcosahedronGeometry(r, det), r * 0.28, t).translate(x, y, z);
 const govde = (r0, r1, h) => new THREE.CylinderGeometry(r0, r1, h, 4, 1, true).translate(0, h / 2, 0);
 
-function agacGeolari() {
+export function agacGeolari() {
   const yaprak = birlestir([
     { geo: govde(0.03, 0.05, 0.36), renk: 0x6b4a2e, gradyan: [0.7, 1] },
     { geo: top(0.25, 0, 0.5, 0, 1), renk: 0xffffff, gradyan: [0.62, 1.12], kure: [0, 0.5, 0] },
@@ -173,17 +175,7 @@ function iskeleGeo() {
 }
 
 // ---------- malzemeler ----------
-function araziMat() {
-  const m = yamala(new THREE.MeshLambertMaterial({ vertexColors: true }), { kar: 0.85 });
-  const once = m.onBeforeCompile;
-  m.customProgramCacheKey = () => 'd-arazi';
-  m.onBeforeCompile = (sh) => {
-    once(sh);
-    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec2 aYuzey; varying vec2 vYuzey;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\n  vYuzey = aYuzey;');
-    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>\nvarying vec2 vYuzey;${GURULTU_GLSL}`)
-      .replace('#include <color_fragment>', `#include <color_fragment>
-  {
+const ARAZI_D = `  {
     vec2 p = vDP.xz;
     float n1 = dGur(p * 1.7) * 0.6 + dGur(p * 4.3) * 0.4;
     vec2 rp = mat2(0.8, -0.6, 0.6, 0.8) * p;
@@ -198,30 +190,24 @@ function araziMat() {
     float dik = 1.0 - smoothstep(0.55, 0.9, vDN.y);
     c = mix(c, c * (0.74 + 0.45 * bant) * (1.0 - 0.4 * catlak), kaya * max(dik, 0.3));
     diffuseColor.rgb = c;
-  }`);
+  }`;
+
+export function araziMat(govdeGlsl = ARAZI_D, ad = 'd-arazi') {
+  const m = yamala(new THREE.MeshLambertMaterial({ vertexColors: true }), { kar: 0.85 });
+  const once = m.onBeforeCompile;
+  m.customProgramCacheKey = () => ad;
+  m.onBeforeCompile = (sh) => {
+    once(sh);
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec2 aYuzey; varying vec2 vYuzey;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\n  vYuzey = aYuzey;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>\nvarying vec2 vYuzey;${GURULTU_GLSL}`)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+${govdeGlsl}`);
   };
   return m;
 }
 
-function suMat(yukDoku) {
-  const m = new THREE.MeshLambertMaterial({ color: 0xffffff });
-  const u = {
-    uYuk: { value: yukDoku }, uYukMin: { value: new THREE.Vector2() }, uYukBoy: { value: new THREE.Vector2(1, 1) },
-    uSig: { value: new THREE.Color(0x46d6c6) }, uOrta: { value: new THREE.Color(0x2b9ed8) }, uDerin: { value: new THREE.Color(0x1d5ea8) },
-    uKopuk: { value: new THREE.Color(0xf4fbff) }, uZaman: ORTAK.uZaman, uKar: ORTAK.uKar,
-  };
-  m.userData.u = u;
-  m.customProgramCacheKey = () => 'd-su';
-  m.onBeforeCompile = (sh) => {
-    Object.assign(sh.uniforms, u);
-    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vSuP;')
-      .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\n  vSuP = (modelMatrix * vec4(transformed, 1.0)).xyz;');
-    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
-varying vec3 vSuP;
-uniform sampler2D uYuk; uniform vec2 uYukMin; uniform vec2 uYukBoy; uniform float uZaman; uniform float uKar;
-uniform vec3 uSig; uniform vec3 uOrta; uniform vec3 uDerin; uniform vec3 uKopuk;${GURULTU_GLSL}`)
-      .replace('#include <color_fragment>', `#include <color_fragment>
-  {
+const SU_D = `  {
     vec2 uv = (vSuP.xz - uYukMin) / uYukBoy;
     float hz = texture2D(uYuk, uv).r * ${YUK_ARALIK.toFixed(2)} + ${YUK_MIN.toFixed(2)};
     float der = ${SU_Y.toFixed(3)} - hz;
@@ -238,13 +224,33 @@ uniform vec3 uSig; uniform vec3 uOrta; uniform vec3 uDerin; uniform vec3 uKopuk;
     diffuseColor.rgb = c;
     float pr = dGur(vSuP.xz * 8.0 + vec2(t * 0.5, -t * 0.35)) * dGur(vSuP.xz * 12.0 - vec2(t * 0.4, t * 0.3));
     totalEmissiveRadiance += vec3(1.0, 0.92, 0.75) * smoothstep(0.62, 0.8, pr) * 0.5 + c * 0.1;
-  }`);
+  }`;
+
+export function suMat(yukDoku, govdeGlsl = SU_D, ad = 'd-su') {
+  const m = new THREE.MeshLambertMaterial({ color: 0xffffff });
+  const u = {
+    uYuk: { value: yukDoku }, uYukMin: { value: new THREE.Vector2() }, uYukBoy: { value: new THREE.Vector2(1, 1) },
+    uSig: { value: new THREE.Color(0x46d6c6) }, uOrta: { value: new THREE.Color(0x2b9ed8) }, uDerin: { value: new THREE.Color(0x1d5ea8) },
+    uKopuk: { value: new THREE.Color(0xf4fbff) }, uZaman: ORTAK.uZaman, uKar: ORTAK.uKar,
+  };
+  m.userData.u = u;
+  m.customProgramCacheKey = () => ad;
+  m.onBeforeCompile = (sh) => {
+    Object.assign(sh.uniforms, u);
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vSuP;')
+      .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\n  vSuP = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+varying vec3 vSuP;
+uniform sampler2D uYuk; uniform vec2 uYukMin; uniform vec2 uYukBoy; uniform float uZaman; uniform float uKar;
+uniform vec3 uSig; uniform vec3 uOrta; uniform vec3 uDerin; uniform vec3 uKopuk;${GURULTU_GLSL}`)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+${govdeGlsl}`);
   };
   return m;
 }
 
 // otlayan hayvan: baş eğilip kalkar, gövde yavaşça döner; tekne: hafif yalpa
-function canliMat(tur) {
+export function canliMat(tur) {
   const m = new THREE.MeshLambertMaterial({ vertexColors: true, side: tur === 'tekne' ? THREE.DoubleSide : THREE.FrontSide });
   m.customProgramCacheKey = () => `d-${tur}`;
   m.onBeforeCompile = (sh) => {
@@ -273,13 +279,17 @@ function canliMat(tur) {
 }
 
 // Kenar (rim) ışığı: güneşe dönük kenarlarda sıcak fresnel. Ön-derleme ShaderChunk yaması, yalnız ?stil=d.
-export function kenarIsigi() {
+// bantli = true (stil bd): kenar ışığı yumuşak geçiş yerine net bir şerit (cel).
+export function kenarIsigi(bantli = false) {
   const C = THREE.ShaderChunk;
   if (C.lights_fragment_end.includes('dKenar')) return;
+  const bant = bantli ? `
+    dKenar = smoothstep(0.30, 0.38, dKenar) * 0.75 + smoothstep(0.55, 0.62, dKenar) * 0.5;
+    dYan = smoothstep(0.35, 0.45, dYan);` : '';
   C.lights_fragment_end = `#if NUM_DIR_LIGHTS > 0
   {
     float dKenar = pow(1.0 - saturate(dot(geometryNormal, geometryViewDir)), 2.5);
-    float dYan = saturate(dot(geometryNormal, directionalLights[0].direction) * 0.7 + 0.3);
+    float dYan = saturate(dot(geometryNormal, directionalLights[0].direction) * 0.7 + 0.3);${bant}
     reflectedLight.directDiffuse += material.diffuseColor * directionalLights[0].color * dKenar * dYan * 0.5;
   }
 #endif
@@ -355,7 +365,7 @@ export class StilD {
   instanced(geo, mat, liste, yap, golge = true, ince = false) {
     const obek = new Map();
     for (const e of liste) {
-      const k = `${Math.floor(e.x / OBEK)},${Math.floor(e.z / OBEK)}`;
+      const k = `${Math.floor(e.x / (this.obekBoy || OBEK))},${Math.floor(e.z / (this.obekBoy || OBEK))}`;
       if (!obek.has(k)) obek.set(k, []);
       obek.get(k).push(e);
     }
@@ -417,6 +427,16 @@ export class StilD {
 
   kur(d) {
     this.temizle();
+    const A = this.alanHazirla(d);
+    if (!A) { this.yuk = null; return; }
+    this.yukseklikAlani(A);
+    this.araziKur(A);
+    this.suKur(A);
+    this.susKur(this.sacilim(A));
+  }
+
+  // karo görünürlüğü, alan sınırları, palet, binalar + patikalar
+  alanHazirla(d) {
     const n = d.harita.boyut;
     const karo = new Array(n * n);
     let mx = n, my = n, Mx = -1, My = -1;
@@ -425,21 +445,44 @@ export class StilD {
       karo[y * n + x] = t;
       if (t !== 'sis') { mx = Math.min(mx, x); my = Math.min(my, y); Mx = Math.max(Mx, x); My = Math.max(My, y); }
     }
-    if (Mx < 0) { this.yuk = null; return; }
+    if (Mx < 0) return null;
     const at = (x, y) => (x < 0 || y < 0 || x >= n || y >= n ? 'sis' : karo[y * n + x]);
     const x0 = Math.max(0, mx - 3), z0 = Math.max(0, my - 3), x1 = Math.min(n, Mx + 4), z1 = Math.min(n, My + 4);
     const R = Math.max(3, Math.min(6, Math.floor(220 / Math.max(x1 - x0, z1 - z0))));
     const G = (x1 - x0) * R + 1, H = (z1 - z0) * R + 1, V = G * H;
-    const iz = izgara(d);
     const ms = MEVSIM_STIL[this.s.harita.mevsim] || MEVSIM_STIL.yaz;
+    const A = { d, n, karo, at, x0, z0, x1, z1, R, G, H, V, ms, P: this.palet(ms) };
+    this.binaBilgi(A);
+    return A;
+  }
+
+  palet(ms) {
     const ton = new THREE.Color(ms.ton);
     const C = (hex, m = 1) => new THREE.Color(hex).lerp(ton, ms.k * m);
-    const P = {
+    return {
       cim: C(0x52902f, 0.45), cimA: C(0x8aac42, 0.45), cimK: C(0x377428, 0.45), orman: C(0x30642a, 0.45), verimli: C(0x8c6a3a, 0.3), verimliY: C(0x86a83a),
       kil: C(0xc8784a, 0.2), kum: C(0xe2d2a2, 0.1), kumIslak: C(0xa8946c, 0.1), kaya: C(0x9e9483, 0.3), kayaK: C(0x6e655a, 0.3),
       kayaA: C(0xc4b8a0, 0.2), yosun: C(0x86a046, 0.8), tasli: C(0xaaa290, 0.3), cevher: C(0x8e7c9c, 0.2), mermer: C(0xece8de, 0.1),
       toprak: C(0xa88a60, 0.2), toprakK: C(0x8a7050, 0.2),
     };
+  }
+
+  // bina dikdörtgenleri + merkezden her binaya patika (bina değişince yeniden)
+  binaBilgi(A) {
+    const d = A.d;
+    A.iz = izgara(d);
+    A.rect = d.binalar.map((b) => { const [g, hh] = BINA[b.id].boyut; return [b.x, b.y, b.x + g, b.y + hh]; });
+    A.mz = merkezNokta(d);
+    A.merkez = d.binalar.find((b) => BINA[b.id].tur === 'merkez');
+    A.yollar = A.merkez ? d.binalar.filter((b) => b !== A.merkez).map((b) => {
+      const [g, hh] = BINA[b.id].boyut;
+      return [b.x + g / 2, b.y + hh / 2, A.mz.x, A.mz.y];
+    }) : [];
+  }
+
+  // yükseklik + taban renk (bina toprağı hariç) → A.h, A.col, A.yuz, A.pos, A.kara, A.sSu, A.sDag
+  yukseklikAlani(A) {
+    const { n, at, x0, z0, R, G, H, V, P } = A;
     // karo merkez rengi (karo içi çeşitlilikle)
     const karoRenk = (x, y) => {
       const t = at(x, y), j = hash(x, y, 71);
@@ -459,22 +502,15 @@ export class StilD {
     };
     const kr = new Map();
     const krAl = (x, y) => { const k = y * n + x; let c = kr.get(k); if (!c) { c = karoRenk(x, y); kr.set(k, c); } return c; };
-    // binalar + patikalar (merkezden her binaya, dalgalı)
-    const rect = d.binalar.map((b) => { const [g, hh] = BINA[b.id].boyut; return [b.x, b.y, b.x + g, b.y + hh]; });
-    const mz = merkezNokta(d);
-    const merkez = d.binalar.find((b) => BINA[b.id].tur === 'merkez');
-    const yollar = merkez ? d.binalar.filter((b) => b !== merkez).map((b) => {
-      const [g, hh] = BINA[b.id].boyut;
-      return [b.x + g / 2, b.y + hh / 2, mz.x, mz.y];
-    }) : [];
 
-    const h = new Float32Array(V), sSu = new Float32Array(V), sDag = new Float32Array(V);
+    const h = new Float32Array(V), sSu = new Float32Array(V), sDag = new Float32Array(V), kara = new Uint8Array(V);
     const col = new Float32Array(V * 3), yuz = new Float32Array(V * 2), pos = new Float32Array(V * 3);
     const rd = (wx, wz, tx, tz) => Math.hypot(Math.max(tx - wx, 0, wx - tx - 1), Math.max(tz - wz, 0, wz - tz - 1));
     for (let j = 0; j < H; j++) for (let i = 0; i < G; i++) {
       const v = j * G + i, wx = x0 + i / R, wz = z0 + j / R;
       const tx = Math.min(n - 1, Math.floor(wx)), tz = Math.min(n - 1, Math.floor(wz));
       const c0 = sinif(at(tx, tz));
+      kara[v] = c0 === 'kara' ? 1 : 0;
       // işaretli uzaklık (içeride +, dışarıda −; ±3 karo ile sınırlı)
       let bSu = 3, bDag = 3, bKaya = 3;
       for (let dz = -3; dz <= 3; dz++) for (let dx = -3; dx <= 3; dx++) {
@@ -520,27 +556,66 @@ export class StilD {
       // dağ: dik yüz kaya (bantlı), teras üstü yosun/çimen, yüksekte açık kaya
       if (dag > 0) { karis(P.kaya, 1); kayaK = 1; cimK = 0; }
       else if (dag > -0.45) karis(P.cimK, (1 - ss(0, 0.45, -dag)) * 0.5);
-      // bina çevresi çiğnenmiş toprak + patikalar
-      if (c0 === 'kara') {
-        let bmin = 9;
-        for (const [ax, az, bx, bz] of rect) {
-          const m = Math.hypot(Math.max(ax - wx, 0, wx - bx), Math.max(az - wz, 0, wz - bz));
-          if (m < bmin) bmin = m;
-        }
-        let w = (1 - ss(0.02, 0.3, bmin + (n2 - 0.5) * 0.25)) * 0.75;
-        for (const [ax, az, bx, bz] of yollar) {
-          const vx = bx - ax, vz = bz - az, L2 = vx * vx + vz * vz || 1;
-          const t = Math.min(1, Math.max(0, ((wx - ax) * vx + (wz - az) * vz) / L2));
-          const sap = Math.sin(t * 9 + ax) * 0.18 * Math.sin(t * Math.PI);
-          const m = Math.hypot(wx - (ax + vx * t) + sap * vz / Math.sqrt(L2), wz - (az + vz * t) - sap * vx / Math.sqrt(L2));
-          w = Math.max(w, (1 - ss(0.06, 0.15, m + (n1 - 0.5) * 0.08)) * 0.9);
-        }
-        if (w > 0) { karis(gurultu(wx * 5, wz * 5, 13) > 0.5 ? P.toprak : P.toprakK, w); cimK *= 1 - w; }
-      }
       col[v * 3] = cr; col[v * 3 + 1] = cg; col[v * 3 + 2] = cb;
       yuz[v * 2] = kayaK; yuz[v * 2 + 1] = cimK;
     }
-    // ızgara geometrisi
+    Object.assign(A, { h, sSu, sDag, kara, col, yuz, pos });
+    this.yuk = { x0, z0, R, G, H, h };
+  }
+
+  // dağ yüzeyi: eğime göre kaya / yosunlu teras; yüksekte açık kaya (ny(v) = normalin y bileşeni)
+  dagBoya(A, ny) {
+    const { V, sDag, pos, h, P, col, yuz } = A;
+    for (let v = 0; v < V; v++) {
+      if (sDag[v] <= 0) continue;
+      const wx = pos[v * 3], wz = pos[v * 3 + 2], y = h[v];
+      const dik = Math.max(ss(0.96, 0.8, ny(v)), ss(0.7, 1.4, y) * (A.dagYuksekKaya ?? 0.6));
+      const bant = gurultu((wx - wz) * 1.2, y * 14, 21);
+      const c = new THREE.Color().copy(P.kayaK).lerp(P.kaya, bant).lerp(P.kayaA, ss(1.0, 1.6, y) * 0.6);
+      const ust = new THREE.Color().copy(P.yosun).lerp(P.cimK, gurultu(wx * 3, wz * 3, 5) * 0.6);
+      c.lerp(ust, (1 - dik) * (1 - ss(1.2, 1.7, y) * 0.7));
+      col[v * 3] = c.r; col[v * 3 + 1] = c.g; col[v * 3 + 2] = c.b;
+      yuz[v * 2] = dik; yuz[v * 2 + 1] = (1 - dik) * 0.6;
+    }
+  }
+
+  // bina çevresi çiğnenmiş toprak + patikalar (yalnız kara köşeleri; i/j aralığı köşe indisleri, dahil)
+  toprakBoya(A, i0 = 0, i1 = A.G - 1, j0 = 0, j1 = A.H - 1, rect = A.rect, yollar = A.yollar) {
+    const { G, R, x0, z0, P, col, yuz, kara } = A;
+    if (!rect.length && !yollar.length) return;
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+      const v = j * G + i;
+      if (!kara[v]) continue;
+      const wx = x0 + i / R, wz = z0 + j / R;
+      // gürültü yalnız gerektiğinde (eşik dışı köşelerde sonuç zaten 0: rect ≥ 0,43, patika kutusu dışı)
+      let bmin = 9;
+      for (const [ax, az, bx, bz] of rect) {
+        const m = Math.hypot(Math.max(ax - wx, 0, wx - bx), Math.max(az - wz, 0, wz - bz));
+        if (m < bmin) bmin = m;
+      }
+      const [k0, k1] = A.toprakKenar || [0.02, 0.3];
+      let w = bmin < 0.43 ? (1 - ss(k0, k1, bmin + (fbm(wx * 2.3, wz * 2.3, 9) - 0.5) * 0.25)) * 0.75 : 0;
+      let n1 = -1;
+      for (const [ax, az, bx, bz] of yollar) {
+        if (wx < Math.min(ax, bx) - 0.5 || wx > Math.max(ax, bx) + 0.5 || wz < Math.min(az, bz) - 0.5 || wz > Math.max(az, bz) + 0.5) continue;
+        if (n1 < 0) n1 = fbm(wx * 0.9, wz * 0.9, 7);
+        const vx = bx - ax, vz = bz - az, L2 = vx * vx + vz * vz || 1;
+        const t = Math.min(1, Math.max(0, ((wx - ax) * vx + (wz - az) * vz) / L2));
+        const sap = Math.sin(t * 9 + ax) * 0.18 * Math.sin(t * Math.PI);
+        const m = Math.hypot(wx - (ax + vx * t) + sap * vz / Math.sqrt(L2), wz - (az + vz * t) - sap * vx / Math.sqrt(L2));
+        w = Math.max(w, (1 - ss(0.06, 0.15, m + (n1 - 0.5) * 0.08)) * 0.9);
+      }
+      if (w > 0) {
+        const c = gurultu(wx * 5, wz * 5, 13) > 0.5 ? P.toprak : P.toprakK;
+        col[v * 3] += (c.r - col[v * 3]) * w; col[v * 3 + 1] += (c.g - col[v * 3 + 1]) * w; col[v * 3 + 2] += (c.b - col[v * 3 + 2]) * w;
+        yuz[v * 2 + 1] *= 1 - w;
+      }
+    }
+  }
+
+  // D: tek arazi ağı
+  araziKur(A) {
+    const { G, H, pos, col, yuz } = A;
     const idx = new Uint32Array((G - 1) * (H - 1) * 6);
     let k = 0;
     for (let j = 0; j < H - 1; j++) for (let i = 0; i < G - 1; i++) {
@@ -552,19 +627,9 @@ export class StilD {
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     geo.setIndex(new THREE.BufferAttribute(idx, 1));
     geo.computeVertexNormals();
-    // dağ yüzeyi: eğime göre kaya / yosunlu teras; yüksekte açık kaya
     const nor = geo.getAttribute('normal');
-    for (let v = 0; v < V; v++) {
-      if (sDag[v] <= 0) continue;
-      const ny = nor.getY(v), wx = pos[v * 3], wz = pos[v * 3 + 2], y = h[v];
-      const dik = Math.max(ss(0.96, 0.8, ny), ss(0.7, 1.4, y) * 0.6);
-      const bant = gurultu((wx - wz) * 1.2, y * 14, 21);
-      const c = new THREE.Color().copy(P.kayaK).lerp(P.kaya, bant).lerp(P.kayaA, ss(1.0, 1.6, y) * 0.6);
-      const ust = new THREE.Color().copy(P.yosun).lerp(P.cimK, gurultu(wx * 3, wz * 3, 5) * 0.6);
-      c.lerp(ust, (1 - dik) * (1 - ss(1.2, 1.7, y) * 0.7));
-      col[v * 3] = c.r; col[v * 3 + 1] = c.g; col[v * 3 + 2] = c.b;
-      yuz[v * 2] = dik; yuz[v * 2 + 1] = (1 - dik) * 0.6;
-    }
+    this.dagBoya(A, (v) => nor.getY(v));
+    this.toprakBoya(A);
     geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
     geo.setAttribute('aYuzey', new THREE.BufferAttribute(yuz, 2));
     geo.computeBoundingSphere();
@@ -572,35 +637,39 @@ export class StilD {
     arazi.castShadow = true; arazi.receiveShadow = true;
     this.grup.add(arazi);
     this.mesh.push(arazi);
-    this.yuk = { x0, z0, R, G, H, h };
+  }
 
-    // su: yükseklik dokusu + su karolarını kapsayan düzlem
+  // su: yükseklik dokusu + su karolarını kapsayan düzlem → A.suKarolari
+  suKur(A) {
+    const { n, at, x0, z0, x1, z1, R, G, H, V, h } = A;
     let sx0 = n, sz0 = n, sx1 = -1, sz1 = -1;
     for (let y = z0; y < z1; y++) for (let x = x0; x < x1; x++) if (at(x, y) === 'su') { sx0 = Math.min(sx0, x); sz0 = Math.min(sz0, y); sx1 = Math.max(sx1, x); sz1 = Math.max(sz1, y); }
-    const suKarolari = [];
-    if (sx1 >= 0) {
-      const veri = new Uint8Array(V * 4);
-      for (let v = 0; v < V; v++) { const q = Math.round(Math.min(1, Math.max(0, (h[v] - YUK_MIN) / YUK_ARALIK)) * 255); veri[v * 4] = q; veri[v * 4 + 3] = 255; }
-      const doku = new THREE.DataTexture(veri, G, H, THREE.RGBAFormat);
-      doku.magFilter = doku.minFilter = THREE.LinearFilter; doku.needsUpdate = true;
-      if (!this.suMatNesne) this.suMatNesne = suMat(doku);
-      const u = this.suMatNesne.userData.u;
-      u.uYuk.value = doku;
-      u.uYukMin.value.set(x0 - 0.5 / R, z0 - 0.5 / R);
-      u.uYukBoy.value.set(G / R, H / R);
-      const gx = sx1 - sx0 + 3, gz = sz1 - sz0 + 3;
-      const su = new THREE.Mesh(new THREE.PlaneGeometry(gx, gz, 1, 1).rotateX(-Math.PI / 2), this.suMatNesne);
-      su.position.set(sx0 - 1 + gx / 2, SU_Y, sz0 - 1 + gz / 2);
-      su.receiveShadow = true;
-      this.grup.add(su);
-      this.mesh.push(su);
-      for (let y = sz0; y <= sz1; y++) for (let x = sx0; x <= sx1; x++) if (at(x, y) === 'su') suKarolari.push([x, y]);
-    }
+    A.suKarolari = [];
+    if (sx1 < 0) return;
+    const veri = new Uint8Array(V * 4);
+    for (let v = 0; v < V; v++) { const q = Math.round(Math.min(1, Math.max(0, (h[v] - YUK_MIN) / YUK_ARALIK)) * 255); veri[v * 4] = q; veri[v * 4 + 3] = 255; }
+    const doku = new THREE.DataTexture(veri, G, H, THREE.RGBAFormat);
+    doku.magFilter = doku.minFilter = THREE.LinearFilter; doku.needsUpdate = true;
+    if (!this.suMatNesne) this.suMatNesne = this.suMalzeme(doku);
+    const u = this.suMatNesne.userData.u;
+    u.uYuk.value = doku;
+    u.uYukMin.value.set(x0 - 0.5 / R, z0 - 0.5 / R);
+    u.uYukBoy.value.set(G / R, H / R);
+    const gx = sx1 - sx0 + 3, gz = sz1 - sz0 + 3;
+    const su = new THREE.Mesh(new THREE.PlaneGeometry(gx, gz, 1, 1).rotateX(-Math.PI / 2), this.suMatNesne);
+    su.position.set(sx0 - 1 + gx / 2, SU_Y, sz0 - 1 + gz / 2);
+    su.receiveShadow = true;
+    this.grup.add(su);
+    this.mesh.push(su);
+    for (let y = sz0; y <= sz1; y++) for (let x = sx0; x <= sx1; x++) if (at(x, y) === 'su') A.suKarolari.push([x, y]);
+  }
 
-    // ---------- bitki örtüsü / süs ----------
-    const bos = (x, y) => { const t = at(x, y); return (t === 'cimen' || t === 'verimli' || t === 'orman') && !iz[y * n + x]; };
+  suMalzeme(doku) { return suMat(doku); }
+
+  // ---------- bitki örtüsü / süs: yer listeleri ----------
+  sacilim(A) {
+    const { n, at, x0, z0, x1, z1, iz, merkez, mz } = A;
     const agac = { yaprak: [], igne: [], kavak: [] }, cali = [], ot = [], cicek = [], kaya = [], kule = [], hayvan = { inek: [], koyun: [] };
-    const yesil = (v, a = 0.12) => [1 - a + v * a * 2, 1 - a * 0.5 + (1 - v) * a, 1 - a + v * a * 1.4];
     for (let y = z0; y < z1; y++) for (let x = x0; x < x1; x++) {
       const t = at(x, y);
       if (t === 'sis') continue;
@@ -662,21 +731,9 @@ export class StilD {
         for (let q = 0; q < adet; q++) hayvan[tur].push({ x: x + 0.2 + hash(x, y, 130 + q) * 0.6, z: y + 0.2 + hash(x, y, 133 + q) * 0.6, ry: hash(x, y, 136 + q) * 6.28 });
       });
     }
-    const yer = (e, ek = 0) => ({ x: e.x, y: (this.hAt(e.x, e.z) ?? ZEMIN) + ek, z: e.z });
-    for (const t of ['yaprak', 'igne', 'kavak']) {
-      this.instanced(this.agac[t], this.agacMat[t], agac[t], (e) => ({ ...yer(e, -0.01), s: e.s, ry: e.ry, renk: yesil(e.v, 0.14) }));
-    }
-    this.instanced(this.agac.cali, this.agacMat.cali, cali, (e) => ({ ...yer(e, -0.01), s: e.s, ry: e.v * 6.28, renk: yesil(e.v, 0.18) }));
-    const hm = this.s.harita;
-    this.instanced(this.agac.ot, this.otMat, ot, (e) => ({ ...yer(e), s: e.s * 0.9, ry: e.x * 7.1 }), false, true);
-    const CICEK = [[1, 0.85, 0.2], [1, 0.4, 0.62], [1, 1, 1], [0.66, 0.4, 1], [1, 0.35, 0.18]];
-    if (hm.cicekMat && (hm.mevsim === 'bahar' || hm.mevsim === 'yaz')) this.instanced(this.cicekGeo, hm.cicekMat, cicek, (e) => ({ ...yer(e, -0.02), s: 0.7 + e.r * 0.5, renk: CICEK[Math.floor(e.r * 5) % 5] }), false, true);
-    const KAYA = { tasli: [0.5, 0.48, 0.44], kayalik: [0.42, 0.4, 0.37], cevher: [0.42, 0.34, 0.5], mermer: [0.85, 0.84, 0.8], kil: [0.6, 0.38, 0.26], dag: [0.42, 0.4, 0.36] };
-    if (hm.kayaGeo) this.instanced(hm.kayaGeo, hm.kayaMat, kaya, (e) => ({ ...yer(e, -0.02), s: e.s, ry: e.x * 3.7 + e.z, renk: KAYA[e.t] }));
-    this.instanced(this.agac.kule, this.kuleMat, kule, (e) => ({ ...yer(e, -0.06), sx: e.s * 1.2, sz: e.s * 1.2, sy: e.s * 1.3, ry: e.ry }));
-    for (const t of ['inek', 'koyun']) this.instanced(this.hayvan[t], this.hayvanMat, hayvan[t], (e) => ({ ...yer(e), s: 1.15, ry: e.ry }));
-
     // iskele + tekneler: köy merkezine en yakın kıyı
+    let iskele = null, tekneler = [];
+    const suKarolari = A.suKarolari;
     if (suKarolari.length && merkez) {
       let en = null;
       for (const [x, y] of suKarolari) for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
@@ -690,9 +747,8 @@ export class StilD {
       if (en) {
         // iskele kıyıdan suya doğru: yerel +x ekseni suya baksın
         const ry = Math.atan2(en.b, -en.a);
-        const cx = en.x + 0.5 + en.a * 0.42, cz = en.y + 0.5 + en.b * 0.42;
-        this.instanced(this.iskele, this.iskeleMat, [{ x: cx, z: cz }], () => ({ x: cx, y: ZEMIN - 0.06, z: cz, ry }));
-        const tekneler = [{ x: en.x + 0.5 - en.a * 0.25 + en.b * 0.3, z: en.y + 0.5 - en.b * 0.25 + en.a * 0.3, ry: ry + 0.15 }];
+        iskele = { x: en.x + 0.5 + en.a * 0.42, z: en.y + 0.5 + en.b * 0.42, ry };
+        tekneler = [{ x: en.x + 0.5 - en.a * 0.25 + en.b * 0.3, z: en.y + 0.5 - en.b * 0.25 + en.a * 0.3, ry: ry + 0.15 }];
         let uzak = null;
         for (const [x, y] of suKarolari) {
           const u = Math.hypot(x - en.x, y - en.y);
@@ -700,8 +756,29 @@ export class StilD {
           if (ic && u > 2 && u < 7 && (!uzak || hash(x, y, 140) > uzak.r)) uzak = { x, y, r: hash(x, y, 140) };
         }
         if (uzak) tekneler.push({ x: uzak.x + 0.5, z: uzak.y + 0.5, ry: uzak.r * 6.28 });
-        this.instanced(this.tekne, this.tekneMat, tekneler, (e) => ({ x: e.x, y: SU_Y - 0.03, z: e.z, ry: e.ry, s: 1.25 }));
       }
     }
+    return { agac, cali, ot, cicek, kaya, kule, hayvan, iskele, tekneler };
+  }
+
+  // D: yer listelerinden öbekli InstancedMesh
+  susKur(L) {
+    const { agac, cali, ot, cicek, kaya, kule, hayvan, iskele, tekneler } = L;
+    const yer = (e, ek = 0) => ({ x: e.x, y: (this.hAt(e.x, e.z) ?? ZEMIN) + ek, z: e.z });
+    for (const t of ['yaprak', 'igne', 'kavak']) {
+      this.instanced(this.agac[t], this.agacMat[t], agac[t], (e) => ({ ...yer(e, -0.01), s: e.s, ry: e.ry, renk: yesil(e.v, 0.14) }));
+    }
+    this.instanced(this.agac.cali, this.agacMat.cali, cali, (e) => ({ ...yer(e, -0.01), s: e.s, ry: e.v * 6.28, renk: yesil(e.v, 0.18) }));
+    const hm = this.s.harita;
+    this.instanced(this.agac.ot, this.otMat, ot, (e) => ({ ...yer(e), s: e.s * 0.9, ry: e.x * 7.1 }), false, true);
+    const CICEK = [[1, 0.85, 0.2], [1, 0.4, 0.62], [1, 1, 1], [0.66, 0.4, 1], [1, 0.35, 0.18]];
+    if (hm.cicekMat && (hm.mevsim === 'bahar' || hm.mevsim === 'yaz')) this.instanced(this.cicekGeo, hm.cicekMat, cicek, (e) => ({ ...yer(e, -0.02), s: 0.7 + e.r * 0.5, renk: CICEK[Math.floor(e.r * 5) % 5] }), false, true);
+    const KAYA = { tasli: [0.5, 0.48, 0.44], kayalik: [0.42, 0.4, 0.37], cevher: [0.42, 0.34, 0.5], mermer: [0.85, 0.84, 0.8], kil: [0.6, 0.38, 0.26], dag: [0.42, 0.4, 0.36] };
+    if (hm.kayaGeo) this.instanced(this.kayaGeo || hm.kayaGeo, hm.kayaMat, kaya, (e) => ({ ...yer(e, -0.02), s: e.s, ry: e.x * 3.7 + e.z, renk: KAYA[e.t] }));
+    this.instanced(this.agac.kule, this.kuleMat, kule, (e) => ({ ...yer(e, -0.06), sx: e.s * 1.2, sz: e.s * 1.2, sy: e.s * 1.3, ry: e.ry }));
+    for (const t of ['inek', 'koyun']) this.instanced(this.hayvan[t], this.hayvanMat, hayvan[t], (e) => ({ ...yer(e), s: 1.15, ry: e.ry }));
+
+    if (iskele) this.instanced(this.iskele, this.iskeleMat, [iskele], (e) => ({ x: e.x, y: ZEMIN - 0.06, z: e.z, ry: e.ry }));
+    if (tekneler.length) this.instanced(this.tekne, this.tekneMat, tekneler, (e) => ({ x: e.x, y: SU_Y - 0.03, z: e.z, ry: e.ry, s: 1.25 }));
   }
 }

@@ -33,7 +33,7 @@ Hedef: masa üstü maket / diyorama. Yumuşak low-poly, el yapımı hissi, sıca
 ## Mevsim
 Bahar yeşil-serin ışık, yaz sarı-sıcak ışık, güz turuncu yaprak + alçak güneş, kış mavi-beyaz ışık + kar tozu + kar yağışı.
 
-## Stil adayları (deneme, `?stil=a|b|c|d`; parametresiz görünüm aynen)
+## Stil adayları (deneme, `?stil=a|b|c|d|bd`; parametresiz görünüm aynen)
 Kod: `src/render/stil.js` (sahne.js'te 4 satır kanca). Ekran: `docs/ekran/stil-{a,b,c}-{orta,yakin}.png` (844×390, aynı Bronz köyü, zoom 1.9 / 3.4),
 üretici `node tests/e2e/stil.mjs` (build sonrası). Ortak yol: sahne → 4× MSAA HalfFloat hedef + derinlik dokusu → tek tam ekran geçiş
 (ton eşleme + sRGB burada). Üç stilde de yakın zoom hilesi: bina malzemesinde kaba-mip parlaklığından + hücreye göre prosedürel
@@ -69,3 +69,15 @@ gölge, iki ölçekli derinlik AO, sıcak parlama, serin gölge/sıcak ışık t
 Maliyet: tam keşifli (r=28) haritada ≈100 çizim çağrısı, ≈300 bin üçgen (ağaçlar ≈150 bin; ot/çiçek uzakta gizli, 20×20 öbek budama);
 son geçiş 8+8 AO + 12 parlama ≈ 30 doku okuması/piksel → orta sınıf telefonda ≈ +2–3 ms; arazi yeniden kurulumu (bina/keşif
 değişince) ≈ 50–150 ms takılma. Ölçülmedi (SwiftShader yalnız görüntü); ağaçlar için mesafe LOD'u sonraki adım.
+
+**BD — Yüksek stilize (B + D)** (`src/render/stil_bd.js` = `StilD` alt sınıfı; stil.js'te `bd` geçişi; `STIL_LISTE=bd node tests/e2e/stil.mjs`)
+Ekran: `docs/ekran/stil-bd-{genis,orta,yakin}.png` (D ile aynı köy/düzenek). D arazisi + 4 tonlu cel ışık (eşikler altın saat düz zemininden
+uzak, gölge tabanı %30), koyu sıcak kahve kenar (zoom'la 1,2→2,4 px), bantlı kenar ışığı; lekesiz renk blokları: çim zeytin, iki tonlu
+leke + uzakta okunan ince öbek deseni, kayada düz faset bandı, suda düz renk bantları + kesik dalga çizgisi + köpük halkası; binada kerpiç
+krem duvar / doygun kiremit-saman / kaide = çevre toprağı, kiremit-arduvaz-saman çatıda %12 saçak. Ağaç taçları loblu (det 1) + küresel normal.
++ En okunur aday: köy merkezi açık krem + kırmızı vurgu, koyu toprak avluda net; ağaç/su/bina siluetleri temiz; D'nin limon çimi giderildi.
+− Dağ yüzü hâlâ yumuşak/haki (faset değil), kaya kuleleri tekdüze; binalar mevcut 54 model (Bronz düz damlarda iri çatı yok, kaide kare);
+  geniş çim alanı yer yer boş; ağaçlar birbirine çok benzer; Performans'ta da kenar ışığı/su parıltısı açık.
+Ölçüm (SwiftShader, r=28 keşif, Yüksek): genis 81 çağrı / 195 bin üçgen, orta 116 / 220 bin, yakın 98 / 200 bin (Standart 186–203 bin,
+Performans 175–191 bin). LOD: zoom ≤1,25'te tek düşük ağ/tür, yakında 16 karoluk öbek merkeze yakınsa yüksek. Bina ekleme: yalnız imzası
+değişen arazi öbeği (2/16) yeniden boyanır ≈ 30–50 ms (tam kurulum ≈ 240–330 ms; D'de her bina değişiminde tam). GPU'lu telefonda ölçülmedi.

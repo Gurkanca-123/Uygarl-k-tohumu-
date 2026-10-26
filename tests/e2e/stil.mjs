@@ -1,6 +1,7 @@
 // Görsel stil adayları için ekran görüntüsü (Playwright, global kurulu; `npm run build` sonrası).
 // Aynı köy durumu (bot + Bronz Çağı binaları, yaz) aynı kamerayla `?stil=a|b|c` ile iki yakınlıkta çekilir
-// (`d` = konsept aday: ayrıca uzak `genis` kare). Varsayılan liste a,b,c; D için: STIL_LISTE=d node tests/e2e/stil.mjs
+// (`d` = konsept aday, `bd` = yüksek stilize B+D: ayrıca uzak `genis` kare). Varsayılan liste a,b,c; D için: STIL_LISTE=d,
+// BD için: STIL_LISTE=bd (ek olarak bina ekleme yeniden kurulum süresi + üç kalitede çağrı/üçgen sayısı yazılır).
 // Kullanım: npm run build && node tests/e2e/stil.mjs   (STIL_CIKTI=klasör ile başka yere yazılabilir; ?stil'siz kare: STIL_TABAN=1)
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
@@ -72,8 +73,8 @@ try {
       arayuz.menuAcik = false;
       oyun.ata(d);
       sahne.guncelle(d);
-    }, s === 'd' ? durumD : durum);
-    const yakinliklar = s === 'd' || process.env.STIL_GENIS === '1' ? { genis: GENIS, ...YAKINLIK } : { ...YAKINLIK };
+    }, s === 'd' || s === 'bd' ? durumD : durum);
+    const yakinliklar = s === 'd' || s === 'bd' || process.env.STIL_GENIS === '1' ? { genis: GENIS, ...YAKINLIK } : { ...YAKINLIK };
     // hata ayıklama: STIL_EK="dx,dy,zoom" → merkeze göre ek kare (stil-<s>-ek.png)
     const ek = process.env.STIL_EK?.split(',').map(Number);
     if (ek) yakinliklar.ek = ek[2];
@@ -95,14 +96,39 @@ try {
       });
       console.log(`${yol}  (~${ms.toFixed(0)} ms/kare SwiftShader; sahne: ${bilgi})`);
       if (process.env.STIL_SAY === '1') console.log(await sayfa.evaluate(() => {
-        const o = {};
-        for (const m of window.__oyun.sahne.stil?.d?.mesh || []) {
+        const o = {}, S = window.__oyun.sahne; // yalnız görünür + görüş hacmindeki ağlar
+        for (const m of (S.stil?.d?.mesh || []).filter((m) => m.visible && S.stil.gorunur(m))) {
           const g = m.geometry, t = (g.index ? g.index.count : g.getAttribute('position').count) / 3, k = m.geometry.uuid.slice(0, 4);
           const ad = `${m.material.customProgramCacheKey?.().slice(0, 14)}|${k}`;
           o[ad] = o[ad] || [0, 0]; o[ad][0] += m.count ?? 1; o[ad][1] += t * (m.count ?? 1);
         }
         return JSON.stringify(Object.fromEntries(Object.entries(o).map(([a, [n, t]]) => [a, `${n} adet ${(t / 1000).toFixed(1)}k`])));
       }));
+    }
+    if (s === 'bd') {
+      // bina ekleme: yalnız etkilenen arazi öbekleri (süre: tik içi yeniden kurulum)
+      const yer = uygunYerler(durumD, 'kerpic_ev')[0];
+      const d2 = JSON.parse(JSON.stringify(durumD));
+      d2.binalar.push({ uid: 'b9999', id: 'kerpic_ev', x: yer[0], y: yer[1], seviye: 1, insaKalan: 0, hasarli: false });
+      console.log('bd yeniden kurulum:', await sayfa.evaluate((d2) => {
+        const s = window.__oyun.sahne, D = s.stil.d;
+        const tam = D.sure.tam;
+        s.guncelle(d2); D.tik();
+        return `tam ${tam.toFixed(0)} ms; bina ekleme ${D.sure.bina.toFixed(1)} ms (${D.sure.obek}/${D.arazi.length} arazi öbeği; ${D.sure.parca})`;
+      }, d2));
+      for (const k of ['standart', 'performans', 'yuksek']) {
+        for (const [ad, z] of Object.entries(yakinliklar)) {
+          await sayfa.evaluate(({ k, z, m, ad }) => {
+            const s = window.__oyun.sahne;
+            s.kaliteAyarla(k);
+            s.kamera.zoom = z; s.kamera.updateProjectionMatrix();
+            if (ad === 'genis') s.odakla(m.x - 6, m.y - 6); else s.odakla(m.x + 0.5, m.y + (ad === 'yakin' ? 0.5 : 0));
+          }, { k, z, m: merkez, ad });
+          await sayfa.waitForTimeout(500);
+          if (process.env.STIL_KALITE_EKRAN === '1' && k !== 'yuksek') await sayfa.screenshot({ path: `${CIKTI}/stil-bd-${ad}-${k}.png` });
+          console.log(`  ${k} ${ad}:`, await sayfa.evaluate(() => { const i = window.__oyun.sahne.stil.bilgi; return `${i.cagri} çağrı, ${(i.ucgen / 1000).toFixed(0)} bin üçgen`; }));
+        }
+      }
     }
     if (hatalar.length) { console.log(`stil ${s}: hata`, hatalar.slice(0, 3).join(' | ')); cikis = 1; }
     await ctx.close();
