@@ -17,3 +17,5 @@ Genel kural: pahalı model yalnız karar ve zor mantıkta; hacimli işte dengeli
 | 10 | Test ve sürüm: hata avı Opus, basit kontroller Haiku | Opus + Haiku |
 
 Sürüm 0.1 (MVP): Göçebe → Taş Devri, ~8 bina, 5 kaynak, ~10 olay, kayıt, dokunmatik arayüz.
+
+**Not (2026-10-26):** Fable hesapta kredi gerektiriyor ve şu an kullanılamıyor. Fable'lı aşamalar (0, 1-şema, 7-strateji) kredi açılana kadar Opus ile yapılır.
