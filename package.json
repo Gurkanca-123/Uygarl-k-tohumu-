@@ -7,7 +7,7 @@
     "dev": "vite --host",
     "build": "vite build",
     "preview": "vite preview --host",
-    "test": "node --test \"tests/*.test.js\"",
+    "test": "node --test",
     "e2e": "node tests/e2e/oyna.mjs"
   },
   "dependencies": {
