@@ -41,3 +41,4 @@ Kısa teknik hafıza: `PROJECT_STATE.md` · ayrıntılı harita (isteğe bağlı
 - Aynı doğrulamayı tekrarlama: ajan testleri geçtiğini bildirdiyse koordinatör yalnız bir kez özet doğrulama yapar.
 - Her görev sonunda `PROJECT_STATE.md`'yi **kısa** tut (≤ ~45 satır); ayrıntıyı `docs/MIMARI.md`'ye taşı; `CHANGELOG_DEV.md`'de son ~5 kayıt kalsın, eskiler arşive.
 - Model seçimi: büyük kod/tasarım kararı Opus; arayüz/çizim/içerik Sonnet; toplu metin Haiku (`docs/MODEL_PLANI.md`).
+- Tasarım/görsel işlerde alt ajana ROL ver: "kıdemli oyun tasarımcısı / sanat yönetmeni"; kendi çıktısını eleştirip en az 3 tur iyileştirsin. Kullanıcı kodla (Three.js) çok yüksek kalite bekliyor; "yeterince iyi"yle yetinme.
