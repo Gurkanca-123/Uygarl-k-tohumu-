@@ -1,5 +1,8 @@
 # CHANGELOG_DEV (yalnız son kayıtlar; eskiler `docs/CHANGELOG_ARSIV.md`)
 
+## 2026-10-26 — Arayüz sadeleştirme (Sonnet 5.5)
+- İşçi rozeti artık yalnız seçili binada (haritadaki rozet kalabalığı kalktı); boşta işçi varsa 👥 çipine dokunmak İş sekmesini açar. Dar ekranda (≤960px) üst çubuk çipleri sıkıştırıldı (ek ayrıntılar gizli). e2e'deki rozet kontrolleri (seçimsiz rozet bekleyenler) güncellenmedi/yeniden koşulmadı.
+
 ## 2026-10-26 — Çit çizme + çit modeli + tehdit arayüzü (Sonnet 5.5)
 - Çit/sur: İnşa'dan Çit/Sur Parçası seçince çizim kipi (`arayuz.js cizimBaslat/cizimOlay`, sahne `cizimKipi/cizimOnizleme/onCizim`): tek parmak sürükleyerek çizer (hızlı harekette 4 yönlü doldurur, aynı hücreden başlayınca siler), iki parmak kaydırır, ✋/✏ ile kaydırma kipi, ↶ geri al, yeşil işaretler = halkadaki boşluk, `Kur (N)` → `insaEtCok`. Önizleme komşu bağlantılıdır.
 - Model: `M.cit` / `M.sur_parcasi` komşu maskesine (`baglantiMaskeleri`, world/cevre.js) göre kollu; çevre parçaları döndürülmez, iskelesiz. Tamamlanan çit/sur bildirimi tek satırda toplanır (`insa.js`).

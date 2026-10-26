@@ -165,7 +165,7 @@ export class Arayuz {
   // kart zaten 44px+ düğmeler, üretim önizlemesi ve nedenleri gösterir.
   rozetKur(d) {
     const sec = this.secim?.tip === 'bina' ? this.secim.uid : null;
-    const liste = this.yerlestirme || d.olay.aktif ? [] : d.binalar.filter((b) => isciYuvasi(b) > 0 && (!binaIsi(d, b) || b.uid === sec));
+    const liste = this.yerlestirme || d.olay.aktif ? [] : d.binalar.filter((b) => b.uid === sec && isciYuvasi(b) > 0 && !binaIsi(d, b)); // yalnız seçili bina: tüm binalara rozet haritayı doldurup üst üste biniyordu (boşta işçi: üst çubuktaki 👥 çipi İş sekmesini açar)
     const anahtar = JSON.stringify([liste.map((b) => [b.uid, d.atama[b.uid] || 0, isciYuvasi(b), b.hasarli]), sec, issizSayisi(d)]);
     if (anahtar === this.rozetAnahtar) return;
     this.rozetAnahtar = anahtar;
@@ -433,7 +433,7 @@ export class Arayuz {
     const durumlar = [
       h('div', { class: 'chip bp', title: 'Bilgi Puanı' }, h('span', { class: 'sim' }, '💡'), h('b', {}, `+${yuvarla(bilgiUretimi(d))}`), h('small', {}, 'BP/gün')),
       h('div', { class: `chip huzur ${huzurSinif}`, title: 'Huzur', style: `--oran:${Math.max(0, Math.min(100, d.huzur))}%` }, h('span', { class: 'sim' }, '😊'), h('b', {}, Math.round(d.huzur))),
-      h('div', { class: `chip${d.nufus > bar ? ' uyari' : ''}`, title: `Nüfus / barınak${isz > 0 ? ` · ${isz} işsiz` : ''}` }, h('span', { class: 'sim' }, '👥'), h('b', {}, d.nufus), h('small', {}, `/${bar}`),
+      h('div', { class: `chip nufus${d.nufus > bar ? ' uyari' : ''}${isz > 0 ? ' tikla' : ''}`, title: `Nüfus / barınak${isz > 0 ? ` · ${isz} işsiz (İş sekmesini açar)` : ''}`, onclick: () => { if (isz > 0) { this.sekme = 'is'; this.pencere = 'acik'; this.kaydetUi(); this.yenile(); } } }, h('span', { class: 'sim' }, '👥'), h('b', {}, d.nufus), h('small', {}, `/${bar}`),
         isz > 0 ? h('span', { class: 'azl' }, `${isz} boşta`) : null),
     ];
     const tc = tehditCipi(d, () => this.tehditTikla());
