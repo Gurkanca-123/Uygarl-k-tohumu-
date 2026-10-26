@@ -12,15 +12,15 @@ const sec = (d, id, secim) => {
   return r.durum;
 };
 
-test('Avlan: +4 yiyecek +1 deri, yorgunluk +2; çağ sırasıyla ölçeklenir', () => {
+test('Avlan: +4 yiyecek +1 deri (başlangıç derisi 2 üstüne), yorgunluk +2; çağ sırasıyla ölçeklenir', () => {
   const d = adimOnder(sec(durum(), 'avlan'));
   assert.equal(d.kaynaklar.yiyecek, 14);
-  assert.equal(d.kaynaklar.deri, 1);
+  assert.equal(d.kaynaklar.deri, 3);
   assert.equal(d.onder.yorgunluk, 2);
   assert.equal(d.onder.eylem, null);
   const t = adimOnder(sec(durum({ cag: 'tasdevri' }), 'avlan'));
   assert.equal(t.kaynaklar.yiyecek, 16);
-  assert.equal(t.kaynaklar.deri, 1.5);
+  assert.equal(t.kaynaklar.deri, 3.5);
   assert.equal(eylemOlcegi(durum({ cag: 'ortacag' }), EYLEM.avlan), 3);
 });
 

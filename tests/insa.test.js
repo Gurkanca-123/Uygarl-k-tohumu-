@@ -45,7 +45,7 @@ test('insaEt reddi: eşzamanlı sınır, yerleşim sınırı, dolu karo, karo t�
   assert.match(insaEt(d0, 'totem', K + 5, K + 5).hata, /Taş Yontma/);
   const t = binaEkle({ ...d0, buluslar: ['tas_yontma'] }, 'totem', K + 4, K + 4);
   assert.match(insaEt(t, 'totem', K + 5, K + 5).hata, /tekil/);
-  assert.match(insaEt(durum(), 'avci_kulubesi', K + 5, K + 5).hata, /Kaynak yetersiz: Odun 3/);
+  assert.match(insaEt(durum(), 'avci_kulubesi', K + 5, K + 5).hata, /Kaynak yetersiz: Odun 2/);
   assert.match(insaEt(d0, 'kulube', K + 5, K + 5).hata, /gereken çağ/);
   assert.match(insaEt(d0, 'kamp_atesi', K + 5, K + 5).hata, /Merkez/);
   assert.equal(insaEt(d0, 'kulube', K + 5, K + 5).durum, d0);
@@ -96,4 +96,12 @@ test('adım c: bakımı ödenemeyen bina bu tur kapalı (huzur yok); ödenince a
   assert.deepEqual(acik.istatistik.sonTur.kapali, []);
   assert.equal(acik.kaynaklar.yiyecek, 1);
   assert.equal(huzurHedefi(acik).parcalar.binalar, 12);
+});
+
+test('ilk dakika: yeni oyunda (başlangıç kaynağıyla) ilk Çadır ilk günde kurulabilir', () => {
+  const d = durum();
+  const r = insaEt(d, 'cadir', K + 5, K + 5);
+  assert.equal(r.hata, undefined);
+  assert.equal(r.durum.kaynaklar.odun, 0);
+  assert.equal(r.durum.kaynaklar.deri, 0);
 });

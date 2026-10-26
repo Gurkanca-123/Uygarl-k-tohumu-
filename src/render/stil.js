@@ -1,11 +1,11 @@
-// Görsel stil adayları (deneme): `?stil=a|b|c|d`. Parametre yoksa hiçbir şey kurulmaz, varsayılan görünüm aynen kalır.
+// Görsel stil: varsayılan `bd`; `?stil=eski|0` eski düz görünüm; `?stil=a|b|c|d|bd` aday seçimi.
 //  a = Minyatür maket: sıcak renk, yumuşak gölge, ucuz AO, tilt-shift (üst/alt şerit bulanık), vinyet.
 //  b = Çizgi film: ışık bantları (4 ton), derinlik + parlaklık tabanlı ince koyu kenar, doygun palet.
 //  c = Boyalı illüstrasyon: 4 çeyrekli Kuwahara (16 örnek), fırça sapması, kâğıt dokusu, sıcak/soluk palet.
 //  d = Konsept diyorama: altın saat + kenar ışığı, iki ölçekli AO, sıcak parlama, doygun palet; ayrıca `stil_d.js`
 //      görsel arazi katmanı (yükseklik alanı, falez, kumsal, derinlik renkli su, yoğun bitki, hayvan, iskele/tekne).
 //  bd = Yüksek stilize (B + D): D'nin arazi katmanı (`stil_bd.js`, LOD + öbekli arazi) + cel ışık bantları, koyu kahve
-//      kenar çizgisi, temiz renk blokları, bantlı kenar ışığı, altın saat; binada iri çatı saçağı. `kaliteAyarla` yalnız bd'de.
+//      kenar çizgisi, temiz renk blokları, bantlı kenar ışığı, altın saat; binada iri çatı saçağı. `kaliteAyarla` yalnız bd'de (Ayarlar'daki kayıtlı seviye).
 // Hepsi: sahne → çok örnekli HalfFloat hedef (+derinlik dokusu) → tek tam ekran geçiş (ton eşleme + sRGB burada).
 // Yakın zoom ayrıntısı (üç stilde): bina malzemesinde doku parlaklığından türetilmiş tümsek (ekran türevli normal sapması)
 // + atlas hücresine göre prosedürel tuğla / kiremit / tahta deseni; `kamera.zoom` büyüdükçe güçlenir.
@@ -14,16 +14,26 @@ import { binaMat, isilMat } from './malzeme.js';
 import { StilD, kenarIsigi } from './stil_d.js';
 import { StilBD } from './stil_bd.js';
 
+// Varsayılan = 'bd'. `?stil=eski` (ya da `?stil=0`) eski düz görünümü (null) verir; geçersiz değer de varsayılana düşer.
 export function stilParametresi() {
   try {
     const s = new URLSearchParams(location.search).get('stil');
-    return ['a', 'b', 'c', 'd', 'bd'].includes(s) ? s : null;
-  } catch { return null; }
+    if (s === 'eski' || s === '0') return null;
+    return ['a', 'b', 'c', 'd', 'bd'].includes(s) ? s : 'bd';
+  } catch { return 'bd'; }
 }
 
+// WebGL2 yoksa ya da başlatma hata verirse sessizce eski görünüme düşer (null).
 export function stilKur(sahne) {
   const kip = stilParametresi();
-  return kip ? new Stil(sahne, kip) : null;
+  if (!kip) return null;
+  try {
+    if (!sahne.renderer.capabilities.isWebGL2) throw new Error('WebGL2 yok');
+    return new Stil(sahne, kip);
+  } catch (e) {
+    console.warn('[stil] son işleme başlatılamadı, eski görünüme dönülüyor:', e?.message || e);
+    return null;
+  }
 }
 
 const STIL_UNIFORM = { uDetay: { value: 0 }, uKip: { value: 0 } };

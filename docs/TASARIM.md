@@ -459,9 +459,11 @@ Bir tur ~20–40 sn → tam oyun ~2–3 saat. Sürüm 0.1 hedefi ilk 25 tur ≈ 
 7. Huzur <40 (`DOGUM_HUZUR_MIN`, §2.5 ile aynı eşik) iken doğum yok ama huzur hedefi yine her tur en çok 5 puan kayar (çöküş yavaş, toparlanma görünür).
 
 ### 7.4 Başlangıç değerleri (`yeniOyun` ile uyumlu)
-Mevcut `yeniOyun`: yiyecek 10, odun 5, taş 0, nüfus 3 → **uyumlu, değiştirilmez; yalnız alan eklenir.**
-- Eklenecek: `deri: 0`, `huzur: 60`, `bilgiHavuz: 0`, `yorgunluk: 0`, `acTur: 0`, binalar `[Kamp Ateşi, Çadır]`, 3 kişi Toplayıcı'da.
-- Kontrol: 3 kişi, 1 Çadır (kap 3) → tam dolu; büyümek için 2. Çadır gerekir (5 odun + 2 deri). Odun 5 hazır, deri 0 →
+Mevcut `yeniOyun`: yiyecek 10, odun 6, taş 0, deri 2 (aşağıdaki değişiklik), nüfus 3.
+- **Değişiklik (2026-10-26, ilk dakika düzeltmesi):** başlangıç `odun: 6, deri: 2` (`BASLANGIC_KAYNAK`; 2. Çadır maliyeti 6 odun + 2 deri); ilk Çadır (ikinci Çadır: 5,5→6 odun + 2 deri) ilk günde kurulabilir.
+  Gerekçe: deri 0 (ve odun 5 < 6) iken hiçbir bina kurulamıyordu. İnşaat/bekleme süreleri değişmedi.
+- Eklenecek: `deri: 2`, `huzur: 60`, `bilgiHavuz: 0`, `yorgunluk: 0`, `acTur: 0`, binalar `[Kamp Ateşi, Çadır]`, 3 kişi Toplayıcı'da.
+- Kontrol: 3 kişi, 1 Çadır (kap 3) → tam dolu; büyümek için 2. Çadır gerekir (5 odun + 2 deri). Odun 6 + deri 2 hazır → ilk Çadır hemen kurulur; 2. Çadır (6 odun + 2 deri) için
   oyuncu ilk turlarda Avcı'ya adam ya da önderle Avlan seçmek zorunda (ilk küçük karar).
 - 2 Toplayıcı + 1 Oduncu: +4 yiyecek, −3 tüketim, −0,4 bozulma → +0,6/tur; 10 yiyecekle açlığa düşmeden ilk 15 tur oynanabilir.
 - İlk kış (tur 16–20): 3 Çadır için 3 odun/tur ısınma; toplama ×0,5 → oyuncunun ~20 yiyecek stoklaması gerekir (Kurutma Rafı yardımcı).

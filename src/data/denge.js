@@ -136,7 +136,7 @@ export const HARITA_URETIM = {
 };
 
 // --- §7.4 başlangıç ---
-export const BASLANGIC_KAYNAK = { yiyecek: 10, odun: 5, tas: 0, deri: 0 };
+export const BASLANGIC_KAYNAK = { yiyecek: 10, odun: 6, tas: 0, deri: 2 };
 export const BASLANGIC_NUFUS = 3;
 
 // --- §8 kayıt ---

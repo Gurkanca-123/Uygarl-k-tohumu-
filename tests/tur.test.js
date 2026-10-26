@@ -38,8 +38,8 @@ test('(b) bir turun kaynak muhasebesi elle hesaplananla eşleşir', () => {
   const s = turIlerlet(d).durum;
   // yiyecek: 10 + 4 + 2 + 1 = 17 → −3 tüketim = 14 → −%4 bozulma = 13,44
   assert.equal(yuvarla(s.kaynaklar.yiyecek), 13.44);
-  assert.equal(s.kaynaklar.odun, 6);
-  assert.equal(s.kaynaklar.deri, 1.5);
+  assert.equal(s.kaynaklar.odun, 7);
+  assert.equal(s.kaynaklar.deri, 3.5);
   assert.equal(s.kaynaklar.tas, 0);
   assert.equal(s.bilgiHavuz, 0.5);
   assert.equal(s.huzur, 60);

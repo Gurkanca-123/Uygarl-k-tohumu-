@@ -25,7 +25,7 @@ test('ısınma yalnız kışta, kurulu konut başına; inşaattaki konut yakmaz'
   assert.equal(isinmaIhtiyaci(d), 2);
   assert.equal(isinmaIhtiyaci({ ...d, tur: 14 }), 0);
   const g = adimTuketim(d);
-  assert.equal(g.kaynaklar.odun, 3);
+  assert.equal(g.kaynaklar.odun, 4);
   const eksik = adimTuketim({ ...d, kaynaklar: { ...d.kaynaklar, odun: 1 } });
   assert.equal(eksik.kaynaklar.odun, 0);
   assert.equal(eksik.istatistik.sonTur.isinmaEksik, true);

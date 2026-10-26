@@ -100,7 +100,7 @@ test('mevsim sonuna ilerlet: en çok 5 tur, önder Dinlen; mevsim bitince durur'
   assert.equal(r.durum.tur, 5);
   assert.equal(r.turSayisi, 5);
   assert.equal(r.neden, 'mevsim_sonu');
-  assert.equal(r.durum.kaynaklar.deri, 0); // Avlan değil Dinlen
+  assert.equal(r.durum.kaynaklar.deri, 2); // Avlan değil Dinlen
   const orta = mevsimSonunaIlerlet(durum({ tur: 2 }));
   assert.equal(orta.durum.tur, 5);
   assert.equal(orta.turSayisi, 3);

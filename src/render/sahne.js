@@ -60,7 +60,7 @@ export class Sahne {
     this.arka = new THREE.DirectionalLight(0xbcd0ff, 0.45);
     this.arka.position.set(30, 20, -30);
     this.sahne.add(this.arka);
-    this.stil = stilKur(this); // ?stil=a|b|c|d|bd deneme son işlemesi; parametresiz null
+    this.stil = stilKur(this); // varsayılan bd son işlemesi; ?stil=eski ya da WebGL2 yoksa / hata varsa null (eski görünüm)
 
     this.haritaGrup = new THREE.Group();
     this.binaGrup = new THREE.Group();
@@ -244,7 +244,7 @@ export class Sahne {
     return uid ? d.binalar.find((b) => b.uid === uid) : null;
   }
 
-  // Grafik kalitesi ('yuksek' | 'standart' | 'performans'; Ayarlar'dan). Yalnız ?stil=bd'de görünümü değiştirir.
+  // Grafik kalitesi ('yuksek' | 'standart' | 'performans'; Ayarlar'dan). Yalnız bd stilinde (varsayılan) görünümü değiştirir.
   kaliteAyarla(seviye) {
     this.kalite = seviye;
     this.stil?.kaliteAyarla?.(seviye);
@@ -389,7 +389,12 @@ export class Sahne {
       const h = this.secimIsareti.userData.halka;
       if (this.secimIsareti.visible && h) { const p = 1 + Math.sin(t * 4) * 0.05; h.scale.set(p, 1, p); h.material.opacity = 0.65 + Math.sin(t * 4) * 0.2; }
       const t0 = performance.now();
-      if (this.stil) this.stil.ciz(); else this.renderer.render(this.sahne, this.kamera);
+      if (this.stil) {
+        try { this.stil.ciz(); } catch (e) { // son işleme çizimi çöktüyse eski görünüme dön
+          console.warn('[stil] çizim hatası, eski görünüme dönülüyor:', e?.message || e);
+          this.renderer.setRenderTarget(null); this.stil = null; this.renderer.render(this.sahne, this.kamera);
+        }
+      } else this.renderer.render(this.sahne, this.kamera);
       this.kareSureleri.push(performance.now() - t0);
       if (this.kareSureleri.length > 120) this.kareSureleri.shift();
     };

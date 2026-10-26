@@ -52,6 +52,19 @@ async function senaryo(tarayici, ad, secenek, ekranGoruntusu0) {
   await sayfa.waitForSelector('.ust .chip');
   const d0 = await durum();
   kontrol(`${ad}: yeni oyun başladı`, d0 && d0.tur === 0 && d0.bina === 2);
+  {
+    const st = await sayfa.evaluate(() => { const S = window.__oyun.sahne; return { kip: S.stil?.kip || null, kalite: S.kalite }; });
+    kontrol(`${ad}: varsayılan görünüm bd stili, kalite ayarı sahneye uygulandı`, st.kip === 'bd' && st.kalite === 'yuksek', JSON.stringify(st));
+    const k0 = await sayfa.evaluate(() => window.__oyun.oyun.durum.kaynaklar);
+    kontrol(`${ad}: ilk gün kaynakları ilk Çadır'a yeter (odun ${k0.odun}, deri ${k0.deri})`, k0.odun >= 6 && k0.deri >= 2);
+    const ip = await sayfa.locator('.ipucu').innerText();
+    kontrol(`${ad}: öğretici 1. adımla başlar`, ip.includes('1/5'));
+    // Ayarlar'dan kalite değişince hemen uygulanır
+    await sayfa.evaluate(() => { const a = window.__oyun.arayuz; a.ayar = { ...a.ayar, kalite: 'performans' }; a.kaliteUygula(); });
+    const kp = await sayfa.evaluate(() => window.__oyun.sahne.stil.mat.uniforms.uAO.value);
+    kontrol(`${ad}: kalite 'performans' → AO kapandı`, kp === 0);
+    await sayfa.evaluate(() => { const a = window.__oyun.arayuz; a.ayar = { ...a.ayar, kalite: 'yuksek' }; a.kaliteUygula(); });
+  }
   const harita = await sayfa.evaluate(() => { const m = window.__oyun.sahne.harita.mesh; return { cimen: m.cimen?.count || 0, sis: m.sis?.count || 0 }; });
   kontrol(`${ad}: harita çizildi (çimen ${harita.cimen}, sis ${harita.sis})`, harita.cimen > 20 && harita.sis > 3000);
   await sayfa.waitForTimeout(400);
@@ -62,6 +75,7 @@ async function senaryo(tarayici, ad, secenek, ekranGoruntusu0) {
   await sayfa.locator('.oge', { hasText: 'Oduncu' }).first().locator('button', { hasText: '+' }).click();
   const atama = await sayfa.evaluate(() => window.__oyun.oyun.durum.atama);
   kontrol(`${ad}: iş atandı`, atama['serbest:oduncu'] === 1, JSON.stringify(atama));
+  kontrol(`${ad}: öğretici işçi atanınca 2. adıma geçti`, (await sayfa.locator('.ipucu').innerText()).includes('2/5'));
 
   // Çadır 5 odun + 2 deri ister; başlangıçta deri yok → Önder "Avlan" ile deri toplanır (Önder sekmesi üzerinden).
   const yeterli = () => sayfa.evaluate(() => { const k = window.__oyun.oyun.durum.kaynaklar; return k.odun >= 5 && k.deri >= 2; });
@@ -160,6 +174,12 @@ try {
   const tarayici = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
   await senaryo(tarayici, 'telefon 844×390', { viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true, deviceScaleFactor: 1 }, 'telefon');
   await senaryo(tarayici, 'masaüstü 1280×720', { viewport: { width: 1280, height: 720 } }, 'masaustu');
+  { // ?stil=eski: eski düz görünüm (son işleme yok)
+    const sayfa = await (await tarayici.newContext({ viewport: { width: 844, height: 390 } })).newPage();
+    await sayfa.goto(`${URL}?stil=eski`);
+    await sayfa.waitForSelector('.menu');
+    kontrol('?stil=eski: son işleme kurulmaz', (await sayfa.evaluate(() => window.__oyun.sahne.stil)) === null);
+  }
   await tarayici.close();
 } catch (e) {
   console.error('HATA:', e);

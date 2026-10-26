@@ -8,7 +8,7 @@ import { rngBaslat, rngSonraki, rngTamsayi, rngOlasilik, rngAgirlikli, durumRast
 
 test('yeniOyun §7.4 başlangıç değerleri', () => {
   const d = yeniOyun();
-  assert.deepEqual(d.kaynaklar, { yiyecek: 10, odun: 5, tas: 0, deri: 0 });
+  assert.deepEqual(d.kaynaklar, { yiyecek: 10, odun: 6, tas: 0, deri: 2 });
   assert.equal(d.nufus, 3);
   assert.equal(d.huzur, 60);
   assert.equal(d.bilgiHavuz, 0);
