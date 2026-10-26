@@ -102,11 +102,15 @@ button.tam-genislik { width: 100%; }
   font-size: 9px; line-height: 1.1; background: var(--yuzey); box-shadow: var(--golge-k); border-radius: 11px; }
 .sekmeler button span { font-size: 18px; line-height: 1.1; }
 .sekmeler button.secili { background: var(--yuzey3); border-color: var(--vurgu); box-shadow: 0 0 0 1px var(--vurgu), var(--golge-k); color: var(--vurgu-ac); }
-.pencere.sag { position: absolute; right: calc(var(--ray-g) + 10px); top: 6px; width: min(48vw, 390px); max-height: calc(100% - 12px); z-index: 18;
+.pencere.sag { position: absolute; right: calc(var(--ray-g) + 10px); top: 6px; width: min(38vw, 320px); max-height: calc(100% - 12px); z-index: 18;
   opacity: 0; visibility: hidden; transform: translateX(28px) scale(0.97); transform-origin: right top; pointer-events: none;
   transition: opacity var(--sure) var(--egri), transform var(--sure) var(--egri), visibility 0s var(--sure); }
 .pencere.sag.acik { opacity: 1; visibility: visible; transform: none; pointer-events: auto; transition-delay: 0s; }
-.pencere.sag.kucuk { width: min(34vw, 240px); }
+.pencere.sag.kucuk { width: min(30vw, 240px); }
+/* iş satırları: kompakt, panel haritanın ortasını kaplamasın */
+.is-satir { padding: 4px 8px; margin-bottom: 4px; }
+.is-satir .sayac button { min-height: 40px; width: 40px; }
+.is-satir .sayac b { min-width: 36px; }
 
 /* bina / karo bilgi penceresi */
 .kart-yuva { position: absolute; left: 8px; bottom: 8px; width: min(330px, 46vw); max-height: calc(100% - 16px); display: flex; flex-direction: column; justify-content: flex-end; z-index: 10; }
