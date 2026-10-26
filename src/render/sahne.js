@@ -11,6 +11,7 @@ import { binaModeli, modeliTemizle } from './binalar.js';
 import { KoyCizim } from './koy.js';
 import { ORTAK } from './malzeme.js';
 import { stilKur } from './stil.js';
+import { baglantiMaskeleri } from '../world/cevre.js';
 
 const BINA = Object.fromEntries(BINALAR.map((b) => [b.id, b]));
 const ZOOM_MIN = 0.55, ZOOM_MAX = 3.4, YARIM_YUKSEKLIK = 8.5, ZEMIN_Y = 0.3;
@@ -140,10 +141,32 @@ export class Sahne {
     this.kirli = true;
   }
 
+  // Sürükleyerek çit/sur çizme önizlemesi. hucreler: [[x, y, hata?]]; null = temizle. Mevcut çevre parçalarıyla bağlanır.
+  cizimOnizleme(binaId, hucreler) {
+    if (!this.cizimGrup) { this.cizimGrup = new THREE.Group(); this.cizimGrup.renderOrder = 12; this.isaretGrup.add(this.cizimGrup); }
+    modeliTemizle(this.cizimGrup);
+    this.kirli = true;
+    if (!hucreler || !hucreler.length) return;
+    const d = this.durum;
+    const mevcut = d ? d.binalar.filter((b) => BINA[b.id].cevre).map((b) => [b.x, b.y]) : [];
+    const maske = baglantiMaskeleri([...mevcut, ...hucreler.map(([x, y]) => [x, y])]);
+    for (const [x, y, hata] of hucreler) {
+      const renk = hata ? 0xe0443a : 0x4cd964;
+      const model = binaModeli({ id: binaId, seviye: 1 }, {}, { hayalet: renk, bag: maske.get(`${x},${y}`) });
+      model.position.set(x + 0.5, 0, y + 0.5);
+      this.cizimGrup.add(model);
+    }
+  }
+
+  // Çizim kipi: tek parmak sürükleme kamerayı kaydırmaz, onCizim(x, y, 'basla'|'surukle'|'bitir') çağrılır (iki parmak yine kaydırır).
+  cizimKipi(acik) { this.cizimAktif = !!acik; }
+
   // m: { binaId, x, y, hata } | null
   yerlestirme(m) {
     modeliTemizle(this.hayaletGrup);
     if (!m) {
+      this.cizimKipi(false);
+      this.cizimOnizleme(null);
       this.onizlemeIsareti.visible = false;
       this.hayaletGrup.visible = false;
       this.uygunMesh.count = 0;
@@ -198,16 +221,18 @@ export class Sahne {
       this.anahtarlar.bina = bAnahtar;
       for (const c of [...this.binaGrup.children]) { modeliTemizle(c); this.binaGrup.remove(c); }
       this.binaModelleri = [];
+      const maske = baglantiMaskeleri(d.binalar.filter((b) => BINA[b.id].cevre).map((b) => [b.x, b.y]));
       for (const b of d.binalar) {
         const t = BINA[b.id];
         const isi = binaIsi(d, b);
         const model = binaModeli(b, {
           insa: isi === 'insa' ? 1 - b.insaKalan / Math.max(1, t.insaSuresi) : null,
           hasarli: b.hasarli, isi, kapali: isi !== 'insa' && !b.hasarli && kapali.includes(b.uid),
+          bag: t.cevre ? maske.get(`${b.x},${b.y}`) : 0,
         });
         model.position.set(b.x + t.boyut[0] / 2, 0, b.y + t.boyut[1] / 2);
-        // çeşitlilik: kapı her zaman kameraya bakan iki yüzden birinde (+z / +x)
-        if (t.tur !== 'merkez' && ((b.x * 7 + b.y * 13) & 1)) model.rotation.y = Math.PI / 2;
+        // çeşitlilik: kapı her zaman kameraya bakan iki yüzden birinde (+z / +x); çevre parçaları döndürülmez (kollar eksene hizalı)
+        if (t.tur !== 'merkez' && !t.cevre && ((b.x * 7 + b.y * 13) & 1)) model.rotation.y = Math.PI / 2;
         this.binaGrup.add(model);
         this.binaModelleri.push({ b, model });
       }
@@ -322,7 +347,7 @@ export class Sahne {
   girisKur() {
     const c = this.canvas;
     const ptr = new Map();
-    let ank = null, surukle = false, iptal = false, pinch0 = null;
+    let ank = null, surukle = false, iptal = false, pinch0 = null, cizdi = false;
     const orta = () => {
       const p = [...ptr.values()];
       return p.length === 1 ? { x: p[0].x, y: p[0].y } : { x: (p[0].x + p[1].x) / 2, y: (p[0].y + p[1].y) / 2 };
@@ -334,6 +359,11 @@ export class Sahne {
       else { iptal = true; pinch0 = { d: Math.hypot(...[...ptr.values()].reduce((a, p, i) => (i ? [a[0] - p.x, a[1] - p.y] : [p.x, p.y]), [])), z: this.kamera.zoom }; }
       const o = orta();
       ank = this.ekranZemin(o.x, o.y);
+      if (this.cizimAktif && ptr.size === 1 && this.onCizim) {
+        const h = this.hucreBul(e.clientX, e.clientY);
+        cizdi = true;
+        if (h) this.onCizim(h.x, h.y, 'basla');
+      } else if (cizdi && ptr.size > 1) { cizdi = false; this.onCizim?.(0, 0, 'iptal'); }
     });
     c.addEventListener('pointermove', (e) => {
       const p = ptr.get(e.pointerId);
@@ -342,6 +372,11 @@ export class Sahne {
         return;
       }
       p.x = e.clientX; p.y = e.clientY;
+      if (cizdi && ptr.size === 1) {
+        const h = this.hucreBul(e.clientX, e.clientY);
+        if (h) this.onCizim(h.x, h.y, 'surukle');
+        return;
+      }
       if (ptr.size === 1 && !surukle && Math.hypot(p.x - p.sx, p.y - p.sy) > 7) surukle = true;
       if (ptr.size === 1 && !surukle) return;
       if (ptr.size >= 2 && pinch0) {
@@ -365,6 +400,7 @@ export class Sahne {
       const p = ptr.get(e.pointerId);
       if (!p) return;
       ptr.delete(e.pointerId);
+      if (cizdi && ptr.size === 0) { cizdi = false; if (!iptalEt) this.onCizim?.(0, 0, 'bitir'); else this.onCizim?.(0, 0, 'iptal'); return; }
       if (ptr.size === 0 && !surukle && !iptal && !iptalEt && this.onTik) {
         const h = this.hucreBul(e.clientX, e.clientY);
         if (h) this.onTik(h.x, h.y);

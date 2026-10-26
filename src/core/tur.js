@@ -5,6 +5,7 @@ import { MEVSIM_TUR, MEVSIM_SONU_MAX_TUR, VARSAYILAN_EYLEM } from '../data/denge
 import { kopya, yeniSonTur, OLAY_KILIDI } from './yardimci.js';
 import { adimOnder } from './eylem.js';
 import { adimInsaat, adimBakim } from './insa.js';
+import { adimIsDagit } from './isdagit.js';
 import { adimHamUretim, adimDonusum, adimDepoKirp } from './uretim.js';
 import { adimTuketim, adimBozulma } from './tuketim.js';
 import { adimAclik, adimNufus } from './nufus.js';
@@ -26,6 +27,7 @@ export function adimDegistiriciler(durum) {
 export const ADIMLAR = [
   ['a', 'Önder eylemi', adimOnder],
   ['b', 'İnşaat ilerlemesi', adimInsaat],
+  ['b2', 'Otomatik iş dağıtımı (varsayılan kapalı)', adimIsDagit],
   ['c', 'Bakım', adimBakim],
   ['d', 'Ham üretim', adimHamUretim],
   ['e', 'Dönüşüm', adimDonusum],

@@ -7,7 +7,7 @@ import { BULUSLAR } from '../data/buluslar.js';
 import { OLAYLAR } from '../data/olaylar.js';
 import { EYLEMLER } from '../data/eylemler.js';
 import { KAROLAR } from '../data/karolar.js';
-import { VERGI, ZORLUK } from '../data/denge.js';
+import { VERGI, ZORLUK, ISDAGIT_ONCELIKLER } from '../data/denge.js';
 import { TEHDITLER, TEHDIT_KAYNAKLARI, TEHDIT_TAVIRLARI, TEHDIT_SONUCLARI } from '../data/tehditler.js';
 import { kesifGecerli } from '../world/kesif.js';
 
@@ -72,6 +72,7 @@ export const DURUM_SEMASI = S.nesne({
   kervanlar: S.dizi(S.nesne({ kaynak: S.metin({ izinli: idler(KAYNAKLAR) }), miktar: S.sayi(), tur: S.sayi() })),
   vergi: S.metin({ izinli: idler(VERGI) }),
   istatistik: 'sozluk',
+  isDagitim: S.nesne({ oto: 'mantik', oncelik: S.metin({ izinli: ISDAGIT_ONCELIKLER }) }, { varsayilan: { oto: false, oncelik: 'dengeli' } }),
   // Sürüm 3: dış tehdit (TEHDIT.md §8.2).
   zorluk: S.metin({ izinli: Object.keys(ZORLUK) }),
   tehdit: S.nesne({

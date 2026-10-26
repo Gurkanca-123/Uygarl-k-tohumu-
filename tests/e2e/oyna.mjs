@@ -123,7 +123,10 @@ async function senaryo(tarayici, ad, secenek, ekranGoruntusu0) {
     const dokun = (loc) => (secenek.hasTouch ? loc.tap() : loc.click());
     await sayfa.waitForTimeout(120);
     const rz = sayfa.locator('.rozet');
-    kontrol(`${ad}: haritada işçi rozeti görünür (boşsa soluk)`, (await rz.count()) === 1 && await rz.isVisible() && (await rz.getAttribute('class')).includes('bos') && (await rz.innerText()).includes('0/2'));
+    kontrol(`${ad}: seçili olmayan binada işçi rozeti yok (harita kalabalıklaşmaz)`, (await rz.count()) === 0);
+    const sec = () => sayfa.evaluate((u) => window.__oyun.arayuz.binaSec(u), uid);
+    await sec(); await sayfa.waitForSelector('.rozet');
+    kontrol(`${ad}: seçili binada işçi rozeti görünür (boşsa soluk)`, (await rz.count()) === 1 && await rz.isVisible() && (await rz.getAttribute('class')).includes('bos') && (await rz.innerText()).includes('0/2'));
     const konum = await sayfa.evaluate((u) => {
       const o = window.__oyun, b = o.oyun.durum.binalar.find((x) => x.uid === u), c = o.sahne.canvas.getBoundingClientRect();
       const p = o.sahne.ekranNokta(b.x + 0.5, 2.6, b.y + 0.5), r = document.querySelector('.rozet').getBoundingClientRect();
@@ -133,7 +136,7 @@ async function senaryo(tarayici, ad, secenek, ekranGoruntusu0) {
     if (process.env.IS_EKRAN === '1' && secenek.hasTouch) await sayfa.screenshot({ path: `${EKRAN}/is-rozet.png` });
     await dokun(rz);
     await sayfa.waitForSelector('.pencere.kart .is-blok');
-    kontrol(`${ad}: rozete dokununca bina kartı açılır`, await sayfa.evaluate((u) => window.__oyun.arayuz.secim?.uid === u, uid));
+    kontrol(`${ad}: seçili binada bina kartı açık`, await sayfa.evaluate((u) => window.__oyun.arayuz.secim?.uid === u, uid));
     if (process.env.IS_EKRAN === '1' && secenek.hasTouch) {
       await sayfa.screenshot({ path: `${EKRAN}/is-karti.png` });
     }
@@ -156,16 +159,13 @@ async function senaryo(tarayici, ad, secenek, ekranGoruntusu0) {
     await sayfa.locator('.oge.is-satir', { hasText: 'Oduncu Kampı' }).first().locator('button', { hasText: '−' }).click();
     await sayfa.evaluate(() => { const a = window.__oyun.arayuz; a.pencereKapat(); a.secimiKaldir(); });
     await sayfa.waitForTimeout(300);
-    await dokun(rz);
+    await sec();
     await sayfa.waitForSelector('.pencere.kart .is-blok');
     kontrol(`${ad}: sekmeden azaltınca kart/rozet güncellenir`, (await sayfa.locator('.is-sayi b').innerText()).trim() === '1' && (await sayfa.locator('.rozet').innerText()).includes('1/2'));
-    // uzak zoomda rozet gizlenir (seçili değilse)
-    await sayfa.evaluate(() => { const o = window.__oyun; o.arayuz.secimiKaldir(); o.sahne.yakinlastir(0.7, innerWidth / 2, innerHeight / 2); });
+    // seçim kalkınca rozet de kalkar
+    await sayfa.evaluate(() => window.__oyun.arayuz.secimiKaldir());
     await sayfa.waitForTimeout(250);
-    const uzakGizli = !(await sayfa.locator('.rozet').isVisible());
-    await sayfa.evaluate(() => window.__oyun.sahne.yakinlastir(1.6, innerWidth / 2, innerHeight / 2));
-    await sayfa.waitForTimeout(250);
-    kontrol(`${ad}: uzak zoomda rozet gizlenir, yakında geri gelir`, uzakGizli && await sayfa.locator('.rozet').isVisible());
+    kontrol(`${ad}: seçim kalkınca rozet kalkar`, (await sayfa.locator('.rozet').count()) === 0);
     await sayfa.evaluate((y) => {
       const o = window.__oyun, d = o.oyun.durum; d.binalar[2].id = y.id; d.atama = y.atama; d.insaatSirasi = y.sira; o.arayuz.pencere = 'kapali'; o.arayuz.secimiKaldir(); o.arayuz.yenile();
     }, yedek);

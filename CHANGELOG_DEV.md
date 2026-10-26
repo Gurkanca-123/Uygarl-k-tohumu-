@@ -3,6 +3,19 @@
 ## 2026-10-26 — Pencereleri küçültme (Sonnet 5.5)
 - Kök yazı `clamp(11px,2.6vh,15px)`, rem tabanlı; sekme penceresi ≤%38×%62, bina/karo kartı sol altta ≤%30×%50, −/+ ≤44px; sağ sekmeler etiketsiz ikon; İş sekmesi tek satır durum + daraltılabilir listeler. e2e 103/103 (viewport içinde/örtmeme kontrolleri). Gerçek cihaz denenmedi. Kalan: kartta "Yükseltme:" satırı alt kenarda hafif kesik; kart seçilen yapıya yakın konumlanmıyor.
 
+## 2026-10-26 — İş sekmesi "Kadro" + otomatik iş dağıtımı (Sonnet 5.5)
+- Çekirdek `src/core/isdagit.js`: `dagitimOnerisi` (kaynak ihtiyacı ağırlığı: depo doluluğu, açlıkta yiyecek ×3, öncelik ×3; savunma/bilgi yuvaları), komutlar `isDagit`, `isDagitimAyarla({oto, oncelik})`, tur adımı `b2` (oto açıksa). Durum alanı `isDagitim { oto:false, oncelik:'dengeli' }` (varsayılan KAPALI; eski kayıt eksikse varsayılan). `ISDAGIT_ONCELIKLER` denge.js.
+- UI (`paneller.js isSekmesi`): özet, öncelik çipleri, ⚡ Boştakileri dağıt, Otomatik anahtarı; üretim türüne göre gruplu kartlar (eksik yuvalar önce, ●●○ noktalar, 'üretmiyor' etiketi, ada dokununca haritada odak). `tur.test.js` adım listesi b2'yi içerir. Testler 182 (181+1 todo). Gerçek cihaz/e2e denenmedi.
+
+## 2026-10-26 — Arayüz sadeleştirme (Sonnet 5.5)
+- İşçi rozeti artık yalnız seçili binada (haritadaki rozet kalabalığı kalktı); boşta işçi varsa 👥 çipine dokunmak İş sekmesini açar. Dar ekranda (≤960px) üst çubuk çipleri sıkıştırıldı (ek ayrıntılar gizli). e2e'deki rozet kontrolleri (seçimsiz rozet bekleyenler) güncellenmedi/yeniden koşulmadı.
+
+## 2026-10-26 — Çit çizme + çit modeli + tehdit arayüzü (Sonnet 5.5)
+- Çit/sur: İnşa'dan Çit/Sur Parçası seçince çizim kipi (`arayuz.js cizimBaslat/cizimOlay`, sahne `cizimKipi/cizimOnizleme/onCizim`): tek parmak sürükleyerek çizer (hızlı harekette 4 yönlü doldurur, aynı hücreden başlayınca siler), iki parmak kaydırır, ✋/✏ ile kaydırma kipi, ↶ geri al, yeşil işaretler = halkadaki boşluk, `Kur (N)` → `insaEtCok`. Önizleme komşu bağlantılıdır.
+- Model: `M.cit` / `M.sur_parcasi` komşu maskesine (`baglantiMaskeleri`, world/cevre.js) göre kollu; çevre parçaları döndürülmez, iskelesiz. Tamamlanan çit/sur bildirimi tek satırda toplanır (`insa.js`).
+- Tehdit arayüzü (`src/ui/tehdit.js`): üst çubuk çipi (Sakin/Tedirgin/Gergin, aktifken ⚔ + kalan gün, yeni uyarıda pencere kendiliğinden açılır, oyunu durdurmaz); pencere: metin, varış/güç/savunma, renkli bar, tavır (Savun/Saklan/Haraç), Acil Tahkimat, savunma dökümü, çevre durumu + Çit/Sur çiz düğmeleri, zorluk düşürme. Nöbet/Elçi/Silah yok.
+- Testler 174 (173+1 todo). Tarayıcıda (SwiftShader) çizim/kurulum/pencere elle denendi; dokunmatik gerçek cihazda ve e2e senaryosu denenmedi.
+
 ## 2026-10-26 — Tehdit MVP + çit/sur (Opus 5.5) + bina kartında iş atama (Sonnet 5.5)
 - Tehdit: Göçebe+Taş Devri 3 tehdit, gerginlik/uyarı/tavır/haraç/tahkimat/bekçi, zorluk (Barışçıl/Rahat/Normal/Zor), kayıt v3. Bot 50 tohum: 50/50 hedefte, tur 25/28/32, nüfus ≥3.
 - Çit/sur: `cit` binası, kapalı halka bonusu, `insaEtCok`. UI: bina kartı −/+/doldur/boşalt + 👷 rozeti.

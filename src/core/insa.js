@@ -176,6 +176,7 @@ export function yik(durum, uid) {
 export function adimInsaat(durum, bildirimler = []) {
   const d = kopya(durum);
   const kalan = [];
+  const cevreBitti = {}; // çit/sur parçaları tek bildirimde toplanır (sürükleyerek onlarca parça kurulabilir)
   for (const s of d.insaatSirasi) {
     if (s.startsWith(TEMIZLE_ONEK)) {
       const t = temizlemeCoz(s);
@@ -195,6 +196,8 @@ export function adimInsaat(durum, bildirimler = []) {
     } else if (tur === 'onar') {
       b.hasarli = false;
       bildir(bildirimler, 'insaat_bitti', `${ad} onarıldı.`, 'iyi', { uid });
+    } else if (BINA[b.id].cevre) {
+      cevreBitti[b.id] = (cevreBitti[b.id] || 0) + 1;
     } else {
       bildir(bildirimler, 'insaat_bitti', `${ad} tamamlandı.`, 'iyi', { uid });
       // Görüş: gözcü yapıları tamamlanınca çevrelerini açar (aşama 3).
@@ -204,6 +207,9 @@ export function adimInsaat(durum, bildirimler = []) {
         for (const bul of r.bulgular) bildir(bildirimler, 'kesif_bulgu', bul.metin, 'iyi', { karo: bul.karo, x: bul.x, y: bul.y });
       }
     }
+  }
+  for (const [id, n] of Object.entries(cevreBitti)) {
+    bildir(bildirimler, 'insaat_bitti', n === 1 ? `${BINA[id].ad} tamamlandı.` : `${n} ${BINA[id].ad.toLowerCase()} parçası tamamlandı.`, 'iyi', { id, adet: n });
   }
   d.insaatSirasi = kalan;
   return d;
