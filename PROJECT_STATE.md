@@ -1,14 +1,16 @@
 # PROJECT_STATE (kısa; ayrıntı: `docs/MIMARI.md`, tasarım: `docs/TASARIM.md`)
 
-**Durum:** Aşama 0–3 bitti (tasarım, veri, çekirdek, 64×64 harita + keşif). Sıradaki: **aşama 4+5 (çizim + arayüz birlikte, Sonnet)**.
-Testler: 142 (141 geçer + 1 `todo` = denge hedefi, aşama 7). Çekirdek henüz `src/main.js`'e bağlı değil.
+**Durum:** Aşama 0–5 bitti: çekirdek + harita + Three.js sahnesi + dokunmatik arayüz = **oynanabilir**. Sıradaki: aşama 6 (içerik/olay metinleri), 7 (denge).
+Testler: 142 (141 geçer + 1 `todo` = denge hedefi). Tarayıcı testi: `npm run build && npm run e2e` (33 kontrol, `npm test`'e dahil değil).
 
 ## Oyun (özet)
 Sıra tabanlı (tur = gün, mevsim 5 gün, yıl 20 gün), 5 çağ, Önder eylemi/tur, yenilgi yok, zafer sonrası serbest kip. 64×64 harita, keşif sisi.
 
 ## Katmanlar (bağımlılık yönü: ui/render → core/world/data; core DOM/three import ETMEZ, testle denetlenir)
 - `src/data/` tablolar (`VERI` = `index.js`); `src/core/` saf mantık; `src/world/` harita/keşif/yerleşim/yol; `src/save/kayit.js` kayıt v2.
-- `src/render/sahne.js` yer tutucu; `src/ui/` boş; `src/main.js` yalnız sahneyi başlatır.
+- `src/render/`: `sahne.js` (kamera/giriş/işaretler), `harita.js` (karo InstancedMesh + sis + süs), `binalar.js` (prosedürel modeller).
+- `src/ui/`: `oyun.js` (denetçi: komut + kayıt + günlük), `arayuz.js` (kabuk, yerleştirme, modallar), `paneller.js` (sekmeler, kartlar), `ogretici.js`, `arayuz.css`.
+- `src/main.js` bağlar; `window.__oyun` = { oyun, arayuz, sahne } (hata ayıklama/e2e). three ayrı chunk (~458 KB, gzip 116 KB); uygulama ~127 KB.
 
 ## Çekirdek API (UI'nın kullanacağı)
 - `yeniOyun(tohum)`, `turIlerlet(durum)` → `{ durum, bildirimler, hata? }`, `mevsimSonunaIlerlet`.
@@ -18,6 +20,9 @@ Sıra tabanlı (tur = gün, mevsim 5 gün, yıl 20 gün), 5 çağ, Önder eylemi
 - Bekleyen olay varken `olayCoz` dışı komutlar kilitli.
 
 ## Kısıtlar / bilinenler
+- Arayüz durumu doğrudan değiştirmez; `Oyun.komut(fn, ...)` çekirdek komutunu çağırır, her başarılı komut + tur sonu otomatik kayıt (`save/kayit.js`).
+- Eksik (UI): takas arayüzü yok, Keşfet'te yön seçimi yok, sahne yalnız gerektiğinde çizilir (kirli bayrak), kayıt tek yuva, ses/ayar yok.
+- Başlangıçta (10 odun-5, 0 deri) hiçbir bina kurulamaz: Çadır 5 odun + 2 deri; oyuncu önce Avlan/Oduncu ile toplamalı (denge notu, aşama 7).
 - Bot (50 tohum): Göçebe 27/31/42 tur, 42/50 hedef aralıkta; denge ayarı aşama 7.
 - `TODO(tasarim)` varsayımları: `grep -rn "TODO(tasarim)" src`. Aşama 2/3 varsayım listesi: `docs/MIMARI.md`.
 - Köprü yok (su/dağ geçilmez). Keşfet yön seçmez (UI'da yön seçimi eklenebilir).

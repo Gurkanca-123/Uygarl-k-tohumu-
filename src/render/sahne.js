@@ -1,47 +1,331 @@
+// İzometrik ortografik sahne: harita, binalar, sınır çizgisi, seçim/önizleme işaretleri, kamera ve dokunma/fare girişi.
+// Çekirdeği yalnız okur; durumu değiştirmez. Dışarıya: onTik(x, y), onUzerinde(x, y).
 import * as THREE from 'three';
+import { BINALAR } from '../data/binalar.js';
+import { izgara } from '../world/izgara.js';
+import { merkezNokta, sinirYaricapi } from '../world/harita.js';
+import { takvim } from '../core/takvim.js';
+import { binaIsi } from '../core/yardimci.js';
+import { HaritaCizim, MEVSIM_STIL } from './harita.js';
+import { binaModeli, modeliTemizle } from './binalar.js';
 
-// İzometrik sabit kameralı temel sahne (yer tutucu zemin).
+const BINA = Object.fromEntries(BINALAR.map((b) => [b.id, b]));
+const ZOOM_MIN = 0.55, ZOOM_MAX = 3.4, YARIM_YUKSEKLIK = 8.5, ZEMIN_Y = 0.3;
+const OFSET = new THREE.Vector3(1, 1, 1).multiplyScalar(40);
+
 export class Sahne {
   constructor(kap) {
     this.kap = kap;
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    this.onTik = null;
+    this.onUzerinde = null;
+    this.kirli = true;
+    this.n = 64;
+    this.hedef = new THREE.Vector3(32, 0, 32);
+    this.durum = null;
+    this.anahtarlar = {};
+
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.shadowMap.enabled = true;
-    kap.appendChild(this.renderer.domElement);
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.canvas = this.renderer.domElement;
+    this.canvas.style.display = 'block';
+    this.canvas.style.touchAction = 'none';
+    kap.appendChild(this.canvas);
 
     this.sahne = new THREE.Scene();
     this.sahne.background = new THREE.Color(0x14110d);
-    this.kamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 200);
-    this.kamera.position.set(20, 20, 20);
-    this.kamera.lookAt(0, 0, 0);
+    this.kamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 200);
+    this.kamera.zoom = 1;
 
-    const gunes = new THREE.DirectionalLight(0xffffff, 2.2);
-    gunes.position.set(15, 30, 10);
-    gunes.castShadow = true;
-    this.sahne.add(gunes, new THREE.AmbientLight(0x8890a0, 0.8));
+    this.gunes = new THREE.DirectionalLight(0xfff2dd, 2.5);
+    this.gunes.castShadow = true;
+    const g = this.gunes.shadow;
+    g.mapSize.set(2048, 2048);
+    g.camera.left = -24; g.camera.right = 24; g.camera.top = 24; g.camera.bottom = -24;
+    g.camera.near = 1; g.camera.far = 120;
+    g.bias = -0.0006; g.normalBias = 0.03;
+    this.sahne.add(this.gunes, this.gunes.target);
+    this.hemi = new THREE.HemisphereLight(0xdfeaff, 0x7a6a50, 1.0);
+    this.sahne.add(this.hemi);
 
-    const zemin = new THREE.Mesh(
-      new THREE.BoxGeometry(16, 0.5, 16),
-      new THREE.MeshStandardMaterial({ color: 0x5f7a3a }),
-    );
-    zemin.position.y = -0.25;
-    zemin.receiveShadow = true;
-    this.sahne.add(zemin);
+    this.haritaGrup = new THREE.Group();
+    this.binaGrup = new THREE.Group();
+    this.isaretGrup = new THREE.Group();
+    this.sahne.add(this.haritaGrup, this.binaGrup, this.isaretGrup);
+    this.harita = new HaritaCizim(this.haritaGrup);
 
+    this.isaretleriKur();
+    this.girisKur();
+    this.ro = new ResizeObserver(() => this.boyutla());
+    this.ro.observe(kap);
     addEventListener('resize', () => this.boyutla());
+    addEventListener('orientationchange', () => setTimeout(() => this.boyutla(), 200));
     this.boyutla();
+    this.kameraGuncelle();
   }
 
+  // ---------- işaretler ----------
+  isaretleriKur() {
+    const kare = (renk, saydam) => {
+      const grup = new THREE.Group();
+      const dolgu = new THREE.Mesh(
+        new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2),
+        new THREE.MeshBasicMaterial({ color: renk, transparent: true, opacity: saydam, depthTest: false, depthWrite: false }),
+      );
+      const cizgi = new THREE.LineLoop(
+        new THREE.BufferGeometry().setFromPoints([[-0.5, 0, -0.5], [0.5, 0, -0.5], [0.5, 0, 0.5], [-0.5, 0, 0.5]].map((p) => new THREE.Vector3(...p))),
+        new THREE.LineBasicMaterial({ color: renk, depthTest: false, transparent: true }),
+      );
+      dolgu.renderOrder = 10; cizgi.renderOrder = 11;
+      grup.add(dolgu, cizgi);
+      grup.visible = false;
+      grup.userData = { dolgu, cizgi };
+      return grup;
+    };
+    this.secimIsareti = kare(0xffd34d, 0.28);
+    this.onizlemeIsareti = kare(0x4cd964, 0.35);
+    this.hayaletGrup = new THREE.Group();
+    this.hayaletGrup.visible = false;
+    this.uygunMesh = new THREE.InstancedMesh(
+      new THREE.PlaneGeometry(0.84, 0.84).rotateX(-Math.PI / 2),
+      new THREE.MeshBasicMaterial({ color: 0x4cd964, transparent: true, opacity: 0.25, depthTest: false, depthWrite: false }),
+      2500,
+    );
+    this.uygunMesh.count = 0;
+    this.uygunMesh.renderOrder = 9;
+    this.uygunMesh.frustumCulled = false;
+    this.sinirCizgi = null;
+    this.isaretGrup.add(this.uygunMesh, this.secimIsareti, this.onizlemeIsareti, this.hayaletGrup);
+  }
+
+  isaretKonumla(isaret, x, y, g, h) {
+    isaret.position.set(x + g / 2, 0.62, y + h / 2);
+    isaret.scale.set(g, 1, h);
+    isaret.visible = true;
+  }
+
+  secim(s) {
+    if (!s) this.secimIsareti.visible = false;
+    else if (s.tip === 'bina') {
+      const [g, h] = BINA[s.bina.id].boyut;
+      this.isaretKonumla(this.secimIsareti, s.bina.x, s.bina.y, g, h);
+    } else this.isaretKonumla(this.secimIsareti, s.x, s.y, 1, 1);
+    this.kirli = true;
+  }
+
+  // m: { binaId, x, y, hata } | null
+  yerlestirme(m) {
+    modeliTemizle(this.hayaletGrup);
+    if (!m) {
+      this.onizlemeIsareti.visible = false;
+      this.hayaletGrup.visible = false;
+      this.uygunMesh.count = 0;
+      this.kirli = true;
+      return;
+    }
+    const [g, h] = BINA[m.binaId].boyut;
+    const renk = m.hata ? 0xe0443a : 0x4cd964;
+    const { dolgu, cizgi } = this.onizlemeIsareti.userData;
+    dolgu.material.color.setHex(renk); cizgi.material.color.setHex(renk);
+    this.isaretKonumla(this.onizlemeIsareti, m.x, m.y, g, h);
+    const model = binaModeli({ id: m.binaId, seviye: 1 }, {}, { hayalet: renk });
+    this.hayaletGrup.add(model);
+    this.hayaletGrup.position.set(m.x + g / 2, 0, m.y + h / 2);
+    this.hayaletGrup.visible = true;
+    this.kirli = true;
+  }
+
+  uygunIsaretleri(liste, g = 1, h = 1) {
+    const m4 = new THREE.Matrix4();
+    const adet = Math.min(liste.length, 2500);
+    for (let i = 0; i < adet; i++) {
+      m4.setPosition(liste[i][0] + g / 2, 0.6, liste[i][1] + h / 2);
+      this.uygunMesh.setMatrixAt(i, m4);
+    }
+    this.uygunMesh.count = adet;
+    this.uygunMesh.instanceMatrix.needsUpdate = true;
+    this.kirli = true;
+  }
+
+  // ---------- durum ----------
+  guncelle(d) {
+    this.durum = d;
+    this.n = d.harita.boyut;
+    const ms = takvim(d.tur).mevsim;
+    if (this.mevsimId !== ms) {
+      this.mevsimId = ms;
+      const s = MEVSIM_STIL[ms];
+      this.gunes.color.setHex(s.isik); this.gunes.intensity = s.siddet; this.hemi.intensity = s.ortam;
+      this.harita.mevsimAyarla(ms);
+    }
+    this.harita.guncelle(d);
+
+    const bAnahtar = JSON.stringify([d.binalar, d.insaatSirasi, d.cag]);
+    if (bAnahtar !== this.anahtarlar.bina) {
+      this.anahtarlar.bina = bAnahtar;
+      for (const c of [...this.binaGrup.children]) { modeliTemizle(c); this.binaGrup.remove(c); }
+      for (const b of d.binalar) {
+        const t = BINA[b.id];
+        const isi = binaIsi(d, b);
+        const model = binaModeli(b, {
+          insa: isi === 'insa' ? 1 - b.insaKalan / Math.max(1, t.insaSuresi) : null,
+          hasarli: b.hasarli, isi,
+        });
+        model.position.set(b.x + t.boyut[0] / 2, 0, b.y + t.boyut[1] / 2);
+        this.binaGrup.add(model);
+      }
+    }
+    const sAnahtar = `${d.cag}|${d.binalar.find((b) => BINA[b.id].tur === 'merkez')?.x}`;
+    if (sAnahtar !== this.anahtarlar.sinir) {
+      this.anahtarlar.sinir = sAnahtar;
+      if (this.sinirCizgi) { this.isaretGrup.remove(this.sinirCizgi); this.sinirCizgi.geometry.dispose(); }
+      const m = merkezNokta(d), r = sinirYaricapi(d);
+      const pts = [];
+      for (let i = 0; i < 160; i++) {
+        const a = (i / 160) * Math.PI * 2;
+        pts.push(new THREE.Vector3(m.x + Math.cos(a) * r, 0.7, m.y + Math.sin(a) * r));
+      }
+      this.sinirCizgi = new THREE.LineLoop(
+        new THREE.BufferGeometry().setFromPoints(pts),
+        new THREE.LineBasicMaterial({ color: 0xf2c14e, transparent: true, opacity: 0.8, depthTest: false }),
+      );
+      this.sinirCizgi.renderOrder = 8;
+      this.isaretGrup.add(this.sinirCizgi);
+    }
+    this.kirli = true;
+  }
+
+  // Bina uid ya da hücre için seçim kolaylığı: hücredeki bina (yoksa null).
+  hucredekiBina(x, y) {
+    const d = this.durum;
+    if (!d) return null;
+    const uid = izgara(d)[y * d.harita.boyut + x];
+    return uid ? d.binalar.find((b) => b.uid === uid) : null;
+  }
+
+  odakla(x, y) {
+    this.hedef.set(x, 0, y);
+    this.kameraGuncelle();
+  }
+
+  // ---------- kamera ----------
   boyutla() {
-    const g = this.kap.clientWidth, y = this.kap.clientHeight, olcek = 12;
+    const g = this.kap.clientWidth || innerWidth, y = this.kap.clientHeight || innerHeight;
     const oran = g / y;
-    Object.assign(this.kamera, { left: -olcek * oran, right: olcek * oran, top: olcek, bottom: -olcek });
+    Object.assign(this.kamera, {
+      left: -YARIM_YUKSEKLIK * oran, right: YARIM_YUKSEKLIK * oran, top: YARIM_YUKSEKLIK, bottom: -YARIM_YUKSEKLIK,
+    });
     this.kamera.updateProjectionMatrix();
     this.renderer.setSize(g, y);
+    this.kirli = true;
+  }
+
+  kameraGuncelle() {
+    this.hedef.x = Math.min(this.n, Math.max(0, this.hedef.x));
+    this.hedef.z = Math.min(this.n, Math.max(0, this.hedef.z));
+    this.kamera.position.copy(this.hedef).add(OFSET);
+    this.kamera.lookAt(this.hedef);
+    this.kamera.updateMatrixWorld(true);
+    this.gunes.position.set(this.hedef.x - 14, 34, this.hedef.z + 8);
+    this.gunes.target.position.copy(this.hedef);
+    this.gunes.target.updateMatrixWorld();
+    this.kirli = true;
+  }
+
+  ekranZemin(px, py, hedef = new THREE.Vector3()) {
+    const r = this.canvas.getBoundingClientRect();
+    const ndc = new THREE.Vector2(((px - r.left) / r.width) * 2 - 1, -((py - r.top) / r.height) * 2 + 1);
+    const rc = new THREE.Raycaster();
+    rc.setFromCamera(ndc, this.kamera);
+    return rc.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -ZEMIN_Y), hedef);
+  }
+
+  hucreBul(px, py) {
+    const p = this.ekranZemin(px, py);
+    if (!p) return null;
+    const x = Math.floor(p.x), y = Math.floor(p.z);
+    return x >= 0 && y >= 0 && x < this.n && y < this.n ? { x, y } : null;
+  }
+
+  yakinlastir(zoom, px, py) {
+    const z = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoom));
+    const once = this.ekranZemin(px, py);
+    this.kamera.zoom = z;
+    this.kamera.updateProjectionMatrix();
+    this.kamera.updateMatrixWorld(true);
+    const sonra = this.ekranZemin(px, py);
+    if (once && sonra) this.hedef.add(once.sub(sonra));
+    this.kameraGuncelle();
+  }
+
+  // ---------- giriş ----------
+  girisKur() {
+    const c = this.canvas;
+    const ptr = new Map();
+    let ank = null, surukle = false, iptal = false, pinch0 = null;
+    const orta = () => {
+      const p = [...ptr.values()];
+      return p.length === 1 ? { x: p[0].x, y: p[0].y } : { x: (p[0].x + p[1].x) / 2, y: (p[0].y + p[1].y) / 2 };
+    };
+    c.addEventListener('pointerdown', (e) => {
+      try { c.setPointerCapture(e.pointerId); } catch { /* yapay olay */ }
+      ptr.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY });
+      if (ptr.size === 1) { surukle = false; iptal = false; }
+      else { iptal = true; pinch0 = { d: Math.hypot(...[...ptr.values()].reduce((a, p, i) => (i ? [a[0] - p.x, a[1] - p.y] : [p.x, p.y]), [])), z: this.kamera.zoom }; }
+      const o = orta();
+      ank = this.ekranZemin(o.x, o.y);
+    });
+    c.addEventListener('pointermove', (e) => {
+      const p = ptr.get(e.pointerId);
+      if (!p) {
+        if (e.pointerType === 'mouse' && this.onUzerinde) { const h = this.hucreBul(e.clientX, e.clientY); if (h) this.onUzerinde(h.x, h.y); }
+        return;
+      }
+      p.x = e.clientX; p.y = e.clientY;
+      if (ptr.size === 1 && !surukle && Math.hypot(p.x - p.sx, p.y - p.sy) > 7) surukle = true;
+      if (ptr.size === 1 && !surukle) return;
+      if (ptr.size >= 2 && pinch0) {
+        const [a, b] = [...ptr.values()];
+        const dist = Math.hypot(a.x - b.x, a.y - b.y);
+        const o = orta();
+        this.kamera.zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, pinch0.z * (dist / Math.max(1, pinch0.d))));
+        this.kamera.updateProjectionMatrix();
+        this.kamera.updateMatrixWorld(true);
+        const yeni = this.ekranZemin(o.x, o.y);
+        if (ank && yeni) this.hedef.add(ank.clone().sub(yeni));
+        this.kameraGuncelle();
+        return;
+      }
+      const o = orta();
+      const yeni = this.ekranZemin(o.x, o.y);
+      if (ank && yeni) this.hedef.add(ank.clone().sub(yeni));
+      this.kameraGuncelle();
+    });
+    const bitir = (e, iptalEt) => {
+      const p = ptr.get(e.pointerId);
+      if (!p) return;
+      ptr.delete(e.pointerId);
+      if (ptr.size === 0 && !surukle && !iptal && !iptalEt && this.onTik) {
+        const h = this.hucreBul(e.clientX, e.clientY);
+        if (h) this.onTik(h.x, h.y);
+      }
+      if (ptr.size === 1) { const o = orta(); ank = this.ekranZemin(o.x, o.y); pinch0 = null; }
+    };
+    c.addEventListener('pointerup', (e) => bitir(e, false));
+    c.addEventListener('pointercancel', (e) => bitir(e, true));
+    c.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      this.yakinlastir(this.kamera.zoom * Math.exp(-e.deltaY * 0.0015), e.clientX, e.clientY);
+    }, { passive: false });
+    c.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 
   baslat() {
-    const dongu = () => { this.renderer.render(this.sahne, this.kamera); requestAnimationFrame(dongu); };
+    const dongu = () => {
+      if (this.kirli) { this.kirli = false; this.renderer.render(this.sahne, this.kamera); }
+      requestAnimationFrame(dongu);
+    };
     dongu();
   }
 }

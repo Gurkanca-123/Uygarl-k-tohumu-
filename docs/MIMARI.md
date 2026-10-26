@@ -82,3 +82,11 @@ Sıradaki: aşama 4 (MODEL_PLANI'na göre). Denge ayarı aşama 7 (bot sonucu a�
 - Çekirdek henüz `src/main.js`'e bağlı değil (derlemeye girmiyor; arayüz aşama 5).
 - Belgede belirsiz sayılar `TODO(tasarim)` yorumlarıyla işaretli (`grep -rn "TODO(tasarim)" src/data`).
 - Antik Çağ geçişi Kütüphane'yi (Felsefe, 70 BP) gerektirir; §5'teki "zorunlu yol 265" bunu saymaz (gerçek 335; beklenen ~480 içinde).
+
+## Aşama 4+5: sahne ve arayüz (Sonnet 5.5)
+- Akış: `main.js` → `Sahne` (three) + `Oyun` (denetçi) + `Arayuz`. Her durum değişiminde `Arayuz.cizim()` üst çubuğu, paneli, alt şeridi, kartı ve modalı yeniden kurar (panel kaydırma korunur); `Sahne.guncelle(durum)` karo/bina/sınır anahtarları değişince yeniden çizer.
+- Harita: karo türüne göre `InstancedMesh` (kutu), sis = `gorunurKaro === null` koyu karolar; orman ağacı, dağ tepesi, kaya süsleri; mevsim tonu `MEVSIM_STIL` (renk karışımı + ışık). Gölge açık (tek yönlü ışık, kamera hedefini izler).
+- Kamera: ortografik, (1,1,1) yönü; sürükle = zemin düzlemine çapalı kaydırma, çimdik/tekerlek = çapalı yakınlaştırma (0,55–3,4), hücre = zemin düzlemi (y=0,3) kesişimi.
+- Yerleştirme: İnşa kartı → `uygunYerler` yeşil işaretler, dokunma ile hayalet taşınır, `yerUygunMu` hatası kırmızı + metin, "İnşa et" → `insaEt`.
+- Olay penceresi bekleyen olayda tüm arayüzü kilitler (perde); seçenek gereksinimi `gereksinimMetni` ile Türkçe.
+- Çekirdek API gözlemleri (değiştirilmedi): `insaEt` başarıda `uid` döner (UI kullanıyor); başlangıç kaynakları hiçbir binaya yetmiyor (yukarı bkz.).
