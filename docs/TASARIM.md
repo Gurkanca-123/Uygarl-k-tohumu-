@@ -41,7 +41,7 @@ sağlar — oyuncu ilk 15 turda kışa hazırlanmak zorunda kalır (ilk gerilim)
 | m | Değiştiricilerin süresi −1 | 0 olan silinir |
 | n | Olay kontrolü | en fazla 1 olay, sonraki oyuncu evresinde gösterilir |
 | o | Takvim | `tur + 1`, mevsim/yıl; çağ şartları kontrolü (düğme yanar) |
-| p | Otomatik kayıt | §8 |
+| p | Otomatik kayıt | §8 — çekirdek dışında: `turIlerlet` `{ durum, bildirimler }` döner, kaydı çağıran katman yapar (`src/save` `turIlerletVeKaydet`) |
 
 ### 1.3 Önder eylemleri (`src/data/eylemler.js`)
 Yorgunluk 6 iken yalnız **Dinlen** seçilebilir. Sonuçlardaki kaynak miktarları `× (1 + 0,5 × çağSırası)` ile ölçeklenir (çağSırası 0–4).
@@ -356,7 +356,10 @@ Antik 265 / 405 / ~480 · Orta 590 / 710 / ~800. Göçebe'de bilinçli olarak da
 - `degistirici.etki`: `{ uretim:{etiket, carpan} }` · `{ huzur }` · `{ tuketim:{kaynak, carpan} }` · `{ ticaretKapali:true }` · `{ savunma }`.
 
 ### 6.2 Motor kuralları
-- İlk 5 tur olay yok (öğretici). Tur başına en fazla 1 olay.
+- **İlk olay günü `ILK_OLAY_TUR` = 6** (öğretici): olay, n adımında seçilip bir sonraki oyuncu evresinde gösterilir ve yalnız
+  gösterileceği gün (`takvim(tur + 1).gun`, 1'den sayılır) ≥ `ILK_OLAY_TUR` ise çıkar. `tur` 0'dan sayıldığı için gün 1–5
+  (tur 0–4) olaysızdır; ilk olay en erken tur 4 çözülürken seçilir ve 6. günde (`durum.tur = 5`) gösterilir. Koşuldaki
+  `turMin` da aynı gün değeriyle karşılaştırılır; bekleyen zincir olayları da bu sınırı bekler. Tur başına en fazla 1 olay.
 - Önce `tetik:'kosul'` olayları (koşulu sağlanan, beklemesi biten; öncelik `kurtarma`), yoksa rastgele:
   olasılık Göçebe 0,25 · Taş 0,25 · Bronz 0,30 · Antik 0,30 · Orta 0,35 → uygun havuzdan ağırlıklı seçim.
 - `bekleme` (varsayılan 15 tur) aynı olayın tekrarını engeller. `zincir` olayları gecikmesi dolunca kesin gelir.
@@ -433,7 +436,7 @@ Bir tur ~20–40 sn → tam oyun ~2–3 saat. Sürüm 0.1 hedefi ilk 25 tur ≈ 
 4. **Kurtarma olayı** (§6.5) çağ başına 1 kez garanti; kötü olay ağırlığı yarıya (§6.2).
 5. Serbest işler hiçbir zaman kapanmaz; bina olmadan da yiyecek üretilebilir.
 6. Yıkım %50 iade; hasar onarımı ucuz (%25).
-7. Huzur <30 iken doğum yok ama huzur hedefi yine her tur en çok 5 puan kayar (çöküş yavaş, toparlanma görünür).
+7. Huzur <40 (`DOGUM_HUZUR_MIN`, §2.5 ile aynı eşik) iken doğum yok ama huzur hedefi yine her tur en çok 5 puan kayar (çöküş yavaş, toparlanma görünür).
 
 ### 7.4 Başlangıç değerleri (`yeniOyun` ile uyumlu)
 Mevcut `yeniOyun`: yiyecek 10, odun 5, taş 0, nüfus 3 → **uyumlu, değiştirilmez; yalnız alan eklenir.**

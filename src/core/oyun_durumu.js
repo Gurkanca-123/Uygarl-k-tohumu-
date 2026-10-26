@@ -36,7 +36,7 @@ export function yeniOyun(tohum = VARSAYILAN_TOHUM) {
     huzur: HUZUR_BASLANGIC,
     acTur: 0,
     kayiplar: [],
-    onder: { yorgunluk: 0, yaraliKalan: 0, eylem: null },
+    onder: { yorgunluk: 0, yaraliKalan: 0, eylem: null, secim: null },
     binalar: [
       { uid: 'b1', id: merkez.id, x: mx, y: my, seviye: 1, insaKalan: 0, hasarli: false },
       { uid: 'b2', id: ilkCag.konut, x: mx + merkez.boyut[0], y: my, seviye: 1, insaKalan: 0, hasarli: false },
@@ -51,8 +51,5 @@ export function yeniOyun(tohum = VARSAYILAN_TOHUM) {
   };
 }
 
-// AŞAMA 1: yalnız takvim ilerler (§1.2 adım o). Mevsim/yıl `takvim(tur)` ile türetilir.
-// TODO(aşama 2): §1.2 a–n ve p adımları (önder, inşaat, bakım, üretim, tüketim, huzur, nüfus, araştırma, olay, kayıt).
-export function turIlerlet(durum) {
-  return { ...durum, tur: durum.tur + 1 };
-}
+// Tur çözümlemesi (§1.2 a–o) tur.js'de; geriye uyum için buradan da dışa aktarılır. Dönüş: { durum, bildirimler, hata? }.
+export { turIlerlet } from './tur.js';

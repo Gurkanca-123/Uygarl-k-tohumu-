@@ -3,6 +3,7 @@
 // Depolama erişimi enjekte edilir (localStorage benzeri { getItem, setItem }); böylece modül testlenebilir kalır.
 import { DURUM_SURUM, suz } from '../core/durum.js';
 import { yeniOyun } from '../core/oyun_durumu.js';
+import { turIlerlet } from '../core/tur.js';
 import { KAYIT_ANAHTAR_OTOMATIK, KAYIT_ANAHTAR_ELLE, KAYIT_BOZUK_EKI } from '../data/denge.js';
 
 export const KAYIT_SURUM = DURUM_SURUM;
@@ -54,4 +55,11 @@ export function oku(depo, anahtar, yeniTohum) {
     depo.setItem(anahtar + KAYIT_BOZUK_EKI, metin);
     return { durum: yeniOyun(yeniTohum), hata: e.message };
   }
+}
+
+// §1.2 p: otomatik kayıt çekirdeğin dışında, çağıran katmanda yapılır. Tur ilerler, hata yoksa otomatik yuvaya yazılır.
+export function turIlerletVeKaydet(depo, durum) {
+  const sonuc = turIlerlet(durum);
+  if (!sonuc.hata) kaydet(depo, ANAHTARLAR.otomatik, sonuc.durum);
+  return sonuc;
 }

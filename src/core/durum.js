@@ -41,7 +41,9 @@ export const DURUM_SEMASI = S.nesne({
   huzur: S.sayi(),
   acTur: S.sayi(),
   kayiplar: S.dizi(S.nesne({ tur: S.sayi(), adet: S.sayi() })),
-  onder: S.nesne({ yorgunluk: S.sayi(), yaraliKalan: S.sayi(), eylem: S.metin({ izinli: idler(EYLEMLER), bos: true }) }),
+  // secim: seçili eylemin parametresi (Kervan Gönder: { ver, al }); aşama 2'de eklendi, eski kayıtta yoksa null.
+  onder: S.nesne({ yorgunluk: S.sayi(), yaraliKalan: S.sayi(), eylem: S.metin({ izinli: idler(EYLEMLER), bos: true }),
+    secim: { tur: 'sozluk', bos: true } }),
   binalar: S.dizi(S.nesne({
     uid: S.metin(), id: S.metin({ izinli: idler(BINALAR) }), x: S.sayi(), y: S.sayi(),
     seviye: S.sayi(), insaKalan: S.sayi(), hasarli: 'mantik',

@@ -11,7 +11,7 @@ function sahteDepo() {
 
 test('kaydet → yükle aynı durumu verir', () => {
   let d = yeniOyun(77);
-  d = turIlerlet(turIlerlet(d));
+  d = turIlerlet(turIlerlet(d).durum).durum;
   d = { ...d, kaynaklar: { ...d.kaynaklar, alet: 3 }, buluslar: ['mizrak_ucu'], arastirma: { id: 'tas_yontma', ilerleme: 4 } };
   assert.deepEqual(yukle(serialize(d)), d);
 });
@@ -102,7 +102,7 @@ test('göçler sırayla uygulanır, eksik göç hata verir', () => {
 test('depo: kaydet/oku, kayıt yoksa null, bozuksa :bozuk yedeği + yeni oyun', () => {
   const depo = sahteDepo();
   assert.deepEqual(oku(depo, ANAHTARLAR.otomatik), { durum: null, hata: null });
-  const d = turIlerlet(yeniOyun(3));
+  const d = turIlerlet(yeniOyun(3)).durum;
   kaydet(depo, ANAHTARLAR.otomatik, d);
   assert.deepEqual(oku(depo, ANAHTARLAR.otomatik).durum, d);
 

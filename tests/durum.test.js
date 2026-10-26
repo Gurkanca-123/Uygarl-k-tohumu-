@@ -49,10 +49,10 @@ test('takvim: Bahar 1. gün başlar, 16. gün ilk kış, 21. gün 2. yıl', () =
 test('turIlerlet takvimi ilerletir, eski durumu değiştirmez', () => {
   let d = yeniOyun();
   const ilk = structuredClone(d);
-  for (let i = 0; i < 15; i++) d = turIlerlet(d);
+  for (let i = 0; i < 15; i++) { d = turIlerlet(d).durum; d.olay.aktif = null; } // olaylar bu testin konusu değil
   assert.equal(d.tur, 15);
   assert.equal(takvim(d.tur).mevsim, 'kis');
-  for (let i = 0; i < 5; i++) d = turIlerlet(d);
+  for (let i = 0; i < 5; i++) { d = turIlerlet(d).durum; d.olay.aktif = null; }
   assert.equal(takvim(d.tur).yil, 2);
   assert.deepEqual(yeniOyun(), ilk);
 });

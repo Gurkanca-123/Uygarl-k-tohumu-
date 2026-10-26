@@ -18,3 +18,14 @@
 - `docs/TASARIM.md` §11: 5 açık soru cevaplandı (kullanıcı varsayılanları onayladı).
 - Testler: 36/36 geçti (`npm test`); `npm run build` geçti.
 - Yapan: Opus 5.5.
+
+## 2026-10-26 — Aşama 2: simülasyon çekirdeği
+- `src/core/`: `turIlerlet` §1.2 a–o (tur.js birleştirici; eylem, insa, uretim, tuketim, nufus, huzur, arastirma, olay, cag, sonuc,
+  savunma, yardimci). Saf, tohumlu RNG; dönüş `{ durum, bildirimler, hata? }`. Adım p çekirdek dışında: `kayit.js` `turIlerletVeKaydet`.
+- Komutlar (`komutlar.js`): isAta, insaEt, yukselt, onar, yik, arastirmaSec, onderEylemiSec, olayCoz, cagAtla, vergiAyarla, takasYap,
+  mevsimSonunaIlerlet. Geçersiz komut durumu değiştirmez, Türkçe hata. Bekleyen olay diğer komutları kilitler.
+- Kullanıcı kararları belgeye işlendi: doğum huzur eşiği 40 (§7.3.7), `ILK_OLAY_TUR` = 6 net tanımı (§6.2: gösterim günü, gün 1–5
+  olaysız). §1.2 p notu. `denge.js`: `ATOLYE_GURULTU_CAG`, `YOL_CAG`, `KESIF_BONUS_TOPLANIR`. Şema: `onder.secim`.
+- Testler: 118 (117 geçti + 1 `todo` = §9 kabul ölçütü, denge aşama 7). `npm run build` geçti.
+- Bot (50 tohum): 50/50 bitirir, tur 30/33/46 (min/ortanca/max), 20–32 aralığında 24/50, en düşük nüfus 3. Sayı değiştirilmedi.
+- Yapan: Opus 5.5.

@@ -24,9 +24,10 @@ export const ACLIK_OLUM_TUR = 3;
 export const KEMER_SIKMA = 0.75;
 export const KEMER_SIKMA_SERBEST = 1.5;   // §7.3.3: serbest işler +%50
 export const YORGUNLUK_MAX = 6;
-export const ILK_OLAY_TUR = 6;
+export const ILK_OLAY_TUR = 6;          // olayın gösterilebileceği ilk GÜN (takvim.gun, 1'den): gün 1–5 (tur 0–4) olaysız (§6.2)
 export const OLAY_BEKLEME = 15;
 export const YOL_CEZA = 0.75;
+export const YOL_CAG = 'bronz';           // §3.4: bu çağın (ve sonrakilerin) binaları yola bağlı olmalı
 
 // --- §3.5 seviye etkileri (Sv1/Sv2/Sv3) ---
 export const SEVIYE_ISCI_EK = [0, 1, 2];
@@ -42,6 +43,7 @@ export const HUZUR_ACLIK = -15;
 export const HUZUR_ISINMA_EKSIK = -10;
 export const HUZUR_ISSIZ = -2;            // işsiz başına
 export const HUZUR_ATOLYE_GURULTU = -2;   // §3.3, Bronz+
+export const ATOLYE_GURULTU_CAG = 'bronz'; // §3.3: atölye gürültüsü bu çağdan itibaren
 export const HUZUR_CARPAN = [             // §2.4 (yukarıdan aşağı ilk sağlanan)
   { min: 70, carpan: 1.10 },
   { min: 30, carpan: 1.00 },
@@ -107,3 +109,8 @@ export const KAYIT_ANAHTAR_OTOMATIK = 'uygarlik-tohumu:otomatik';
 export const KAYIT_ANAHTAR_ELLE = 'uygarlik-tohumu:elle';
 export const KAYIT_BOZUK_EKI = ':bozuk';
 export const MEVSIM_SONU_MAX_TUR = 5;
+
+// --- Aşama 2 motor kararları (belgede sayı yok; TODO(tasarim) varsayımları) ---
+// Olay koşullarındaki `turMin` ve ILK_OLAY_TUR, olayın GÖSTERİLECEĞİ günle (takvim.gun, 1'den) karşılaştırılır.
+// Aynı kaynaktan iki "iyi sonuç" bonusu (Hayvan İzleri + Gözcü Direği) toplanır.
+export const KESIF_BONUS_TOPLANIR = true;

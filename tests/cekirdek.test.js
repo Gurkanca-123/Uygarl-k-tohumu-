@@ -8,7 +8,7 @@ test('yeni oyun Göçebe Çağı ile başlar', () => {
 
 test('tur ilerler, eski durum değişmez', () => {
   const a = yeniOyun();
-  const b = turIlerlet(a);
+  const b = turIlerlet(a).durum;
   assert.equal(b.tur, 1);
   assert.equal(a.tur, 0);
 });
