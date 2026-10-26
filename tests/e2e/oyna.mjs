@@ -28,7 +28,7 @@ async function senaryo(tarayici, ad, secenek, ekranGoruntusu0) {
   // Sekme penceresi aç/kapa olduğundan: yalnız açık değilse ya da başka sekmedeyse dokun.
   const sekmeAc = async (ad, id) => {
     const acik = await sayfa.evaluate((i) => { const a = window.__oyun.arayuz; return a.pencere === 'acik' && a.sekme === i; }, id);
-    if (!acik) await sayfa.locator('.sekmeler button', { hasText: ad }).click();
+    if (!acik) await sayfa.locator(`.sekmeler button[data-sekme="${id}"]`).click();
     await sayfa.waitForSelector(`.pencere.sag.acik`);
     await sayfa.waitForTimeout(260);
   };
@@ -138,15 +138,15 @@ async function senaryo(tarayici, ad, secenek, ekranGoruntusu0) {
       await sayfa.screenshot({ path: `${EKRAN}/is-karti.png` });
     }
     const kutuD = await sayfa.locator('.is-d.artir').boundingBox();
-    kontrol(`${ad}: kartta büyük −/+ düğmeleri (≥44px)`, kutuD.width >= 44 && kutuD.height >= 44, `${kutuD.width}×${kutuD.height}`);
+    kontrol(`${ad}: kartta −/+ düğmeleri dokunulur ama aşırı büyük değil (40–44px)`, kutuD.width >= 40 && kutuD.height >= 40 && kutuD.width <= 44 && kutuD.height <= 44, `${kutuD.width}×${kutuD.height}`);
     await dokun(sayfa.locator('.is-d.artir')); await dokun(sayfa.locator('.is-d.artir'));
     kontrol(`${ad}: kartta + ile işçi 2/2'ye çıkar, yuva dolunca + kapanır`, (await atamaN()) === 2 && await sayfa.locator('.is-d.artir').isDisabled());
     kontrol(`${ad}: rozet 2/2 gösterir`, (await sayfa.locator('.rozet').innerText()).includes('2/2'));
     await dokun(sayfa.locator('.is-d.azalt'));
     kontrol(`${ad}: kartta − ile işçi azalır`, (await atamaN()) === 1);
-    await dokun(sayfa.locator('.is-hizli button', { hasText: 'Boşalt' }));
+    await dokun(sayfa.locator('.is-hizli [data-is="bosalt"]'));
     const bos0 = await atamaN();
-    await dokun(sayfa.locator('.is-hizli button', { hasText: 'Tümünü doldur' }));
+    await dokun(sayfa.locator('.is-hizli [data-is="doldur"]'));
     kontrol(`${ad}: Boşalt / Tümünü doldur çalışır`, bos0 === 0 && (await atamaN()) === 2);
     kontrol(`${ad}: kartta tahmini üretim yazar`, (await sayfa.locator('.is-uretim').innerText()).includes('/gün'));
     // sekme ile senkron
@@ -229,12 +229,79 @@ async function senaryo(tarayici, ad, secenek, ekranGoruntusu0) {
   await ctx.close();
 }
 
+// Pencere yerleşimi: görünen pencere viewport içinde, alt şeridi/üst çubuğu örtmez, boyut sınırlarına uyar; kart içindeki düğmeler kesilmez.
+async function yerlesimKontrol(sayfa, ad, tur) {
+  await sayfa.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => 0)))); // giriş animasyonu bitsin
+  const r = await sayfa.evaluate((tur) => {
+    const W = innerWidth, H = innerHeight, sor = (q) => document.querySelector(q);
+    const el = tur === 'sekme' ? sor('.pencere.sag.acik') : sor('.pencere.kart');
+    if (!el) return { yok: true };
+    const b = el.getBoundingClientRect(), alt = sor('.alt').getBoundingClientRect(), ust = sor('.ust').getBoundingClientRect();
+    const kes = [];
+    if (tur === 'kart') {
+      for (const d of el.querySelectorAll('button')) {
+        const q = d.getBoundingClientRect();
+        if (q.width && (q.left < b.left - 1 || q.right > b.right + 1 || q.top < b.top - 1 || q.bottom > b.bottom + 1)) kes.push(d.textContent.trim() || d.className);
+      }
+    }
+    const kayan = el.querySelector('.govde'); // üstteki düğmelere ulaşmak için kaydırma gerekmesin: gövde taşmıyor ya da yalnız altbilgi (sticky) var
+    return { l: b.left, t: b.top, r: b.right, b: b.bottom, w: b.width, h: b.height, W, H, altUst: alt.top, ustAlt: ust.bottom, kes,
+      tasma: kayan ? kayan.scrollHeight - kayan.clientHeight : 0, yatayTasma: document.documentElement.scrollWidth > W };
+  }, tur);
+  if (r.yok) { kontrol(`${ad}: ${tur} penceresi bulunamadı`, false); return; }
+  const icinde = r.l >= -1 && r.t >= -1 && r.r <= r.W + 1 && r.b <= r.H + 1;
+  const orter = r.b > r.altUst + 1 || r.t < r.ustAlt - 1;
+  kontrol(`${ad}: ${tur} penceresi viewport içinde ve alt şeridi/üst çubuğu örtmez`, icinde && !orter && !r.yatayTasma, JSON.stringify({ t: Math.round(r.t), b: Math.round(r.b), altUst: Math.round(r.altUst), ustAlt: Math.round(r.ustAlt) }));
+  const sinir = tur === 'sekme' ? [0.38, 0.62] : [0.32, 0.5];
+  kontrol(`${ad}: ${tur} penceresi boyut sınırında (${Math.round(r.w)}×${Math.round(r.h)} / ${r.W}×${r.H})`, r.w <= r.W * sinir[0] + 1 && r.h <= r.H * sinir[1] + 1);
+  if (tur === 'kart') kontrol(`${ad}: kart düğmeleri kesilmez${r.kes.length ? ` (${r.kes.join(',')})` : ''}`, r.kes.length === 0);
+}
+
+// Üç ölçüde pencere yerleşimi (İş, İnşa, bina kartı, çimen kartı). EKRAN_YAZ=1 ise docs/ekran/ui2-*.png yazar (görünüm başına İş + bina kartı = en çok 6).
+async function yerlesimSenaryosu(tarayici, ad, vp, dpr, ekranAd) {
+  console.log(`\n== ${ad} ==`);
+  const ctx = await tarayici.newContext({ viewport: vp, deviceScaleFactor: dpr, hasTouch: true, isMobile: true });
+  const sayfa = await ctx.newPage();
+  const hatalar = [];
+  sayfa.on('pageerror', (e) => hatalar.push(String(e)));
+  await sayfa.goto(URL);
+  await sayfa.waitForSelector('.menu');
+  await sayfa.evaluate(() => localStorage.clear());
+  await sayfa.locator('button', { hasText: 'Yeni Oyun' }).first().click();
+  await sayfa.waitForSelector('.ust .chip');
+  await sayfa.waitForTimeout(500);
+  const yaz = process.env.EKRAN_YAZ === '1' && ekranAd;
+  const goruntu = (n) => yaz && ['is', 'bina'].includes(n) && sayfa.screenshot({ path: `${EKRAN}/ui2-${ekranAd}-${n}.png` });
+  const sekme = async (id) => { await sayfa.evaluate((i) => { const a = window.__oyun.arayuz; a.secimiKaldir(); a.sekme = i; a.pencere = 'acik'; a.yenile(); }, id); await sayfa.waitForSelector('.pencere.sag.acik'); await sayfa.waitForTimeout(350); };
+  await sekme('is'); await yerlesimKontrol(sayfa, ad, 'sekme'); await goruntu('is');
+  await sekme('insa'); await yerlesimKontrol(sayfa, ad, 'sekme'); await goruntu('insa');
+  // bina kartı: işçi yuvalı bina (Oduncu Kampı olarak geçici çevrilir) ve çimen karosu
+  await sayfa.evaluate(() => {
+    const o = window.__oyun, d = o.oyun.durum, b = d.binalar[1];
+    o.arayuz.pencereKapat(); b.id = 'oduncu_kampi'; d.atama = {}; o.arayuz.binaSec(b.uid);
+  });
+  await sayfa.waitForSelector('.pencere.kart .is-blok'); await sayfa.waitForTimeout(350);
+  await yerlesimKontrol(sayfa, ad, 'kart'); await goruntu('bina');
+  await sayfa.evaluate(() => {
+    const o = window.__oyun, d = o.oyun.durum;
+    const m = o.arayuz; const b = d.binalar[1];
+    m.secim = { tip: 'hucre', x: b.x + 3, y: b.y + 3 }; m.kartKucuk = false; m.yenile();
+  });
+  await sayfa.waitForTimeout(350);
+  await yerlesimKontrol(sayfa, ad, 'kart'); await goruntu('cimen');
+  kontrol(`${ad}: yatay taşma / konsol hatası yok`, hatalar.length === 0, hatalar.slice(0, 2).join(' | '));
+  await ctx.close();
+}
+
 let cikis = 0;
 try {
   await bekle();
   const tarayici = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
   await senaryo(tarayici, 'telefon 844×390', { viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true, deviceScaleFactor: 1 }, 'telefon');
   await senaryo(tarayici, 'masaüstü 1280×720', { viewport: { width: 1280, height: 720 } }, 'masaustu');
+  await yerlesimSenaryosu(tarayici, 'yerleşim 1000×450 dpr2', { width: 1000, height: 450 }, 2, 'p1000');
+  await yerlesimSenaryosu(tarayici, 'yerleşim 844×390', { width: 844, height: 390 }, 1, 'p844');
+  await yerlesimSenaryosu(tarayici, 'yerleşim 720×360', { width: 720, height: 360 }, 1, 'p720');
   { // ?stil=eski: eski düz görünüm (son işleme yok)
     const sayfa = await (await tarayici.newContext({ viewport: { width: 844, height: 390 } })).newPage();
     await sayfa.goto(`${URL}?stil=eski`);

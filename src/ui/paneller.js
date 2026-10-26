@@ -63,6 +63,14 @@ export function binaResmi(binaId, px = 44) {
   return kutu;
 }
 
+// Daraltılabilir bölüm başlığı: durum `a.kapaliBolum` kümesinde (oturum boyu); başlığa dokununca açılır/kapanır.
+function bolum(a, anahtar, baslik, adet, icerik) {
+  const kapali = a.kapaliBolum.has(anahtar);
+  return [h('h4', { class: `bolum${kapali ? ' kapali' : ''}`, 'aria-expanded': String(!kapali),
+    onclick: () => { if (kapali) a.kapaliBolum.delete(anahtar); else a.kapaliBolum.add(anahtar); a.yenile(); } },
+  h('span', { class: 'ok-i' }, '▾'), baslik, adet != null ? h('small', {}, adet) : null), kapali ? null : icerik];
+}
+
 // ---------- İnşa ----------
 function insaNedeni(d, b) {
   const h1 = insaEdilebilirMi(d, b.id);
@@ -106,7 +114,7 @@ export function insaSekmesi(a) {
     const neden = durumlar.get(b.id);
     const sahip = d.binalar.filter((x) => x.id === b.id).length;
     return h('div', { class: `oge insa-kart tikla${neden ? ' gri' : ''}`, onclick: () => (neden ? a.hata(neden) : a.yerlestirmeBaslat(b.id)) },
-      binaResmi(b.id, 48),
+      binaResmi(b.id, 40),
       h('div', { class: 'insa-gov' },
         h('div', { class: 'baslik' }, h('span', { class: 'ad' }, b.ad), h('span', { class: 'etiket' }, CAG[b.cag].ad)),
         h('div', { class: 'soluk kucuk' }, `${b.boyut[0]}×${b.boyut[1]} · ⏱ ${b.insaSuresi} gün${b.isci ? ` · 👷 ${b.isci}` : ''}${sahip ? ` · ${sahip} adet` : ''}`),
@@ -120,7 +128,7 @@ export function insaSekmesi(a) {
   if (a.insaKat === 'hepsi') {
     for (const [id, ad, ik] of kats.slice(1)) {
       const xs = secili.filter((b) => kategoriDe(b) === id);
-      if (xs.length) { govde.push(h('h4', {}, `${ik} ${ad}`)); govde.push(sirali(xs).map(kart)); }
+      if (xs.length) govde.push(bolum(a, `insa:${id}`, `${ik} ${ad}`, xs.length, sirali(xs).map(kart)));
     }
   } else govde.push(sirali(secili).map(kart));
   if (!secili.length) govde.push(h('div', { class: 'bos' }, 'Bu filtreyle kurulabilir bina yok.'));
@@ -138,11 +146,12 @@ function sayac(a, hedef, deger, ust, issiz) {
 export function isSekmesi(a) {
   const d = a.d;
   const issiz = issizSayisi(d);
+  const yarali = yaraliSayisi(d), evsiz = evsizSayisi(d);
   const ust = h('div', { class: `oge ozet${issiz > 0 ? ' dikkat' : ''}` },
-    h('div', { class: 'baslik' }, h('span', {}, issiz > 0 ? `👥 ${issiz} kişi boşta` : '✓ Herkesin işi var'), h('span', { class: 'soluk kucuk' }, `Nüfus ${d.nufus} · barınak ${barinmaKapasitesi(d)}`)),
-    issiz > 0 ? h('div', { class: 'neden' }, 'İşsizler huzuru düşürür; aşağıdan + ile iş ver.') : null,
-    yaraliSayisi(d) ? h('div', { class: 'soluk kucuk' }, `Yaralı: ${yaraliSayisi(d)}`) : null,
-    evsizSayisi(d) ? h('div', { class: 'neden' }, `Evsiz: ${evsizSayisi(d)} (konut kur)`) : null);
+    h('div', { class: 'baslik' }, h('span', {}, issiz > 0 ? `👥 ${issiz} kişi boşta` : '✓ Herkesin işi var'),
+      h('span', { class: 'soluk kucuk' }, `Nüfus ${d.nufus}/${barinmaKapasitesi(d)}${yarali ? ` · yaralı ${yarali}` : ''}`)),
+    issiz > 0 ? h('div', { class: 'neden' }, 'İşsizler huzuru düşürür; + ile iş ver.') : null,
+    evsiz ? h('div', { class: 'neden' }, `Evsiz: ${evsiz} (konut kur)`) : null);
   const satir = (ad, alt, hedef, n, yuva) => h('div', { class: 'oge is-satir' },
     h('div', { class: 'is-ad' }, h('b', {}, ad), h('div', { class: 'soluk kucuk' }, alt)), sayac(a, hedef, n, yuva, issiz));
   const serbest = SERBEST_ISLER.map((is) => {
@@ -155,7 +164,7 @@ export function isSekmesi(a) {
     const isi = binaIsi(d, b);
     return satir(t.ad, isi === 'insa' ? 'inşaatta' : b.hasarli ? 'hasarlı' : (uretimMetni(t.uretim) || 'çalışıyor'), b.uid, d.atama[b.uid] || 0, isciYuvasi(b));
   });
-  return h('div', {}, ust, h('h4', {}, 'Serbest işler'), serbest, binalar.length ? h('h4', {}, 'Bina yuvaları') : null, binalar);
+  return h('div', {}, ust, bolum(a, 'is:serbest', 'Serbest işler', serbest.length, serbest), binalar.length ? bolum(a, 'is:bina', 'Bina yuvaları', binalar.length, binalar) : null);
 }
 
 // ---------- Araştırma ----------
@@ -292,22 +301,21 @@ function isciBlogu(a, b, t, yuva) {
   const simdi = uretimOf(d);
   const bir = n < yuva && issiz > 0 ? uretimOf(isAta(d, b.uid, n + 1).durum) : null;
   const girdili = Object.keys(t.girdi || {}).length > 0;
-  const uretimSatiri = girdili
-    ? h('div', { class: 'soluk kucuk' }, `Dönüşüm: işçi başına ${uretimMetni(t.girdi).replace(/\+/g, '')} → ${uretimMetni(t.uretim)}`)
-    : h('div', { class: 'is-uretim' }, h('span', { class: 'soluk kucuk' }, 'Tahmini üretim'), ' ',
-      h('b', { class: Object.keys(simdi).length ? 'ok' : 'soluk' }, `${uretimMetni(simdi) || '—'}/gün`),
-      bir && Object.keys(bir).length ? h('span', { class: 'soluk kucuk' }, `  (+1 işçi: ${uretimMetni(bir)})`) : null);
+  const uretimMet = girdili
+    ? h('span', {}, `Dönüşüm: işçi başına ${uretimMetni(t.girdi).replace(/\+/g, '')} → ${uretimMetni(t.uretim)}`)
+    : h('span', { class: 'is-uretim' }, 'Üretim ', h('b', { class: Object.keys(simdi).length ? 'ok' : 'soluk' }, `${uretimMetni(simdi) || '—'}/gün`),
+      bir && Object.keys(bir).length ? h('span', { class: 'soluk' }, ` (+1: ${uretimMetni(bir)})`) : null);
   return h('div', { class: 'is-blok' },
     h('div', { class: 'is-sayac' },
       h('button', { class: 'is-d azalt', 'data-is': 'azalt', disabled: !!azl, 'aria-label': 'Bir işçi çıkar', onclick: () => a.islem(isAta, b.uid, n - 1) }, '−'),
-      h('div', { class: `is-sayi${n === 0 ? ' bos' : ''}`, 'data-is': 'sayi' }, h('b', {}, n), h('span', {}, `/${yuva}`), h('small', {}, '👷 işçi')),
-      h('button', { class: 'is-d artir', 'data-is': 'artir', disabled: !!art, 'aria-label': 'Bir işçi ekle', onclick: () => a.islem(isAta, b.uid, n + 1) }, '+')),
-    h('div', { class: `is-issiz${issiz > 0 ? ' var' : ''}` }, `İşsiz: ${issiz}`, gercek < n ? `  ·  çalışan ${gercek} (yaralı var)` : ''),
-    art && !kilit && n < yuva ? h('div', { class: 'neden' }, art) : null,
-    h('div', { class: 'dugmeler is-hizli' },
-      h('button', { 'data-is': 'doldur', disabled: kilit || hedefDoldur <= n, onclick: () => a.islem(isAta, b.uid, hedefDoldur) }, 'Tümünü doldur'),
-      h('button', { 'data-is': 'bosalt', disabled: kilit || n <= 0, onclick: () => a.islem(isAta, b.uid, 0) }, 'Boşalt')),
-    uretimSatiri);
+      h('div', { class: `is-sayi${n === 0 ? ' bos' : ''}`, 'data-is': 'sayi', title: 'işçi' }, h('b', {}, n), h('span', {}, `/${yuva}`)),
+      h('button', { class: 'is-d artir', 'data-is': 'artir', disabled: !!art, 'aria-label': 'Bir işçi ekle', onclick: () => a.islem(isAta, b.uid, n + 1) }, '+'),
+      h('div', { class: 'is-hizli' },
+        h('button', { 'data-is': 'doldur', title: 'Tümünü doldur', 'aria-label': 'Tümünü doldur', disabled: kilit || hedefDoldur <= n, onclick: () => a.islem(isAta, b.uid, hedefDoldur) }, 'Dol'),
+        h('button', { 'data-is': 'bosalt', title: 'Boşalt', 'aria-label': 'Boşalt', disabled: kilit || n <= 0, onclick: () => a.islem(isAta, b.uid, 0) }, 'Boş'))),
+    h('div', { class: 'is-bilgi' },
+      h('span', { class: `is-issiz${issiz > 0 ? ' var' : ''}` }, `👷 İşsiz ${issiz}`, gercek < n ? ` · çalışan ${gercek}` : ''), uretimMet),
+    art && !kilit && n < yuva ? h('div', { class: 'neden' }, art) : null);
 }
 
 // ---------- Bilgi kartı (içerik; pencere kabuğunu arayuz.js çizer) ----------
@@ -330,7 +338,7 @@ export function binaKarti(a, b) {
     dugmeler.push(h('button', { class: onay ? 'kotu' : '', onclick: () => (onay ? a.yik(b.uid) : a.yikOnayla(b.uid)) }, onay ? 'Emin misin? Yık' : '🗑 Yık'));
   }
   const govde = [
-    h('div', { class: 'kart-ust' }, binaResmi(b.id, 52), h('div', {},
+    h('div', { class: 'kart-ust' }, binaResmi(b.id, 36), h('div', {},
       h('div', { class: `durum-rozet ${durumSinif}` }, durum),
       h('div', { class: 'soluk kucuk', style: 'margin-top:3px' }, `${t.aciklama || ''}`))),
     yuva ? isciBlogu(a, b, t, yuva) : null,

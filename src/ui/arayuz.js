@@ -40,7 +40,7 @@ export class Arayuz {
     this.insaKat = 'hepsi'; this.insaSadeceAcik = false;
     this.secim = null; this.yerlestirme = null; this.yikOnay = null; this.kervanSecim = null;
     this.menuAcik = false; this.menuSayfa = 'ana'; this.yeniOnay = false; this.gunlukAcik = false; this.zaferGoster = null;
-    this.scrollTop = {}; this.sonSekme = null;
+    this.scrollTop = {}; this.sonSekme = null; this.kapaliBolum = new Set();
     this.ogretici = new Ogretici(this);
     donusPerdesiKur();
     tamEkranDinle(() => this.yenile());
@@ -71,7 +71,7 @@ export class Arayuz {
     this.rayEl = h('div', { class: 'sekmeler' });
     this.rayDugme = {};
     for (const [id, ik, ad] of SEKMELER) {
-      const d = h('button', { 'data-sekme': id, 'aria-label': ad, onclick: () => this.sekmeTikla(id) }, h('span', {}, ik), ad);
+      const d = h('button', { 'data-sekme': id, 'aria-label': ad, title: ad, onclick: () => this.sekmeTikla(id) }, h('span', {}, ik));
       this.rayDugme[id] = d; this.rayEl.append(d);
     }
     this.pIkon = h('span', { class: 'p-ikon' });
