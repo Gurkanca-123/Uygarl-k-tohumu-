@@ -2,14 +2,16 @@
 import { KAYNAKLAR } from '../data/kaynaklar.js';
 import { BINALAR } from '../data/binalar.js';
 import { OLAYLAR } from '../data/olaylar.js';
-import { insaEt, olayCoz, cagAtla } from '../core/komutlar.js';
+import { insaEt, insaEtCok, olayCoz, cagAtla } from '../core/komutlar.js';
 import { yik } from '../core/komutlar.js';
 import { secenekUygunMu } from '../core/olay.js';
 import { bilgiUretimi } from '../core/arastirma.js';
 import { takvim } from '../core/takvim.js';
 import { kaynakAcik, depoTavani, mevcutCag, binaBul, barinmaKapasitesi, issizSayisi, isciYuvasi, binaIsi } from '../core/yardimci.js';
 import { maliyetHesapla } from '../core/insa.js';
-import { yerUygunMu, uygunYerler } from '../world/yerlestir.js';
+import { yerUygunMu, uygunYerler, yerBaglami } from '../world/yerlestir.js';
+import { cevreDurumu } from '../world/cevre.js';
+import { tehditCipi, tehditPenceresi } from './tehdit.js';
 import { merkezNokta } from '../world/harita.js';
 import { h, yuvarla, depoOku, depoYaz, tamEkranDestekli, tamEkranMi, tamEkranAcKapa, tamEkranDinle, donusPerdesiKur } from './dom.js';
 import {
@@ -38,7 +40,7 @@ export class Arayuz {
     this.ayar = depoOku('ut_ayar', { kalite: 'yuksek', ses: false });
     this.kartKucuk = false; this.kartAnahtar = null; this.modalAnahtar = null;
     this.insaKat = 'hepsi'; this.insaSadeceAcik = false;
-    this.secim = null; this.yerlestirme = null; this.yikOnay = null; this.kervanSecim = null;
+    this.secim = null; this.yerlestirme = null; this.yikOnay = null; this.kervanSecim = null; this.tehditAcik = false; this.tehditKucuk = false; this.sonTehditId = null;
     this.menuAcik = false; this.menuSayfa = 'ana'; this.yeniOnay = false; this.gunlukAcik = false; this.zaferGoster = null;
     this.scrollTop = {}; this.sonSekme = null;
     this.ogretici = new Ogretici(this);
@@ -49,6 +51,7 @@ export class Arayuz {
     oyun.dinle((tip, veri) => this.olay(tip, veri));
     sahne.onTik = (x, y) => this.hucreTik(x, y);
     sahne.onKare = () => this.rozetKonumla();
+    sahne.onCizim = (x, y, faz) => this.cizimOlay(x, y, faz);
     sahne.onUzerinde = (x, y) => { if (this.yerlestirme && !this.sahneDokunmatik) this.yerlestirmeKonum(x, y); };
   }
 
@@ -91,7 +94,7 @@ export class Arayuz {
   // ---------- pencere durumu ----------
   sekmeTikla(id) {
     if (this.sekme === id && this.pencere === 'acik') this.pencere = 'kapali';
-    else { this.sekme = id; this.pencere = 'acik'; if (this.secim) this.kartKucuk = true; } // en çok 1 büyük pencere
+    else { this.sekme = id; this.pencere = 'acik'; if (this.secim) this.kartKucuk = true; if (this.tehditAcik) this.tehditKucuk = true; } // en çok 1 büyük pencere
     this.kaydetUi(); this.yenile();
   }
   pencereKucult() { this.pencere = this.pencere === 'kucuk' ? 'acik' : 'kucuk'; this.kaydetUi(); this.yenile(); }
@@ -162,7 +165,7 @@ export class Arayuz {
   // kart zaten 44px+ düğmeler, üretim önizlemesi ve nedenleri gösterir.
   rozetKur(d) {
     const sec = this.secim?.tip === 'bina' ? this.secim.uid : null;
-    const liste = this.yerlestirme || d.olay.aktif ? [] : d.binalar.filter((b) => isciYuvasi(b) > 0 && (!binaIsi(d, b) || b.uid === sec));
+    const liste = this.yerlestirme || d.olay.aktif ? [] : d.binalar.filter((b) => b.uid === sec && isciYuvasi(b) > 0 && !binaIsi(d, b)); // yalnız seçili bina: tüm binalara rozet haritayı doldurup üst üste biniyordu (boşta işçi: üst çubuktaki 👥 çipi İş sekmesini açar)
     const anahtar = JSON.stringify([liste.map((b) => [b.uid, d.atama[b.uid] || 0, isciYuvasi(b), b.hasarli]), sec, issizSayisi(d)]);
     if (anahtar === this.rozetAnahtar) return;
     this.rozetAnahtar = anahtar;
@@ -207,7 +210,7 @@ export class Arayuz {
     const b = this.d && binaBul(this.d, uid);
     if (!b) return;
     if (this.pencere !== 'kapali') { this.pencere = 'kapali'; this.kaydetUi(); }
-    this.yikOnay = null;
+    this.yikOnay = null; this.tehditAcik = false;
     this.secim = { tip: 'bina', uid };
     this.kartKucuk = false;
     this.yenile();
@@ -216,10 +219,11 @@ export class Arayuz {
   hucreTik(x, y) {
     this.sahneDokunmatik = true;
     if (!this.d) return;
+    if (this.yerlestirme?.cizim) return; // çizimde dokunuş sahne tarafında işlenir (sürükle) ya da kaydırma kipindedir
     if (this.yerlestirme) { this.yerlestirmeKonum(x, y, true); return; }
     if (this.pencere !== 'kapali') { this.pencere = 'kapali'; this.kaydetUi(); } // haritaya dokununca pencere kapanır
     const b = this.sahne.hucredekiBina(x, y);
-    this.yikOnay = null;
+    this.yikOnay = null; this.tehditAcik = false;
     this.secim = b ? { tip: 'bina', uid: b.uid } : { tip: 'hucre', x, y };
     this.kartKucuk = false;
     this.yenile();
@@ -229,6 +233,7 @@ export class Arayuz {
   yerlestirmeBaslat(binaId, koru = false) {
     const d = this.d;
     const t = BINA[binaId];
+    if (t.cevre) { this.cizimBaslat(binaId, koru); return; }
     const yerler = uygunYerler(d, binaId);
     this.sahne.uygunIsaretleri(yerler, t.boyut[0], t.boyut[1]);
     if (!koru || !this.yerlestirme) {
@@ -254,8 +259,125 @@ export class Arayuz {
 
   yerlestirmeGoster() {
     const y = this.yerlestirme;
+    if (y.cizim) { this.cizimGoster(); return; }
     y.hata = yerUygunMu(this.d, y.binaId, y.x, y.y);
     this.sahne.yerlestirme({ binaId: y.binaId, x: y.x, y: y.y, hata: y.hata });
+  }
+
+
+  tehditTikla() {
+    this.tehditAcik = !this.tehditAcik;
+    if (this.tehditAcik) { this.secim = null; this.tehditKucuk = false; if (this.pencere !== 'kapali') { this.pencere = 'kapali'; this.kaydetUi(); } }
+    this.yenile();
+  }
+
+  // ---------- çit / sur çizme (sürükleyerek) ----------
+  // yerlestirme = { binaId, cizim: true, hucreler: [[x, y]], satirlar: [[x, y, hata]], gecerli, alinabilir, siliyor, kaydir }
+  cizimBaslat(binaId, koru = false) {
+    if (koru && this.yerlestirme?.cizim) { this.cizimGoster(); this.yenile(); return; }
+    this.yerlestirme = { binaId, cizim: true, hucreler: [], satirlar: [], gecerli: [], alinabilir: 0, siliyor: false, kaydir: false, son: null };
+    this.secim = null; this.sahne.secim(null); this.tehditAcik = false;
+    this.pencere = 'kapali'; this.kaydetUi();
+    this.sahne.uygunIsaretleri([], 1, 1);
+    this.sahne.cizimKipi(true);
+    const c = this.cevreBilgi();
+    if (c.bosluklar.length) this.sahne.uygunIsaretleri(c.bosluklar, 1, 1); // yeşil işaretler: halkadaki boşluk
+    this.cizimGoster();
+    this.yenile();
+  }
+
+  cevreBilgi() {
+    if (this._cevreD !== this.d) { this._cevreD = this.d; this._cevre = cevreDurumu(this.d); }
+    return this._cevre;
+  }
+
+  cizimOlay(x, y, faz) {
+    const c = this.yerlestirme;
+    if (!c?.cizim) return;
+    if (faz === 'basla') { c.siliyor = c.hucreler.some(([a, b]) => a === x && b === y); c.son = null; this.cizimNokta(x, y); }
+    else if (faz === 'surukle') this.cizimNokta(x, y);
+    else c.son = null;
+  }
+
+  // Son hücreden (x, y)'ye 4 yönlü yürür; hızlı parmak hareketinde boşluk kalmaz, çapraz geçişte köşe eklenir.
+  cizimNokta(x, y) {
+    const c = this.yerlestirme;
+    let [cx, cy] = c.son || [x, y];
+    if (!c.son) this.cizimUygula(cx, cy);
+    let degisti = !c.son;
+    while ((cx !== x || cy !== y) && c.hucreler.length < 300) {
+      if (Math.abs(x - cx) >= Math.abs(y - cy)) cx += Math.sign(x - cx); else cy += Math.sign(y - cy);
+      this.cizimUygula(cx, cy); degisti = true;
+    }
+    c.son = [x, y];
+    if (degisti) { this.cizimGoster(); this.alt(this.d); this.cubuk(this.d); }
+  }
+
+  cizimUygula(x, y) {
+    const c = this.yerlestirme;
+    const i = c.hucreler.findIndex(([a, b]) => a === x && b === y);
+    if (c.siliyor) { if (i >= 0) c.hucreler.splice(i, 1); } else if (i < 0) c.hucreler.push([x, y]);
+  }
+
+  cizimGoster() {
+    const c = this.yerlestirme, d = this.d;
+    const baglam = yerBaglami(d);
+    c.satirlar = c.hucreler.map(([x, y]) => [x, y, yerUygunMu(d, c.binaId, x, y, baglam)]);
+    c.gecerli = c.satirlar.filter((s) => !s[2]);
+    const m = maliyetHesapla(d, c.binaId);
+    c.alinabilir = Math.min(...Object.entries(m).map(([r, v]) => (v > 0 ? Math.floor(((d.kaynaklar[r] || 0) + 1e-9) / v) : Infinity)), Infinity);
+    c.maliyet = Object.fromEntries(Object.entries(m).map(([r, v]) => [r, v * Math.min(c.gecerli.length, c.alinabilir)]));
+    this.sahne.cizimOnizleme(c.binaId, c.satirlar);
+  }
+
+  cizimGeriAl() {
+    const c = this.yerlestirme;
+    if (!c?.cizim || !c.hucreler.length) return;
+    c.hucreler.pop(); c.son = null;
+    this.cizimGoster(); this.yenile();
+  }
+
+  cizimKaydirTikla() {
+    const c = this.yerlestirme;
+    c.kaydir = !c.kaydir; c.son = null;
+    this.sahne.cizimKipi(!c.kaydir);
+    this.yenile();
+  }
+
+  cizimOnayla() {
+    const c = this.yerlestirme;
+    if (!c.gecerli.length) return;
+    const r = this.oyun.komut(insaEtCok, c.binaId, c.gecerli.map(([x, y]) => [x, y]));
+    if (r.hata) return;
+    this.yerlestirme = null;
+    this.sahne.yerlestirme(null);
+    const ad = BINA[c.binaId].ad.toLowerCase();
+    const cd = cevreDurumu(this.d);
+    const satirlar = [{ metin: `${r.kurulan.length} ${ad} parçası inşa ediliyor${r.atlanan.length ? ` (${r.atlanan.length} atlandı)` : ''}.`, seviye: 'iyi' }];
+    if (cd.kapali) satirlar.push({ metin: 'Köy çevresi kapandı; kapalı halka savunma bonusu verir.', seviye: 'iyi' });
+    else if (cd.bosluk != null) satirlar.push({ metin: `Halkayı kapatmak için ${cd.bosluk} parça daha gerek.`, seviye: 'bilgi' });
+    this.toast(satirlar);
+    this.yenile();
+  }
+
+  cizimAlt(d, y) {
+    const t = BINA[y.binaId];
+    const gecersiz = y.satirlar.length - y.gecerli.length;
+    const fazla = Math.max(0, y.gecerli.length - y.alinabilir);
+    const c = this.cevreBilgi();
+    let bilgi;
+    if (!y.hucreler.length) bilgi = h('div', { class: 'kucuk' }, y.kaydir ? '✋ Kaydırma açık · çizmek için ✏ seç' : `✏ Parmağınla sürükleyerek ${t.ad.toLowerCase()} çiz`);
+    else bilgi = h('div', { class: 'kucuk' }, `${y.gecerli.length} parça`, gecersiz ? ` · ${gecersiz} uygunsuz (kırmızı)` : '', fazla ? ` · kaynak ${y.alinabilir} parçaya yeter` : '');
+    return [
+      h('button', { class: 'buyuk', onclick: () => this.yerlestirmeIptal() }, '✕ İptal'),
+      h('button', { class: 'buyuk', disabled: !y.hucreler.length, 'aria-label': 'Geri al', onclick: () => this.cizimGeriAl() }, '↶'),
+      h('button', { class: `buyuk${y.kaydir ? '' : ' vurgu'}`, 'aria-label': y.kaydir ? 'Çizim kipine geç' : 'Kaydırma kipine geç', onclick: () => this.cizimKaydirTikla() }, y.kaydir ? '✏' : '✋'),
+      h('div', { class: 'alt-orta yer-bilgi' },
+        h('div', { class: 'yer-ad' }, binaResmi(y.binaId, 28), h('b', {}, t.ad), maliyetChips(d, y.gecerli.length ? y.maliyet : maliyetHesapla(d, y.binaId))),
+        bilgi,
+        c.parca && !c.kapali ? h('div', { class: 'soluk kucuk' }, c.bosluk != null ? `Halka açık: ${c.bosluk} parça eksik (yeşil işaretler)` : 'Halka açık') : null),
+      h('button', { class: 'buyuk iyi', disabled: !y.gecerli.length || !y.alinabilir, onclick: () => this.cizimOnayla() }, `✓ Kur${y.gecerli.length ? ` (${Math.min(y.gecerli.length, y.alinabilir)})` : ''}`),
+    ];
   }
 
   yerlestirmeIptal() { this.yerlestirme = null; this.sahne.yerlestirme(null); this.yenile(); }
@@ -290,6 +412,7 @@ export class Arayuz {
 
   yerlestirmeGostermeden() {
     const y = this.yerlestirme;
+    if (y.cizim) { this.cizimGoster(); return; }
     y.hata = yerUygunMu(this.d, y.binaId, y.x, y.y);
   }
 
@@ -310,9 +433,11 @@ export class Arayuz {
     const durumlar = [
       h('div', { class: 'chip bp', title: 'Bilgi Puanı' }, h('span', { class: 'sim' }, '💡'), h('b', {}, `+${yuvarla(bilgiUretimi(d))}`), h('small', {}, 'BP/gün')),
       h('div', { class: `chip huzur ${huzurSinif}`, title: 'Huzur', style: `--oran:${Math.max(0, Math.min(100, d.huzur))}%` }, h('span', { class: 'sim' }, '😊'), h('b', {}, Math.round(d.huzur))),
-      h('div', { class: `chip${d.nufus > bar ? ' uyari' : ''}`, title: `Nüfus / barınak${isz > 0 ? ` · ${isz} işsiz` : ''}` }, h('span', { class: 'sim' }, '👥'), h('b', {}, d.nufus), h('small', {}, `/${bar}`),
+      h('div', { class: `chip nufus${d.nufus > bar ? ' uyari' : ''}${isz > 0 ? ' tikla' : ''}`, title: `Nüfus / barınak${isz > 0 ? ` · ${isz} işsiz (İş sekmesini açar)` : ''}`, onclick: () => { if (isz > 0) { this.sekme = 'is'; this.pencere = 'acik'; this.kaydetUi(); this.yenile(); } } }, h('span', { class: 'sim' }, '👥'), h('b', {}, d.nufus), h('small', {}, `/${bar}`),
         isz > 0 ? h('span', { class: 'azl' }, `${isz} boşta`) : null),
     ];
+    const tc = tehditCipi(d, () => this.tehditTikla());
+    if (tc) durumlar.unshift(tc);
     if (d.istatistik?.serbestKip) durumlar.unshift(h('div', { class: 'chip dolu' }, '🏆 Serbest'));
     const gunler = [0, 1, 2, 3, 4].map((i) => h('i', { class: i < t.mevsimGunu ? 'dolu' : '' }));
     this.ustEl.replaceChildren(
@@ -346,6 +471,7 @@ export class Arayuz {
   alt(d) {
     const y = this.yerlestirme;
     this.altEl.className = `alt${y ? ' yerlesme' : ''}`;
+    if (y?.cizim) { this.altEl.replaceChildren(...this.cizimAlt(d, y)); return; }
     if (y) {
       const t = BINA[y.binaId];
       this.altEl.replaceChildren(
@@ -374,6 +500,26 @@ export class Arayuz {
 
   kart(d) {
     let ic = null, anahtar = null;
+    if (!this.d.tehdit) this.tehditAcik = false;
+    const aktifId = d.tehdit?.aktif?.id || null;
+    if (aktifId !== this.sonTehditId) { // yeni uyarı: pencere kendiliğinden açılır (oyunu durdurmaz); tehdit bitince kapanır
+      this.sonTehditId = aktifId;
+      if (aktifId && !this.yerlestirme && !d.olay.aktif) { this.tehditAcik = true; this.secim = null; this.tehditKucuk = false; }
+      else if (!aktifId) this.tehditAcik = false;
+    }
+    this.kok.classList.toggle('tehdit-acik', !!(this.tehditAcik && d.tehdit && !this.yerlestirme));
+    if (!this.yerlestirme && this.tehditAcik && d.tehdit) {
+      const p = tehditPenceresi(this, d);
+      ic = { baslik: p.baslik, ikon: p.ikon, govde: p.govde }; anahtar = 'tehdit';
+      const eski = this.kartEl.querySelector('.govde')?.scrollTop ?? 0;
+      const gir = anahtar !== this.kartAnahtar;
+      this.kartAnahtar = anahtar;
+      const el = this.pencereKabuk({ ...ic, kucuk: this.tehditKucuk, sinif: `kart sol acik tehdit-pencere${gir ? ' gir' : ''}`,
+        kucult: () => { this.tehditKucuk = !this.tehditKucuk; this.yenile(); }, kapat: () => { this.tehditAcik = false; this.yenile(); } });
+      this.kartEl.replaceChildren(el);
+      const g = el.querySelector('.govde'); if (g && !gir) g.scrollTop = eski;
+      return;
+    }
     if (!this.yerlestirme && this.secim) {
       if (this.secim.tip === 'bina') { const b = binaBul(d, this.secim.uid); if (b) { ic = binaKarti(this, b); anahtar = `b${b.uid}`; } }
       else { ic = hucreKarti(this, this.secim.x, this.secim.y); anahtar = `h${this.secim.x},${this.secim.y}`; }
@@ -393,7 +539,7 @@ export class Arayuz {
   cubuk(d) {
     const y = this.yerlestirme;
     if (!y) { this.cubukEl.replaceChildren(); return; }
-    this.cubukEl.replaceChildren(h('div', { class: 'yer-ipucu' }, '👆 Haritada dokunarak yer seç'));
+    this.cubukEl.replaceChildren(h('div', { class: 'yer-ipucu' }, y.cizim ? (y.kaydir ? '✋ Parmağınla haritayı kaydır' : '✏ Sürükleyerek çiz · iki parmakla kaydır · aynı hücreden başlayıp silebilirsin') : '👆 Haritada dokunarak yer seç'));
   }
 
   // ---------- modallar (pencere biçiminde) ----------

@@ -193,3 +193,15 @@ function enKucukKesim(d, h, sinir) {
   }
   return kesim.length === akis ? kesim : kesim.slice(0, akis);
 }
+
+// Çit/sur modelleri için komşu bağlantı maskesi (render okur): 1 = +x, 2 = −x, 4 = +y, 8 = −y.
+// hucreler: [[x, y]] → Map("x,y" → maske). Yalnız 4 yönlü kenar komşuları sayılır.
+export function baglantiMaskeleri(hucreler) {
+  const var_ = new Set(hucreler.map(([x, y]) => `${x},${y}`));
+  const m = new Map();
+  for (const [x, y] of hucreler) {
+    m.set(`${x},${y}`, (var_.has(`${x + 1},${y}`) ? 1 : 0) | (var_.has(`${x - 1},${y}`) ? 2 : 0)
+      | (var_.has(`${x},${y + 1}`) ? 4 : 0) | (var_.has(`${x},${y - 1}`) ? 8 : 0));
+  }
+  return m;
+}

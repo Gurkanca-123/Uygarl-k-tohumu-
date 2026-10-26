@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { durum, binaEkle, karoKoy, K } from './yardimci/durum.js';
-import { cevreDurumu, cevreKapali } from '../src/world/cevre.js';
+import { cevreDurumu, cevreKapali, baglantiMaskeleri } from '../src/world/cevre.js';
 import { savunmaHesapla, savunmaDokum, cevreSavunmasi } from '../src/core/savunma.js';
 import { insaEtCok, insaEt, maliyetHesapla, suankiInsaatSayisi } from '../src/core/insa.js';
 
@@ -106,4 +106,13 @@ test('çit: maliyet adetle büyümez, eşzamanlı inşaat sınırına sayılmaz,
   assert.equal(suankiInsaatSayisi(r.durum), 0);
   const c = insaEt(r.durum, 'cadir', K + 3, K + 3); // Göçebe sınırı 1: çitler sınırı doldurmaz
   assert.equal(c.hata, undefined);
+});
+
+test('bağlantı maskesi: yalnız kenar komşuları (1=+x, 2=−x, 4=+y, 8=−y), çapraz sayılmaz', () => {
+  const m = baglantiMaskeleri([[0, 0], [1, 0], [2, 0], [2, 1], [3, 3]]);
+  assert.equal(m.get('0,0'), 1);
+  assert.equal(m.get('1,0'), 1 | 2);
+  assert.equal(m.get('2,0'), 2 | 4);
+  assert.equal(m.get('2,1'), 8);
+  assert.equal(m.get('3,3'), 0);
 });
