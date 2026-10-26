@@ -280,7 +280,7 @@ maliyet 200 yiyecek, 150 taş, 80 mermer, 100 sikke, 50 metal.
 
 ### 4.5 Orta Çağ (`ortacag`) — hedef ~100 tur, nüfus 90 → 150 (son çağ)
 **Ana sorun:** kuşatmalar ve salgın (Kara Ölüm) altında büyük anıtı (Katedral) bitirmek; lonca/bakım yükü.
-**Merkez:** Şehir Meydanı: huzur +10, depo 300, +2,5 BP. **Konut:** Yarı Ahşap Ev (bkz. açık soru 4). **Açılan eylem:** Turnuva Düzenle.
+**Merkez:** Şehir Meydanı: huzur +10, depo 300, +2,5 BP. **Konut:** Yarı Ahşap Ev (karar §11.4; "Surlu şehir" çağın kimliği). **Açılan eylem:** Turnuva Düzenle.
 
 | Bina | id | Boyut | Maliyet | Süre | İşçi | Etki / üretim | Açılış |
 |---|---|---|---|---|---|---|---|
@@ -297,7 +297,7 @@ maliyet 200 yiyecek, 150 taş, 80 mermer, 100 sikke, 50 metal.
 | Katedral | `katedral` | 3×3 | 300 taş, 100 mermer, 150 sikke, 40 kumaş, 30 kitap | 20 | — | huzur +30; anıt; tamamlanınca **zafer** şartı | Gotik Mimari |
 
 **Yeni kaynaklar:** kumaş, kitap.
-**Zafer:** Katedral tamamlandı · nüfus ≥150. Zaferden sonra oyun serbest kipte sürer (bkz. açık soru 5).
+**Zafer:** Katedral tamamlandı · nüfus ≥150. Zaferden sonra oyun serbest kipte sürer (karar §11.5).
 
 ---
 
@@ -427,7 +427,7 @@ Bir tur ~20–40 sn → tam oyun ~2–3 saat. Sürüm 0.1 hedefi ilk 25 tur ≈ 
   Orta Çağ Katedral taşı 300 = tavan; Ambar gibi depolarla rahatlar.
 
 ### 7.3 Ölüm sarmalından kaçınma (zorunlu kurallar)
-1. Nüfus **2'nin altına inmez**; oyunda yenilgi yoktur (bkz. açık soru 2).
+1. Nüfus **2'nin altına inmez**; oyunda yenilgi yoktur (karar §11.2).
 2. **Kayıp kilidi:** her 3 turluk pencerede en çok `max(1, floor(nüfus × 0,05))` kişi kaybedilir (açlık + göç + hastalık + saldırı toplamı).
 3. **Kemer sıkma:** `acTur ≥ 1` iken yiyecek tüketimi ×0,75 ve serbest işler +%50.
 4. **Kurtarma olayı** (§6.5) çağ başına 1 kez garanti; kötü olay ağırlığı yarıya (§6.2).
@@ -531,9 +531,9 @@ Not: `nufus` sayı olarak kalır (mevcut testlerle uyum). Birim saymanın kural�
 
 ---
 
-## 11. Açık sorular (kullanıcıya)
-1. **Zaman ölçeği:** tur = 1 gün, mevsim = 5 gün, yıl = 20 gün kabul mü? (Alternatif: tur = 1 mevsim; daha az tıklama, daha az Punch Club hissi.)
-2. **Yenilgi:** şu an yok (nüfus en az 2). "Kabile dağıldı" gibi bir kaybetme durumu istiyor musunuz?
-3. **Önder:** Punch Club'daki gibi görünen, adı verilebilen tek bir kahraman karakteri (sahnede model, yorgunluk) olsun mu, yoksa soyut bir eylem menüsü mü?
-4. **Orta Çağ konutu:** `caglar.js`'teki "Surlu şehir" bir konut adı değil; konutu "Yarı Ahşap Ev", "Surlu şehir"i çağın kimliği/sur sistemi yapmayı onaylıyor musunuz?
-5. **Oyun sonu:** Katedral + 150 nüfus zaferinden sonra serbest kip yeterli mi, yoksa ileride yeni çağ (Rönesans) planlansın mı?
+## 11. Açık sorular — CEVAPLANDI (2026-10-26, kullanıcı varsayılanları onayladı)
+1. **Zaman ölçeği:** ✅ tur = 1 gün, mevsim = 5 gün, yıl = 20 gün.
+2. **Yenilgi:** ✅ yenilgi yok; nüfus en az 2 (`NUFUS_MIN`).
+3. **Önder:** ✅ soyut eylem menüsü (sahnede kahraman modeli yok).
+4. **Orta Çağ konutu:** ✅ konut "Yarı Ahşap Ev" (`yari_ahsap_ev`); "Surlu şehir" çağın kimliğidir (`CAGLAR.ortacag.kimlik`), konut değil.
+5. **Oyun sonu:** ✅ Katedral + 150 nüfus zaferinden sonra serbest kip (yeni çağ planlanmadı).
