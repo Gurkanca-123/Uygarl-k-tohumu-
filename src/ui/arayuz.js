@@ -11,7 +11,7 @@ import { kaynakAcik, depoTavani, mevcutCag, binaBul, barinmaKapasitesi, issizSay
 import { maliyetHesapla } from '../core/insa.js';
 import { yerUygunMu, uygunYerler } from '../world/yerlestir.js';
 import { merkezNokta } from '../world/harita.js';
-import { h, yuvarla, depoOku, depoYaz } from './dom.js';
+import { h, yuvarla, depoOku, depoYaz, tamEkranDestekli, tamEkranMi, tamEkranAcKapa, tamEkranDinle, donusPerdesiKur } from './dom.js';
 import {
   insaSekmesi, isSekmesi, arastirmaSekmesi, onderSekmesi, cagSekmesi, binaKarti, hucreKarti, maliyetChips, gereksinimMetni, binaResmi,
 } from './paneller.js';
@@ -41,6 +41,8 @@ export class Arayuz {
     this.menuAcik = false; this.menuSayfa = 'ana'; this.yeniOnay = false; this.gunlukAcik = false; this.zaferGoster = null;
     this.scrollTop = {}; this.sonSekme = null;
     this.ogretici = new Ogretici(this);
+    donusPerdesiKur();
+    tamEkranDinle(() => this.yenile());
     this.kur();
     this.kaliteUygula();
     oyun.dinle((tip, veri) => this.olay(tip, veri));
@@ -258,7 +260,7 @@ export class Arayuz {
         h('b', { class: 'cag-rozet' }, `🏕 ${c.ad}`),
         h('span', { class: 'mevsim' }, `${MEVSIM_SIMGE[t.mevsimSira] || ''} ${t.mevsimAd}`, h('span', { class: 'gunler' }, gunler), h('small', {}, `Gün ${t.gun} · Yıl ${t.yil}`))),
       h('div', { class: 'seritler' }, chips),
-      h('div', { class: 'durumlar' }, durumlar));
+      h('div', { class: 'durumlar' }, durumlar, this.tamEkranDugme('ikon-d tam-d')));
   }
 
   panel(d) {
@@ -381,15 +383,30 @@ export class Arayuz {
         govde: ogeler.length ? ogeler : [h('p', { class: 'soluk bos' }, 'Henüz bildirim yok.')] }));
   }
 
+  tamEkranDugme(sinif = '', etiket = false) {
+    if (!tamEkranDestekli()) return null;
+    const acik = tamEkranMi();
+    return h('button', { class: sinif, title: acik ? 'Tam ekrandan çık' : 'Tam ekran', 'aria-label': 'Tam ekran', onclick: () => tamEkranAcKapa() }, etiket ? (acik ? '⛶ Tam ekrandan çık' : '⛶ Tam ekran') : '⛶');
+  }
+  // İlk başlatmada tam ekranı bir kez öneren, kapatılabilir satır (seçim ut_tam'da hatırlanır).
+  tamEkranOner() {
+    if (!tamEkranDestekli() || tamEkranMi() || depoOku('ut_tam', { soruldu: false }).soruldu) return;
+    depoYaz('ut_tam', { soruldu: true });
+    const el = h('div', { class: 'tam-oneri' }, h('span', {}, 'Tam ekran oynamak ister misin?'),
+      h('button', { class: 'vurgu', onclick: () => { el.remove(); tamEkranAcKapa(); } }, '⛶ Tam ekran'),
+      h('button', { class: 'ikon-d', 'aria-label': 'Kapat', onclick: () => el.remove() }, '✕'));
+    document.body.append(el);
+    setTimeout(() => el.remove(), 15000);
+  }
   menu() {
     const var_ = this.oyun.kayitVar();
     const ozet = this.oyun.kayitOzeti();
     const oyunda = !!this.d;
     const kapat = () => { this.menuAcik = false; this.menuSayfa = 'ana'; this.yeniOnay = false; this.yenile(); };
-    const devam = () => { const m = this.oyun.devam(); this.menuAcik = false; this.menuSayfa = 'ana'; if (m) this.hata(m); this.sahneOdak(); this.yenile(); };
+    const devam = () => { const m = this.oyun.devam(); this.menuAcik = false; this.menuSayfa = 'ana'; if (m) this.hata(m); this.sahneOdak(); this.yenile(); this.tamEkranOner(); };
     const yeniBaslat = () => {
       this.oyun.yeni(); this.menuAcik = false; this.menuSayfa = 'ana'; this.yeniOnay = false; this.secim = null; this.yerlestirme = null; this.sahne.yerlestirme(null);
-      this.pencere = 'kapali'; this.kaydetUi(); this.sahneOdak(); this.ogretici.sifirla(); this.yenile();
+      this.pencere = 'kapali'; this.kaydetUi(); this.sahneOdak(); this.ogretici.sifirla(); this.yenile(); this.tamEkranOner();
     };
     let baslik = 'Uygarlık Tohumu', ikon = '🌱', govde;
     if (this.menuSayfa === 'ayar') { baslik = 'Ayarlar'; ikon = '⚙️'; govde = this.ayarSayfasi(); }
@@ -405,6 +422,7 @@ export class Arayuz {
               h('div', { class: 'dugmeler' }, h('button', { onclick: () => { this.yeniOnay = false; this.yenile(); } }, 'Vazgeç'), h('button', { class: 'kotu', onclick: yeniBaslat }, 'Evet, yeni oyun')))
             : h('button', { onclick: () => { if (var_) { this.yeniOnay = true; this.yenile(); } else yeniBaslat(); } }, '🌱 Yeni Oyun'),
           this.yeniOnay ? null : h('button', { onclick: () => { this.menuSayfa = 'ayar'; this.yenile(); } }, '⚙️ Ayarlar'),
+          this.yeniOnay ? null : this.tamEkranDugme('', true),
           this.yeniOnay ? null : h('button', { onclick: () => { this.menuSayfa = 'hakkinda'; this.yenile(); } }, 'ℹ️ Hakkında'),
           oyunda && !this.yeniOnay ? h('button', { onclick: kapat }, '↩ Oyuna dön') : null)];
     }

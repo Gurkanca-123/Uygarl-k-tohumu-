@@ -234,3 +234,16 @@ button.vurgu-yumusak { border-color: var(--vurgu); background: rgba(230, 173, 60
 }
 @media (max-width: 640px) { .alt .menu-d em { display: none; } .alt .buyuk { padding: 0 10px; font-size: 14px; } .pencere.sag { width: min(58vw, 390px); } .alt-orta { display: none; } .alt.yerlesme .alt-orta { display: flex; } }
 @media (max-aspect-ratio: 1/1) { .pencere.sag { width: min(70vw, 390px); } .kart-yuva, .ipucu-yuva { width: min(330px, 60vw); } .toasts { width: min(340px, 60vw); } }
+
+/* ---------- Dikey yönelim örtüsü ve tam ekran ---------- */
+#donus-perde { position: fixed; inset: 0; z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center;
+  padding: 24px; background: var(--bg); color: var(--yazi); pointer-events: auto; touch-action: none; }
+#donus-perde.acik { display: flex; }
+#donus-perde b { font-size: 22px; } #donus-perde span { color: var(--soluk); font-size: 15px; }
+.telefon-ikon { width: 56px; height: 96px; border: 4px solid var(--vurgu); border-radius: 12px; position: relative; animation: telefon-don 2.4s ease-in-out infinite; }
+.telefon-ikon i { position: absolute; left: 50%; bottom: 6px; width: 16px; height: 4px; margin-left: -8px; border-radius: 2px; background: var(--vurgu); }
+@keyframes telefon-don { 0%, 25% { transform: rotate(0); } 60%, 85% { transform: rotate(-90deg); } 100% { transform: rotate(0); } }
+@media (prefers-reduced-motion: reduce) { .telefon-ikon { animation: none; transform: rotate(-90deg); } }
+.tam-d { font-size: 18px; pointer-events: auto; }
+.tam-oneri { position: fixed; left: 50%; bottom: calc(12px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 50; display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px 6px 14px; background: var(--yuzey2); border: 1px solid var(--kenar); border-radius: var(--r-k); box-shadow: 0 4px 16px rgba(0,0,0,.35); max-width: 94vw; }

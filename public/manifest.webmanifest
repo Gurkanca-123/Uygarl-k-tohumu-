@@ -1,0 +1,14 @@
+{
+  "name": "Uygarlık Tohumu",
+  "short_name": "Uygarlık Tohumu",
+  "description": "Çadırdan Orta Çağ'a sıra tabanlı şehir kurma oyunu.",
+  "lang": "tr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "landscape",
+  "background_color": "#14110d",
+  "theme_color": "#14110d",
+  "icons": [{ "src": "./ikon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

@@ -37,6 +37,16 @@ async function senaryo(tarayici, ad, secenek, ekranGoruntusu0) {
   await sayfa.goto(URL);
   await sayfa.waitForSelector('.menu');
   kontrol(`${ad}: sayfa açılır, ana menü görünür`, true);
+  {
+    const vp = sayfa.viewportSize();
+    await sayfa.setViewportSize({ width: vp.height, height: vp.width + 200 });
+    await sayfa.waitForTimeout(150);
+    const dikeyGorunur = await sayfa.locator('#donus-perde').isVisible();
+    await sayfa.setViewportSize(vp);
+    await sayfa.waitForTimeout(150);
+    const yatayGizli = !(await sayfa.locator('#donus-perde').isVisible());
+    kontrol(`${ad}: dikeyde 'Telefonu yan çevirin' örtüsü çıkar, yatayda kalkar`, dikeyGorunur && yatayGizli);
+  }
   await sayfa.evaluate(() => localStorage.clear());
   await tikla('Yeni Oyun');
   await sayfa.waitForSelector('.ust .chip');
