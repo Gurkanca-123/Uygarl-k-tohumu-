@@ -34,9 +34,9 @@ Sıra tabanlı (tur = gün, mevsim 5 gün, yıl 20 gün), 5 çağ, Önder eylemi
 
 ## DEVAM NOTU (yeni oturum için, 2026-10-26)
 - Kullanıcı kararları: BD stil varsayılan; tehdit belgesi `docs/TEHDIT.md` §11 önerileriyle ONAYLANDI (karar penceresi durdurmaz, 3 kademeli çip, Göçebe'de can kaybı yok, varsayılan Normal+Barışçıl, komşu=soyut kaynak, karşı saldırı yok).
-- BİTTİ ve commit'li: tehdit MVP çekirdeği (`src/core/tehdit.js`, `src/data/tehditler.js`), çit/sur (`src/world/cevre.js`, `cit` binası, `insaEtCok`), bina kartında iş atama + işçi rozeti. UI YOK olanlar: tehdit uyarı çipi/tavır penceresi/savunma göstergesi, çit sürükleyerek çizme + çit modeli (şablona düşüyor).
+- BİTTİ ve commit'li: tehdit MVP çekirdeği (`src/core/tehdit.js`, `src/data/tehditler.js`), çit/sur (`src/world/cevre.js`, `cit` binası, `insaEtCok`), bina kartında iş atama + işçi rozeti. Çit çizme arayüzü + çit/sur modeli + tehdit çipi/penceresi (`src/ui/tehdit.js`) BİTTİ (ayrıntı CHANGELOG_DEV).
 - Tehdit API (UI için): `tehditGorunumu(d)`, `beklenenSonuc`, `savunmaDokum`, `cevreDurumu`; komutlar `tehditTavir(d,'savun'|'saklan')`, `haracOde`, `tahkimatYap`, `bekciAta`, `zorlukAyarla`, `insaEtCok(d,binaId,[[x,y]..])`; yeni oyun `yeniOyun(tohum,{zorluk})`; bildirim kodları `tehdit_uyari|varis|bilgi|iz`. Detay: `docs/TEHDIT.md` §12–13. Henüz yok: Nöbet Tut, Elçi Gönder, Silah Dağıt, Kuşatma durduran pencere.
-- Sıradaki: çit çizme arayüzü (sürükleyerek, `insaEtCok`) + çit görseli + tehdit arayüzü (uyarı çipi, tavır penceresi, savunma göstergesi) → Sonnet; sonra kahraman/sefer tasarımı (ayı avı, keşif seferleri; Opus tasarım → onay), çağ genişletme (Sanayi/Modern) kararı, aşama 6 içerik (Haiku metin), aşama 7 denge, bina modelleri (oynanış onayından sonra; Tripo hesabı var, PC'den `TRIPO_API_KEY` ortam sırrı + `api.tripo3d.ai` izni gerekir).
+- Sıradaki: kahraman/sefer tasarımı (ayı avı, keşif seferleri; Opus tasarım → onay), çağ genişletme (Sanayi/Modern) kararı, aşama 6 içerik (Haiku metin), aşama 7 denge, bina modelleri (oynanış onayından sonra; Tripo hesabı var, PC'den `TRIPO_API_KEY` ortam sırrı + `api.tripo3d.ai` izni gerekir).
 - Rol kuralı: tasarım/görsel ajanlarına "kıdemli oyun tasarımcısı/sanat yönetmeni" rolü ver. Fable yok → Opus tasarım/çekirdek, Sonnet UI/test, Haiku metin.
 
 ## Kayıt

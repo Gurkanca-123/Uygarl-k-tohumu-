@@ -271,3 +271,26 @@ button.vurgu-yumusak { border-color: var(--vurgu); background: rgba(230, 173, 60
 .rozet.bos { opacity: 0.7; border-color: var(--uyari); color: var(--uyari); }
 .rozet.bos.bosta { opacity: 1; background: rgba(90, 58, 12, 0.95); }
 .rozet.secili { border-color: var(--vurgu-ac); box-shadow: 0 0 0 2px var(--vurgu), var(--golge-k); opacity: 1; }
+
+/* ---------- Tehdit çipi / penceresi, çit çizme ---------- */
+.chip.tehdit { cursor: pointer; min-height: 0; min-width: 0; padding: 0 8px; }
+.chip.tehdit.tehdit-sakin { border-color: var(--kenar-ince); }
+.chip.tehdit.tehdit-tedirgin { border-color: var(--uyari); background-color: rgba(240, 180, 76, 0.12); } .chip.tehdit.tehdit-tedirgin b { color: var(--uyari); }
+.chip.tehdit.tehdit-gergin, .chip.tehdit.tehdit-kirmizi { border-color: var(--kotu); background-color: rgba(240, 115, 91, 0.14); } .chip.tehdit.tehdit-gergin b, .chip.tehdit.tehdit-kirmizi b { color: var(--kotu); }
+.chip.tehdit.tehdit-sari { border-color: var(--uyari); background-color: rgba(240, 180, 76, 0.14); } .chip.tehdit.tehdit-sari b { color: var(--uyari); }
+.chip.tehdit.tehdit-yesil { border-color: var(--iyi); background-color: rgba(134, 216, 134, 0.12); } .chip.tehdit.tehdit-yesil b { color: var(--iyi); }
+.chip.tehdit.aktif { animation: tehdit-nabiz 1.6s ease-in-out infinite; }
+@keyframes tehdit-nabiz { 50% { box-shadow: 0 0 0 3px rgba(240, 115, 91, 0.35); } }
+@media (prefers-reduced-motion: reduce) { .chip.tehdit.aktif { animation: none; } }
+.tehdit-metin { margin: 0 0 6px; line-height: 1.35; }
+.tehdit-ozet { display: flex; gap: 8px; margin: 6px 0; } .tehdit-ozet > div { flex: 1; background: var(--yuzey2); border-radius: var(--r-k); padding: 5px 8px; display: flex; flex-direction: column; }
+.tehdit-ozet small { color: var(--soluk); font-size: 10px; } .tehdit-ozet b { font-size: 16px; font-variant-numeric: tabular-nums; }
+.tehdit-bar { height: 10px; border-radius: 6px; background: rgba(255, 255, 255, 0.1); overflow: hidden; margin: 4px 0; }
+.tehdit-bar i { display: block; height: 100%; border-radius: 6px; background: var(--iyi); transition: width var(--sure); }
+.tehdit-bar.sari i { background: var(--uyari); } .tehdit-bar.kirmizi i { background: var(--kotu); }
+.tehdit-sec.secili { border-color: var(--vurgu); }
+.tehdit-blok { margin-top: 10px; } .tehdit-blok h4 { margin: 0 0 4px; }
+.tehdit-blok button.tam-genislik { width: 100%; margin-top: 6px; text-align: left; }
+.tehdit-dokum > div { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; padding: 1px 0; }
+.kucuk-d { min-height: 32px; margin: 4px 4px 0 0; font-size: 12px; padding: 0 10px; }
+.tehdit-acik .ipucu-yuva { display: none; }

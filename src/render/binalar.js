@@ -1126,16 +1126,44 @@ M.darussifa = (k, c) => {
   k.kure(0.12, 0.7, Z + 0.15, 0.65, 'duz', P.yaprak, { det: 1 });
 };
 
-M.sur_parcasi = (k, c) => {
-  const Z = k.kaide(1, 'tas');
-  const h = 0.48 * c.s;
-  k.kutu(0.96, h, 0.38, 0, Z, 0, 'tasBlok', P.surTas);
-  k.kutu(0.98, 0.04, 0.42, 0, Z + h, 0, 'tasBlok', 0x8a847a);
-  for (let i = 0; i < 4; i++) {
-    k.kutu(0.14, 0.1, 0.07, -0.36 + i * 0.24, Z + h + 0.04, 0.17, 'tasBlok', P.surTas);
-    k.kutu(0.14, 0.1, 0.07, -0.36 + i * 0.24, Z + h + 0.04, -0.17, 'tasBlok', P.surTas);
+// Çevre parçaları (cevre: true): hücre merkezinde direk, `c.bag` bit maskesiyle komşu parçalara uzanan kol (1 = +x, 2 = −x, 4 = +z, 8 = −z).
+// Komşu hücre karşı yarıyı çizer; böylece ardışık parçalar kesintisiz çit/sur olur. Maske sahne.js'te hesaplanır (`cevreMaskeleri`).
+const CEVRE_KOL = [[1, 1, 0], [2, -1, 0], [4, 0, 1], [8, 0, -1]];
+M.cit = (k, c) => {
+  const Z = ZEMIN_Y + 0.01, h = 0.2, renk = 0x7a5634, acik = 0x9a7648;
+  k.kutu(0.05, h + 0.06, 0.05, 0, Z, 0, 'kutuk', 0x6a4828);
+  k.koni(0.04, 0.05, 4, 0, Z + h + 0.06, 0, 'kutuk', 0x5e4022);
+  const kollar = CEVRE_KOL.filter(([bit]) => c.bag & bit);
+  if (!kollar.length) { // yalnız direk: iki yana kısa kol
+    for (const [, dx, dz] of [CEVRE_KOL[0], CEVRE_KOL[1]]) {
+      for (const yy of [0.07, 0.15]) k.kutu(Math.abs(dx) ? 0.22 : 0.018, 0.022, Math.abs(dz) ? 0.22 : 0.018, dx * 0.12, Z + yy, dz * 0.12, 'tahta', acik);
+    }
+    return;
   }
-  for (const x of [-0.44, 0.44]) k.kutu(0.08, h * 0.8, 0.46, x, Z, 0, 'tasBlok', 0x8a847a);
+  for (const [, dx, dz] of kollar) {
+    const yatay = Math.abs(dx) > 0;
+    for (const yy of [0.06, 0.14]) k.kutu(yatay ? 0.5 : 0.022, 0.026, yatay ? 0.022 : 0.5, dx * 0.25, Z + yy, dz * 0.25, 'tahta', acik);
+    for (const t of [0.17, 0.34]) { // kazıklar
+      const y2 = h - 0.02 - (t > 0.3 ? 0.02 : 0);
+      k.kutu(yatay ? 0.03 : 0.03, y2, 0.03, dx * t + (yatay ? 0 : 0), Z, dz * t, 'kutuk', renk);
+      k.koni(0.022, 0.04, 4, dx * t, Z + y2, dz * t, 'kutuk', 0x5e4022);
+    }
+  }
+};
+
+M.sur_parcasi = (k, c) => {
+  const Z = ZEMIN_Y + 0.01;
+  const h = 0.42 * c.s;
+  const kollar = CEVRE_KOL.filter(([bit]) => c.bag & bit);
+  k.kutu(0.42, h + 0.1, 0.42, 0, Z, 0, 'tasBlok', P.surTas);
+  k.kutu(0.46, 0.05, 0.46, 0, Z + h + 0.1, 0, 'tasBlok', 0x8a847a);
+  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) k.kutu(0.1, 0.07, 0.1, sx * 0.17, Z + h + 0.15, sz * 0.17, 'tasBlok', P.surTas);
+  for (const [, dx, dz] of kollar) {
+    const yatay = Math.abs(dx) > 0;
+    k.kutu(yatay ? 0.3 : 0.3, h, yatay ? 0.3 : 0.3, dx * 0.35, Z, dz * 0.35, 'tasBlok', P.surTas);
+    k.kutu(yatay ? 0.3 : 0.36, 0.04, yatay ? 0.36 : 0.3, dx * 0.35, Z + h, dz * 0.35, 'tasBlok', 0x8a847a);
+    for (const t of [0.28, 0.42]) k.kutu(yatay ? 0.08 : 0.12, 0.08, yatay ? 0.12 : 0.08, dx * t, Z + h + 0.04, dz * t, 'tasBlok', P.surTas);
+  }
 };
 
 M.kale = (k, c) => {
@@ -1269,14 +1297,15 @@ function iskele(k, g, tepe, kismi) {
 const geoOnbellek = new Map();
 const kenarOnbellek = new Map();
 
-function modelVerisi(id, sv, durum) {
-  const anahtar = `${id}|${sv}|${durum}`;
+function modelVerisi(id, sv, durumTam) {
+  const anahtar = `${id}|${sv}|${durumTam}`;
+  const [durum, bagStr = '0'] = durumTam.split('#'); // çevre parçalarında "#<maske>": komşu bağlantıları
   let v = geoOnbellek.get(anahtar);
   if (v) return v;
   const t = BINA[id];
   const cag = CAG_SIRA[t.cag] ?? 0;
   const k = new Kurucu(hash(id) + sv * 31);
-  const c = { g: t.boyut[0], sv, s: 1 + 0.12 * (sv - 1), cag };
+  const c = { g: t.boyut[0], sv, s: 1 + 0.12 * (sv - 1), cag, bag: Number(bagStr) };
   (M[id] || ((kk, cc) => sablon(kk, cc, t)))(k, c);
   const govdeTepe = Math.max(...k.parcalar.map((p) => p.max), TABAN_Y + 0.2);
   if (durum.startsWith('i')) {
@@ -1285,10 +1314,10 @@ function modelVerisi(id, sv, durum) {
     const kes = ZEMIN_Y + (govdeTepe - ZEMIN_Y) * p * 0.85;
     k.parcalar = k.parcalar.filter((q) => q.min <= kes - 0.02 || q.max <= TABAN_Y + 0.02);
     k.duman = []; k.ates = []; k.pervane = null;
-    iskele(k, c.g, kes + 0.1, false);
+    if (!t.cevre) iskele(k, c.g, kes + 0.1, false); // çit/sur küçük: iskele yerine taslak katmanı yeter
   } else {
     ekler(k, c, t, durum);
-    if (durum === 'y' || durum === 'o') iskele(k, c.g, govdeTepe * 0.8, true);
+    if ((durum === 'y' || durum === 'o') && !t.cevre) iskele(k, c.g, govdeTepe * 0.8, true);
     if (durum === 'h') { k.ton = [0.55, 0.5, 0.46]; k.duman = k.duman.filter((d) => d[4] === 'is'); k.ates = []; }
     if (durum === 'k') { k.ton = [0.72, 0.72, 0.74]; k.duman = []; k.ates = []; }
   }
@@ -1333,15 +1362,17 @@ export function binaModeli(b, durum = {}, secenek = {}) {
   const t = BINA[b.id];
   const sv = Math.min(3, Math.max(1, b.seviye || 1));
   const kod = secenek.hayalet ? '' : durumKodu(durum);
-  const v = modelVerisi(b.id, sv, kod);
+  const bag = t.cevre ? `#${(secenek.bag ?? durum.bag) | 0}` : '';
+  const v = modelVerisi(b.id, sv, kod + bag);
   const grup = new THREE.Group();
   const golge = !secenek.hayalet;
   if (secenek.hayalet) {
     const m = new THREE.Mesh(v.ana, hayaletMat(secenek.hayalet));
     m.renderOrder = 12;
     grup.add(m);
-    let kenar = kenarOnbellek.get(b.id);
-    if (!kenar) { kenar = new THREE.EdgesGeometry(v.ana, 40); kenarOnbellek.set(b.id, kenar); }
+    const kenarAnahtar = b.id + bag;
+    let kenar = kenarOnbellek.get(kenarAnahtar);
+    if (!kenar) { kenar = new THREE.EdgesGeometry(v.ana, 40); kenarOnbellek.set(kenarAnahtar, kenar); }
     const cz = new THREE.LineSegments(kenar, cizgiMat(secenek.hayalet));
     cz.renderOrder = 13;
     grup.add(cz);
@@ -1351,7 +1382,7 @@ export function binaModeli(b, durum = {}, secenek = {}) {
     grup.add(m);
     if (v.isil) grup.add(new THREE.Mesh(v.isil, isilMat()));
     if (kod.startsWith('i')) {
-      const tam = modelVerisi(b.id, sv, '');
+      const tam = modelVerisi(b.id, sv, bag);
       const taslak = new THREE.Mesh(tam.ana, taslakMat());
       taslak.renderOrder = 5;
       grup.add(taslak);

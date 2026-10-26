@@ -64,10 +64,10 @@ export function binaResmi(binaId, px = 44) {
 }
 
 // ---------- İnşa ----------
-function insaNedeni(d, b) {
+export function insaNedeni(d, b) {
   const h1 = insaEdilebilirMi(d, b.id);
   if (h1) return h1;
-  if (insaatSinirDolu(d)) return `Aynı anda en çok ${mevcutCag(d).esZamanliInsaat} inşaat sürebilir.`;
+  if (!b.insaatSinirDisi && insaatSinirDolu(d)) return `Aynı anda en çok ${mevcutCag(d).esZamanliInsaat} inşaat sürebilir.`;
   const m = maliyetHesapla(d, b.id);
   if (!kaynakYeter(d, m)) return `Kaynak yetersiz: ${eksikMetni(d, m)} eksik.`;
   return null;
