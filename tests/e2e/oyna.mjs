@@ -16,7 +16,8 @@ const kontrol = (ad, ok, ek = '') => { sonuclar.push({ ad, ok }); console.log(`$
 const sunucu = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore' });
 const bekle = async () => { for (let i = 0; i < 50; i++) { try { if ((await fetch(URL)).ok) return; } catch { /* bekle */ } await new Promise((r) => setTimeout(r, 200)); } throw new Error('sunucu açılmadı'); };
 
-async function senaryo(tarayici, ad, secenek, ekranGoruntusu) {
+async function senaryo(tarayici, ad, secenek, ekranGoruntusu0) {
+  const ekranGoruntusu = process.env.EKRAN_YAZ === '1' ? ekranGoruntusu0 : null; // varsayılan: docs/ekran dosyalarını ezme
   console.log(`\n== ${ad} ==`);
   const ctx = await tarayici.newContext(secenek);
   const sayfa = await ctx.newPage();
@@ -24,6 +25,13 @@ async function senaryo(tarayici, ad, secenek, ekranGoruntusu) {
   sayfa.on('console', (m) => { if (m.type() === 'error') hatalar.push(m.text()); });
   sayfa.on('pageerror', (e) => hatalar.push(String(e)));
   const durum = () => sayfa.evaluate(() => { const d = window.__oyun.oyun.durum; return d && { tur: d.tur, bina: d.binalar.length, olay: !!d.olay.aktif, cag: d.cag, nufus: d.nufus }; });
+  // Sekme penceresi aç/kapa olduğundan: yalnız açık değilse ya da başka sekmedeyse dokun.
+  const sekmeAc = async (ad, id) => {
+    const acik = await sayfa.evaluate((i) => { const a = window.__oyun.arayuz; return a.pencere === 'acik' && a.sekme === i; }, id);
+    if (!acik) await sayfa.locator('.sekmeler button', { hasText: ad }).click();
+    await sayfa.waitForSelector(`.pencere.sag.acik`);
+    await sayfa.waitForTimeout(260);
+  };
   const tikla = (metin, kapsam = '') => sayfa.locator(`${kapsam} button`, { hasText: metin }).first().click();
 
   await sayfa.goto(URL);
@@ -39,7 +47,7 @@ async function senaryo(tarayici, ad, secenek, ekranGoruntusu) {
   await sayfa.waitForTimeout(400);
 
   // iş ata: toplayıcıdan 1 kişiyi oduncuya
-  await sayfa.locator('.sekmeler button', { hasText: 'İş' }).click();
+  await sekmeAc('İş', 'is');
   await sayfa.locator('.oge', { hasText: 'Toplayıcı' }).first().locator('button', { hasText: '−' }).click();
   await sayfa.locator('.oge', { hasText: 'Oduncu' }).first().locator('button', { hasText: '+' }).click();
   const atama = await sayfa.evaluate(() => window.__oyun.oyun.durum.atama);
@@ -48,16 +56,16 @@ async function senaryo(tarayici, ad, secenek, ekranGoruntusu) {
   // Çadır 5 odun + 2 deri ister; başlangıçta deri yok → Önder "Avlan" ile deri toplanır (Önder sekmesi üzerinden).
   const yeterli = () => sayfa.evaluate(() => { const k = window.__oyun.oyun.durum.kaynaklar; return k.odun >= 5 && k.deri >= 2; });
   for (let i = 0; i < 10 && !(await yeterli()); i++) {
-    await sayfa.locator('.sekmeler button', { hasText: 'Önder' }).click();
+    await sekmeAc('Önder', 'onder');
     const av = sayfa.locator('.oge', { hasText: 'Avlan' }).first().locator('button');
     if (await av.isEnabled()) await av.click();
     await tikla('Günü bitir');
   }
   kontrol(`${ad}: Avlan + Oduncu ile Çadır maliyeti toplandı`, await yeterli());
   // çadır kur (yerleştirme modu + onay)
-  await sayfa.locator('.sekmeler button', { hasText: 'İnşa' }).click();
+  await sekmeAc('İnşa', 'insa');
   await sayfa.locator('.oge', { hasText: 'Çadır' }).first().click();
-  await sayfa.waitForSelector('.yerlestirme-cubugu');
+  await sayfa.waitForSelector('.alt.yerlesme');
   // haritaya dokun/tıkla: ghost'u başka uygun hücreye taşı
   const kutu = await sayfa.locator('#oyun canvas').boundingBox();
   const hedefHucre = await sayfa.evaluate(() => { const y = window.__oyun.arayuz.yerlestirme; return { x: y.x + 1, y: y.y }; });
@@ -68,7 +76,7 @@ async function senaryo(tarayici, ad, secenek, ekranGoruntusu) {
   if (yer.hata) { // uygun değilse ilk uygun konuma dön
     await sayfa.evaluate(() => { const a = window.__oyun.arayuz; const y = a.yerlestirme; a.yerlestirmeBaslat(y.binaId); });
   }
-  await tikla('İnşa et', '.yerlestirme-cubugu');
+  await tikla('Onayla', '.alt.yerlesme');
   const d1 = await durum();
   kontrol(`${ad}: Çadır yerleştirildi`, d1.bina === 3);
   if (ekranGoruntusu) await sayfa.screenshot({ path: `${EKRAN}/${ekranGoruntusu}-insa.png` });
@@ -76,7 +84,7 @@ async function senaryo(tarayici, ad, secenek, ekranGoruntusu) {
   // bina seç (hücre dokunuşu) → bilgi kartı
   const bk = await sayfa.evaluate(() => { const b = window.__oyun.oyun.durum.binalar[2]; const s = window.__oyun.sahne; const p = new (s.hedef.constructor)(b.x + 0.5, 0.3, b.y + 0.5).project(s.kamera); const r = s.canvas.getBoundingClientRect(); return { px: r.left + (p.x + 1) / 2 * r.width, py: r.top + (1 - p.y) / 2 * r.height }; });
   if (secenek.hasTouch) await sayfa.touchscreen.tap(bk.px, bk.py); else await sayfa.mouse.click(bk.px, bk.py);
-  kontrol(`${ad}: bina seçilince bilgi kartı açılır`, (await sayfa.locator('.kart h3').count()) === 1);
+  kontrol(`${ad}: bina seçilince bilgi kartı açılır`, (await sayfa.locator('.pencere.kart h3').count()) === 1);
 
   // kaydırma (tek parmak sürükle) ve çimdik (iki parmak) — PointerEvent ile; masaüstünde ayrıca fare tekerleği
   const olaylar = (dizi) => sayfa.evaluate((dz) => {

@@ -18,3 +18,11 @@ function ekle(el, cocuklar) {
   }
 }
 export const yuvarla = (v, n = 1) => Math.round(v * 10 ** n) / 10 ** n;
+
+// Yerel depo (yalnız kolaylık: pencere durumu, ayarlar). Hata verirse sessizce yoksayılır.
+export function depoOku(anahtar, varsayilan) {
+  try { const m = localStorage.getItem(anahtar); return m == null ? varsayilan : { ...varsayilan, ...JSON.parse(m) }; } catch { return varsayilan; }
+}
+export function depoYaz(anahtar, deger) {
+  try { localStorage.setItem(anahtar, JSON.stringify(deger)); } catch { /* yoksay */ }
+}

@@ -23,10 +23,43 @@ import { h, yuvarla } from './dom.js';
 const sim = (id) => KAYNAK[id]?.simge ?? id;
 export const uretimMetni = (u) => Object.entries(u || {}).map(([r, m]) => `+${yuvarla(m)}${sim(r)}`).join(' ');
 
+// Yetersiz kaynak kırmızı ve eksik miktarıyla gösterilir.
 export function maliyetChips(d, maliyet) {
   const e = Object.entries(maliyet || {});
   if (!e.length) return h('div', { class: 'maliyet' }, h('span', {}, 'Ücretsiz'));
-  return h('div', { class: 'maliyet' }, e.map(([r, m]) => h('span', { class: (d.kaynaklar[r] || 0) + 1e-9 < m ? 'eksik' : '' }, `${sim(r)} ${m}`)));
+  return h('div', { class: 'maliyet' }, e.map(([r, m]) => {
+    const var_ = d.kaynaklar[r] || 0;
+    const eksik = var_ + 1e-9 < m;
+    return h('span', { class: eksik ? 'eksik' : '', title: KAYNAK[r]?.ad || r }, `${sim(r)} ${m}`, eksik ? h('i', {}, ` −${Math.ceil(m - var_)}`) : null);
+  }));
+}
+
+// ---------- Bina resmi (önizleme varsa onu, yoksa simge) ----------
+const TUR_SIMGE = { konut: '🏠', uretim: '⚒️', donusum: '🔥', depo: '📦', huzur: '🎭', anit: '🏰', bilgi: '📚', kamu: '🏛️', savunma: '🛡️', merkez: '🔥' };
+const ONIZLEME = import.meta.glob('../render/onizleme.js'); // dosya yoksa boş: derleme kırılmaz
+const resimOnbellek = new Map();
+let onizlemeModul = null;
+async function onizlemeYukle() {
+  if (onizlemeModul !== null) return onizlemeModul;
+  const f = Object.values(ONIZLEME)[0];
+  if (!f) return (onizlemeModul = false);
+  try { onizlemeModul = await f(); } catch { onizlemeModul = false; }
+  return onizlemeModul;
+}
+export function binaResmi(binaId, px = 44) {
+  const t = BINA[binaId];
+  const kutu = h('span', { class: 'resim', style: `width:${px}px;height:${px}px;font-size:${Math.round(px * 0.55)}px` }, TUR_SIMGE[t?.tur] || '🏗');
+  const anahtar = `${binaId}:${px}`;
+  const koy = (src) => kutu.replaceChildren(h('img', { src, alt: '', draggable: 'false' }));
+  if (resimOnbellek.has(anahtar)) { const v = resimOnbellek.get(anahtar); if (v) koy(v); return kutu; }
+  onizlemeYukle().then(async (m) => {
+    if (!m?.binaOnizleme) return;
+    const r = await m.binaOnizleme(binaId, px * 2);
+    const src = typeof r === 'string' ? r : r?.toDataURL?.();
+    resimOnbellek.set(anahtar, src || null);
+    if (src) koy(src);
+  }).catch(() => resimOnbellek.set(anahtar, null));
+  return kutu;
 }
 
 // ---------- İnşa ----------
@@ -39,27 +72,58 @@ function insaNedeni(d, b) {
   return null;
 }
 
+const KATEGORILER = [['hepsi', 'Tümü', '🏗️'], ['barinma', 'Barınma', '🏠'], ['uretim', 'Üretim', '⚒️'], ['depo', 'Depo', '📦'],
+  ['kultur', 'Kültür ve inanç', '🎭'], ['bilgi', 'Bilgi', '📚'], ['kamu', 'Kamu', '🏛️'], ['savunma', 'Savunma', '🛡️']];
+const TUR_KATEGORI = { konut: 'barinma', uretim: 'uretim', donusum: 'uretim', depo: 'depo', huzur: 'kultur', anit: 'kultur', bilgi: 'bilgi', kamu: 'kamu', savunma: 'savunma' };
+const kategoriDe = (b) => TUR_KATEGORI[b.tur] || 'kamu';
+
+function etkiMetni(b) {
+  const p = [];
+  if (b.kapasite) p.push(`🏠 ${b.kapasite} kişi`);
+  if (Object.keys(b.uretim || {}).length) p.push(`${uretimMetni(b.uretim)}/işçi`);
+  if (Object.keys(b.sabitUretim || {}).length) p.push(`${uretimMetni(b.sabitUretim)}/gün`);
+  if (b.huzur) p.push(`😊 +${b.huzur}`);
+  if (b.savunma) p.push(`🛡 +${b.savunma}`);
+  if (b.bilgi) p.push(`💡 +${b.bilgi}`);
+  if (b.isciBilgi) p.push(`💡 +${b.isciBilgi}/işçi`);
+  if (Object.keys(b.depo || {}).length) p.push('📦 depo');
+  return p.join('  ');
+}
+
 export function insaSekmesi(a) {
   const d = a.d;
   const liste = BINALAR.filter((b) => b.tur !== 'merkez' && cagAcik(d, b.cag));
-  const cagSira = (id) => CAG[id].sira;
-  const grup = [];
-  for (const c of [...CAGLAR].reverse()) {
-    const bs = liste.filter((b) => b.cag === c.id);
-    if (!bs.length) continue;
-    grup.push(h('h4', {}, c.ad));
-    for (const b of bs) {
-      const neden = insaNedeni(d, b);
-      const sahip = d.binalar.filter((x) => x.id === b.id).length;
-      grup.push(h('div', { class: `oge tikla${neden ? ' gri' : ''}`, onclick: () => (neden ? a.hata(neden) : a.yerlestirmeBaslat(b.id)) },
-        h('div', { class: 'baslik' }, h('span', {}, b.ad), h('span', { class: 'soluk kucuk' }, `${b.boyut[0]}×${b.boyut[1]}${sahip ? ` · ${sahip} adet` : ''}`)),
+  const kats = KATEGORILER.filter(([id]) => id === 'hepsi' || liste.some((b) => kategoriDe(b) === id));
+  if (!kats.some(([id]) => id === a.insaKat)) a.insaKat = 'hepsi';
+  const durumlar = new Map(liste.map((b) => [b.id, insaNedeni(d, b)]));
+  const kurulabilirSay = liste.filter((b) => !durumlar.get(b.id)).length;
+  const katlar = kats.map(([id, ad, ik]) => h('button', {
+    class: `kat${a.insaKat === id ? ' secili' : ''}`, onclick: () => { a.insaKat = id; a.yenile(); } }, `${ik} ${ad}`));
+  const filtre = h('button', { class: `filtre${a.insaSadeceAcik ? ' secili' : ''}`, onclick: () => { a.insaSadeceAcik = !a.insaSadeceAcik; a.yenile(); } },
+    a.insaSadeceAcik ? '✓ Kurulabilir' : 'Kurulabilir', h('small', {}, ` ${kurulabilirSay}/${liste.length}`));
+  const kart = (b) => {
+    const neden = durumlar.get(b.id);
+    const sahip = d.binalar.filter((x) => x.id === b.id).length;
+    return h('div', { class: `oge insa-kart tikla${neden ? ' gri' : ''}`, onclick: () => (neden ? a.hata(neden) : a.yerlestirmeBaslat(b.id)) },
+      binaResmi(b.id, 48),
+      h('div', { class: 'insa-gov' },
+        h('div', { class: 'baslik' }, h('span', { class: 'ad' }, b.ad), h('span', { class: 'etiket' }, CAG[b.cag].ad)),
+        h('div', { class: 'soluk kucuk' }, `${b.boyut[0]}×${b.boyut[1]} · ⏱ ${b.insaSuresi} gün${b.isci ? ` · 👷 ${b.isci}` : ''}${sahip ? ` · ${sahip} adet` : ''}`),
+        etkiMetni(b) ? h('div', { class: 'etki' }, etkiMetni(b)) : null,
         maliyetChips(d, maliyetHesapla(d, b.id)),
-        h('div', { class: 'soluk kucuk' }, `${b.aciklama || ''} · ⏱ ${b.insaSuresi} gün${b.isci ? ` · 👷 ${b.isci}` : ''}`),
-        neden ? h('div', { class: 'neden' }, neden) : null));
+        neden ? h('div', { class: 'neden' }, `⚠ ${neden}`) : null));
+  };
+  const govde = [];
+  const secili = liste.filter((b) => (a.insaKat === 'hepsi' || kategoriDe(b) === a.insaKat) && (!a.insaSadeceAcik || !durumlar.get(b.id)));
+  const sirali = (xs) => [...xs].sort((x, y) => CAG[y.cag].sira - CAG[x.cag].sira);
+  if (a.insaKat === 'hepsi') {
+    for (const [id, ad, ik] of kats.slice(1)) {
+      const xs = secili.filter((b) => kategoriDe(b) === id);
+      if (xs.length) { govde.push(h('h4', {}, `${ik} ${ad}`)); govde.push(sirali(xs).map(kart)); }
     }
-  }
-  void cagSira;
-  return h('div', {}, grup);
+  } else govde.push(sirali(secili).map(kart));
+  if (!secili.length) govde.push(h('div', { class: 'bos' }, 'Bu filtreyle kurulabilir bina yok.'));
+  return h('div', {}, h('div', { class: 'filtre-satir' }, filtre, katlar), govde);
 }
 
 // ---------- İş ----------
@@ -67,32 +131,28 @@ function sayac(a, hedef, deger, ust, issiz) {
   return h('div', { class: 'sayac' },
     h('button', { disabled: deger <= 0, onclick: () => a.islem(isAta, hedef, deger - 1), 'aria-label': 'Azalt' }, '−'),
     h('b', {}, deger, h('small', { class: 'soluk' }, `/${ust}`)),
-    h('button', { disabled: deger >= ust || issiz <= 0, onclick: () => a.islem(isAta, hedef, deger + 1), 'aria-label': 'Arttır' }, '+'));
+    h('button', { class: 'artir', disabled: deger >= ust || issiz <= 0, onclick: () => a.islem(isAta, hedef, deger + 1), 'aria-label': 'Arttır' }, '+'));
 }
 
 export function isSekmesi(a) {
   const d = a.d;
   const issiz = issizSayisi(d);
-  const ust = h('div', { class: 'oge' },
-    h('div', { class: 'baslik' }, h('span', {}, `İşsiz: ${issiz}`), h('span', { class: 'soluk kucuk' }, `Nüfus ${d.nufus} · barınak ${barinmaKapasitesi(d)}`)),
-    issiz > 0 ? h('div', { class: 'neden' }, 'İşsizler huzuru düşürür; iş ata.') : null,
+  const ust = h('div', { class: `oge ozet${issiz > 0 ? ' dikkat' : ''}` },
+    h('div', { class: 'baslik' }, h('span', {}, issiz > 0 ? `👥 ${issiz} kişi boşta` : '✓ Herkesin işi var'), h('span', { class: 'soluk kucuk' }, `Nüfus ${d.nufus} · barınak ${barinmaKapasitesi(d)}`)),
+    issiz > 0 ? h('div', { class: 'neden' }, 'İşsizler huzuru düşürür; aşağıdan + ile iş ver.') : null,
     yaraliSayisi(d) ? h('div', { class: 'soluk kucuk' }, `Yaralı: ${yaraliSayisi(d)}`) : null,
     evsizSayisi(d) ? h('div', { class: 'neden' }, `Evsiz: ${evsizSayisi(d)} (konut kur)`) : null);
+  const satir = (ad, alt, hedef, n, yuva) => h('div', { class: 'oge is-satir' },
+    h('div', { class: 'is-ad' }, h('b', {}, ad), h('div', { class: 'soluk kucuk' }, alt)), sayac(a, hedef, n, yuva, issiz));
   const serbest = SERBEST_ISLER.map((is) => {
     const k = `serbest:${is.id}`;
     const n = d.atama[k] || 0;
-    return h('div', { class: 'oge' },
-      h('div', { class: 'baslik' }, h('span', {}, is.ad), h('span', { class: 'soluk kucuk' }, `kişi başı ${uretimMetni(is.uretim)}`)),
-      sayac(a, k, n, n + issiz, issiz));
+    return satir(is.ad, `kişi başı ${uretimMetni(is.uretim)}`, k, n, n + issiz);
   });
   const binalar = d.binalar.filter((b) => isciYuvasi(b) > 0).map((b) => {
     const t = BINA[b.id];
-    const yuva = isciYuvasi(b);
-    const n = d.atama[b.uid] || 0;
     const isi = binaIsi(d, b);
-    return h('div', { class: 'oge' },
-      h('div', { class: 'baslik' }, h('span', {}, t.ad), h('span', { class: 'soluk kucuk' }, isi === 'insa' ? 'inşaatta' : b.hasarli ? 'hasarlı' : (uretimMetni(t.uretim) || ''))),
-      sayac(a, b.uid, n, yuva, issiz));
+    return satir(t.ad, isi === 'insa' ? 'inşaatta' : b.hasarli ? 'hasarlı' : (uretimMetni(t.uretim) || 'çalışıyor'), b.uid, d.atama[b.uid] || 0, isciYuvasi(b));
   });
   return h('div', {}, ust, h('h4', {}, 'Serbest işler'), serbest, binalar.length ? h('h4', {}, 'Bina yuvaları') : null, binalar);
 }
@@ -176,55 +236,65 @@ function eylemAciklama(e) {
 }
 
 // ---------- Çağ ----------
+const ilerlemeSatiri = (ok, ad, mevcut, hedef) => {
+  const oran = hedef ? Math.max(0, Math.min(1, mevcut / hedef)) : ok ? 1 : 0;
+  return h('div', { class: `sart ${ok ? 'ok' : 'yok'}` },
+    h('div', { class: 'sart-ust' }, h('span', {}, `${ok ? '✓' : '○'} ${ad}`), hedef ? h('b', {}, `${yuvarla(mevcut, 0)}/${hedef}`) : null),
+    hedef ? h('div', { class: `cubuk${ok ? ' tam' : ''}` }, h('i', { style: `width:${oran * 100}%` })) : null);
+};
+
 export function cagSekmesi(a) {
   const d = a.d;
   const c = mevcutCag(d);
-  const ust = h('div', { class: 'oge' }, h('div', { class: 'baslik' }, h('span', {}, c.ad), h('span', { class: 'soluk kucuk' }, c.kimlik || '')),
+  const ust = h('div', { class: 'oge' }, h('div', { class: 'baslik' }, h('span', {}, `🏛 ${c.ad}`), h('span', { class: 'soluk kucuk' }, c.kimlik || '')),
     h('div', { class: 'soluk kucuk' }, `Depo tavanı ${c.depoTavani} · eşzamanlı inşaat ${c.esZamanliInsaat}`));
   if (!c.gecis) {
     const z = c.zafer;
-    const satirlar = [
-      [kuruluSayisi(d, z.bina) > 0, `${BINA[z.bina].ad} kurulu`],
-      [d.nufus >= z.nufus, `Nüfus ${d.nufus}/${z.nufus}`],
-    ];
-    return h('div', {}, ust, h('h4', {}, 'Zafer şartları'), h('div', { class: 'oge' }, satirlar.map(([ok, m]) => durumSatiri(ok, m)),
+    return h('div', {}, ust, h('h4', {}, 'Zafer şartları'), h('div', { class: 'oge' },
+      ilerlemeSatiri(kuruluSayisi(d, z.bina) > 0, `${BINA[z.bina].ad} kurulu`, kuruluSayisi(d, z.bina), 1),
+      ilerlemeSatiri(d.nufus >= z.nufus, 'Nüfus', d.nufus, z.nufus),
       h('div', { class: 'soluk kucuk', style: 'margin-top:6px' }, d.istatistik?.serbestKip ? 'Zafer kazanıldı; serbest kipte devam ediyorsun.' : 'Şartlar sağlanınca zafer kazanılır; oyun serbest kipte sürer.')));
   }
   const g = c.gecis;
   const s = cagSartlari(d);
-  const satirlar = [[d.nufus >= g.nufus, `Nüfus ${d.nufus}/${g.nufus}`]];
-  for (const [id, n] of Object.entries(g.binalar)) satirlar.push([kuruluSayisi(d, id) >= n, `${BINA[id].ad} ${kuruluSayisi(d, id)}/${n}`]);
-  if (g.bulus) satirlar.push([d.buluslar.includes(g.bulus), `Buluş: ${BULUS[g.bulus].ad}`]);
-  for (const [r, m] of Object.entries(g.maliyet)) satirlar.push([(d.kaynaklar[r] || 0) >= m, `${sim(r)} ${Math.floor(d.kaynaklar[r] || 0)}/${m}`]);
+  const satirlar = [[d.nufus >= g.nufus, 'Nüfus', d.nufus, g.nufus]];
+  for (const [id, n] of Object.entries(g.binalar)) satirlar.push([kuruluSayisi(d, id) >= n, BINA[id].ad, kuruluSayisi(d, id), n]);
+  if (g.bulus) satirlar.push([d.buluslar.includes(g.bulus), `Buluş: ${BULUS[g.bulus].ad}`, d.buluslar.includes(g.bulus) ? 1 : 0, 1]);
+  for (const [r, m] of Object.entries(g.maliyet)) satirlar.push([(d.kaynaklar[r] || 0) >= m, `${sim(r)} ${KAYNAK[r]?.ad || r}`, Math.floor(d.kaynaklar[r] || 0), m]);
+  const tamam = satirlar.filter((x) => x[0]).length;
   return h('div', {}, ust,
     h('h4', {}, `Sonraki: ${s.sonraki.ad}`),
-    h('div', { class: 'oge' }, satirlar.map(([ok, m]) => durumSatiri(ok, m))),
-    h('button', { class: s.uygun ? 'vurgu' : '', disabled: !s.uygun, style: 'width:100%', onclick: () => a.cagAtla() }, s.uygun ? `Çağ atla → ${s.sonraki.ad}` : 'Şartlar eksik'),
+    h('div', { class: 'oge' },
+      h('div', { class: 'baslik' }, h('span', {}, 'Çağ atlama ilerlemesi'), h('b', {}, `${tamam}/${satirlar.length}`)),
+      h('div', { class: `cubuk buyuk${s.uygun ? ' tam' : ''}` }, h('i', { style: `width:${(100 * tamam) / satirlar.length}%` })),
+      satirlar.map((x) => ilerlemeSatiri(...x))),
+    h('button', { class: `tam-genislik${s.uygun ? ' vurgu' : ''}`, disabled: !s.uygun, onclick: () => a.cagAtla() }, s.uygun ? `Çağ atla → ${s.sonraki.ad}` : 'Şartlar eksik: yukarıdaki kırmızı satırlar'),
     h('div', { class: 'soluk kucuk', style: 'margin-top:6px' }, 'Çağ atlayınca kaynak maliyeti ödenir, yerleşim sınırı büyür, yeni bina ve buluşlar açılır.'));
 }
-const durumSatiri = (ok, m) => h('div', { class: ok ? 'ok' : 'yok', style: 'margin:3px 0' }, `${ok ? '✓' : '✗'} ${m}`);
 
-// ---------- Bilgi kartı ----------
+// ---------- Bilgi kartı (içerik; pencere kabuğunu arayuz.js çizer) ----------
 export function binaKarti(a, b) {
   const d = a.d;
   const t = BINA[b.id];
   const isi = binaIsi(d, b);
   const kapali = d.istatistik?.sonTur?.kapali?.includes(b.uid);
+  const insaatta = isi === 'insa' || isi === 'yukselt' || isi === 'onar';
   const durum = isi === 'insa' ? `İnşaat: ${b.insaKalan} gün kaldı` : isi === 'yukselt' ? `Yükseltiliyor: ${b.insaKalan} gün` : isi === 'onar' ? `Onarılıyor: ${b.insaKalan} gün`
     : b.hasarli ? 'Hasarlı (üretmez)' : kapali ? 'Bakım ödenmedi (çalışmıyor)' : 'Çalışıyor';
+  const durumSinif = insaatta ? 'bekle' : b.hasarli || kapali ? 'kotu' : 'iyi';
   const yuva = isciYuvasi(b);
   const ykl = yukselt(d, b.uid), onr = onar(d, b.uid);
   const dugmeler = [];
   if (t.tur !== 'merkez') {
-    if (t.maxSeviye > 1) dugmeler.push(h('button', { disabled: !!ykl.hata, onclick: () => a.islem(yukselt, b.uid) }, `Yükselt (Sv${b.seviye + 1})`));
-    if (b.hasarli) dugmeler.push(h('button', { class: 'vurgu', disabled: !!onr.hata, onclick: () => a.islem(onar, b.uid) }, 'Onar'));
+    if (t.maxSeviye > 1) dugmeler.push(h('button', { disabled: !!ykl.hata, onclick: () => a.islem(yukselt, b.uid) }, `⬆ Yükselt (Sv${b.seviye + 1})`));
+    if (b.hasarli) dugmeler.push(h('button', { class: 'vurgu', disabled: !!onr.hata, onclick: () => a.islem(onar, b.uid) }, '🔧 Onar'));
     const onay = a.yikOnay === b.uid;
-    dugmeler.push(h('button', { class: onay ? 'kotu' : '', onclick: () => (onay ? a.yik(b.uid) : a.yikOnayla(b.uid)) }, onay ? 'Emin misin? Yık' : 'Yık'));
+    dugmeler.push(h('button', { class: onay ? 'kotu' : '', onclick: () => (onay ? a.yik(b.uid) : a.yikOnayla(b.uid)) }, onay ? 'Emin misin? Yık' : '🗑 Yık'));
   }
-  return h('div', { class: 'kart' },
-    h('h3', {}, h('span', {}, `${t.ad} · Sv${b.seviye}`), h('button', { style: 'min-height:36px', onclick: () => a.secimiKaldir(), 'aria-label': 'Kapat' }, '✕')),
-    h('div', { class: 'satir soluk' }, `${t.aciklama || ''}`),
-    h('div', { class: 'satir' }, durum),
+  const govde = [
+    h('div', { class: 'kart-ust' }, binaResmi(b.id, 52), h('div', {},
+      h('div', { class: `durum-rozet ${durumSinif}` }, durum),
+      h('div', { class: 'soluk kucuk', style: 'margin-top:3px' }, `${t.aciklama || ''}`))),
     yuva ? h('div', { class: 'satir' }, `👷 İşçi ${binaIscisi(d, b)}/${yuva} ${uretimMetni(t.uretim) ? `· işçi başına ${uretimMetni(t.uretim)}` : ''}`) : null,
     t.sabitUretim && Object.keys(t.sabitUretim).length ? h('div', { class: 'satir' }, `Sabit: ${uretimMetni(t.sabitUretim)}/gün`) : null,
     t.kapasite ? h('div', { class: 'satir' }, `🏠 Barınak ${t.kapasite + b.seviye - 1} kişi`) : null,
@@ -232,31 +302,30 @@ export function binaKarti(a, b) {
     t.savunma ? h('div', { class: 'satir' }, `🛡 Savunma +${t.savunma}`) : null,
     Object.keys(t.bakim || {}).length ? h('div', { class: 'satir soluk kucuk' }, `Bakım: ${uretimMetni(t.bakim).replace(/\+/g, '')}/gün`) : null,
     b.seviye < t.maxSeviye && t.tur !== 'merkez' ? h('div', { class: 'satir kucuk' }, 'Yükseltme: ', maliyetChips(d, yukseltmeMaliyeti(b))) : null,
-    ykl.hata && t.maxSeviye > 1 && t.tur !== 'merkez' ? h('div', { class: 'neden' }, ykl.hata) : null,
+    ykl.hata && t.maxSeviye > 1 && t.tur !== 'merkez' ? h('div', { class: 'neden' }, `⚠ ${ykl.hata}`) : null,
     b.hasarli ? h('div', { class: 'satir kucuk' }, 'Onarım: ', maliyetChips(d, onarimMaliyeti(b))) : null,
-    dugmeler.length ? h('div', { class: 'dugmeler' }, dugmeler) : null);
+    dugmeler.length ? h('div', { class: 'dugmeler' }, dugmeler) : null,
+  ];
+  return { baslik: `${t.ad} · Sv${b.seviye}`, ikon: TUR_SIMGE[t.tur] || '🏗️', govde };
 }
 
 export function hucreKarti(a, x, y) {
   const d = a.d;
   const id = gorunurKaro(d, x, y);
-  if (id === null) {
-    return h('div', { class: 'kart' }, h('h3', {}, h('span', {}, 'Keşfedilmemiş'), h('button', { style: 'min-height:36px', onclick: () => a.secimiKaldir() }, '✕')),
-      h('div', { class: 'soluk' }, 'Bu bölge sisle kaplı. Önder ile "Keşfet" eylemini kullan.'));
-  }
+  if (id === null) return { baslik: 'Keşfedilmemiş', ikon: '🌫', govde: [h('div', { class: 'soluk' }, 'Bu bölge sisle kaplı. Önder ile "Keşfet" eylemini kullan.')] };
   const dugmeler = [];
   const bilgi = [];
   if (id === 'orman') {
     const r = ormanTemizle(d, x, y);
-    dugmeler.push(h('button', { class: 'vurgu', disabled: !!r.hata, onclick: () => a.islem(ormanTemizle, x, y) }, 'Temizle (+5 odun)'));
-    if (r.hata) bilgi.push(h('div', { class: 'neden' }, r.hata));
+    dugmeler.push(h('button', { class: 'vurgu', disabled: !!r.hata, onclick: () => a.islem(ormanTemizle, x, y) }, '🪓 Temizle (+5 odun)'));
+    if (r.hata) bilgi.push(h('div', { class: 'neden' }, `⚠ ${r.hata}`));
   } else if (id === 'yol') {
     dugmeler.push(h('button', { onclick: () => a.islem(yolKaldir, x, y) }, 'Yolu kaldır'));
   } else if (id === 'cimen' || id === 'verimli') {
     if (cagAcik(d, YOL_CAG)) {
       const r = yolYap(d, x, y);
-      dugmeler.push(h('button', { class: 'vurgu', disabled: !!r.hata, onclick: () => a.islem(yolYap, x, y) }, 'Yol yap'), maliyetChips(d, YOL_MALIYET));
-      if (r.hata) bilgi.push(h('div', { class: 'neden' }, r.hata));
+      dugmeler.push(h('button', { class: 'vurgu', disabled: !!r.hata, onclick: () => a.islem(yolYap, x, y) }, '🛤 Yol yap'), maliyetChips(d, YOL_MALIYET));
+      if (r.hata) bilgi.push(h('div', { class: 'neden' }, `⚠ ${r.hata}`));
     } else bilgi.push(h('div', { class: 'soluk kucuk' }, `Yol: ${CAG[YOL_CAG].ad}'nda açılır.`));
   }
   const aciklama = {
@@ -264,10 +333,7 @@ export function hucreKarti(a, x, y) {
     tasli: 'Taş Ocağı buna bitişik kurulur.', su: 'Geçilmez; balıkçılık ve toplayıcılık için iyi.', kil: 'Kil Ocağı buna bitişik kurulur.',
     cevher: 'Yalnız Maden Ocağı üstüne.', mermer: 'Yalnız Mermer Ocağı üstüne.', kayalik: 'İnşa edilemez.', dag: 'Geçilmez.', yol: 'Yol karosu.',
   }[id];
-  return h('div', { class: 'kart' },
-    h('h3', {}, h('span', {}, KARO_ADLARI[id] || id), h('button', { style: 'min-height:36px', onclick: () => a.secimiKaldir() }, '✕')),
-    h('div', { class: 'satir soluk' }, `${aciklama || ''} (${x}, ${y})`), bilgi,
-    dugmeler.length ? h('div', { class: 'dugmeler' }, dugmeler) : null);
+  return { baslik: KARO_ADLARI[id] || id, ikon: '🗺', govde: [h('div', { class: 'satir soluk' }, `${aciklama || ''} (${x}, ${y})`), bilgi, dugmeler.length ? h('div', { class: 'dugmeler' }, dugmeler) : null] };
 }
 
 // ---------- Olay gereksinim metni ----------
