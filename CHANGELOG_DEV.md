@@ -1,5 +1,10 @@
 # CHANGELOG_DEV (yalnız son kayıtlar; eskiler `docs/CHANGELOG_ARSIV.md`)
 
+## 2026-10-26 — Tehdit MVP + çit/sur (Opus 5.5) + bina kartında iş atama (Sonnet 5.5)
+- Tehdit: Göçebe+Taş Devri 3 tehdit, gerginlik/uyarı/tavır/haraç/tahkimat/bekçi, zorluk (Barışçıl/Rahat/Normal/Zor), kayıt v3. Bot 50 tohum: 50/50 hedefte, tur 25/28/32, nüfus ≥3.
+- Çit/sur: `cit` binası, kapalı halka bonusu, `insaEtCok`. UI: bina kartı −/+/doldur/boşalt + 👷 rozeti.
+- Testler 173 (172+1 todo), e2e 70/70. Gerçek cihaz denenmedi.
+
 ## 2026-10-26 — BD varsayılan + ilk dakika (Sonnet 5.5) + tehdit tasarımı (Opus 5.5)
 - Varsayılan görünüm bd; `?stil=eski|0` eski render; WebGL2 yoksa/hata olursa eski görünüme düşer. Ayarlar kalitesi uygulanıyor.
 - `BASLANGIC_KAYNAK` odun 6, deri 2 (ilk Çadır ilk gün); öğretici 5 adımlı ve duruma tepkili. Bot: 24/28/34, 47/50 hedefte. Testler 143 (142+1 todo), e2e 46/46.

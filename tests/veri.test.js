@@ -17,7 +17,7 @@ test('tablo boyutları belgeyle uyumlu', () => {
   assert.equal(VERI.BINALAR.filter((b) => b.tur === 'merkez').length, 5);
   // §4 tabloları: 8 + 9 + 11 + 10 + 11 inşa edilebilir bina
   const say = (c) => VERI.BINALAR.filter((b) => b.cag === c && b.tur !== 'merkez').length;
-  assert.deepEqual(['gocebe', 'tasdevri', 'bronz', 'antik', 'ortacag'].map(say), [8, 9, 11, 10, 11]);
+  assert.deepEqual(['gocebe', 'tasdevri', 'bronz', 'antik', 'ortacag'].map(say), [9, 9, 11, 10, 11]); // +Çit (TEHDIT.md §12)
   assert.equal(VERI.EYLEMLER.length, 8);
 });
 

@@ -1,6 +1,6 @@
 # Dış Tehdit Sistemi — tasarım (taslak, 2026-10-26)
 
-Durum: **tasarım; kod yok.** Bağlı belgeler: `TASARIM.md` §2.5 nüfus, §4 çağlar, §6 olaylar (§6.3 saldırı), §7.3 ölüm sarmalı.
+Durum: **MVP uygulandı (2026-10-26; §10 dilimi + §12 çit/sur).** §11 cevaplandı. Bağlı belgeler: `TASARIM.md` §2.5 nüfus, §4 çağlar, §6 olaylar (§6.3 saldırı), §7.3 ölüm sarmalı.
 Kapsam dışı (sonraki adım, yalnız kanca): kahraman/sefer sistemi, köy dışı görevler (ayı avı, keşif seferi), tam komşu/diplomasi.
 `ÖNERİ` = kullanıcı kararı bekleyen tasarımcı önerisi; uygulayıcı varsayılan olarak bunu kullanır.
 
@@ -342,12 +342,47 @@ eski oyunda 10 tur tehdit yok). `DURUM_SEMASI`'na alanlar eklenir; mevcut alan s
 
 ---
 
-## 11. Açık sorular (kullanıcıya)
+## 11. Açık sorular — CEVAPLANDI (2026-10-26, kullanıcı: "Önerilerle devam"; 6 önerinin tümü onaylandı)
 
-1. **Karar penceresi oyunu durdursun mu?** ÖNERİ: hayır — uyarı süresince tavır seçilir, varışta yalnız sonuç bildirimi (hızlı tempo).
-   Olay gibi durduran pencere yalnız Kuşatma'da (çağın büyük anı).
-2. **Gerginlik sayısı görünsün mü?** ÖNERİ: 3 kademe çip herkes için; sayı ve kesin güç Gözcü Direği/keşifle açılır (keşfe değer katar).
-3. **Göçebe'de tehdit can alsın mı?** ÖNERİ: hayır, yalnız yaralı + yiyecek kaybı; ölüm Taş Devri'nden itibaren (kilitli).
-4. **Zorluk/Barışçıl:** ÖNERİ varsayılan Normal; Barışçıl seçilebilir; zorluk her an düşer, yalnız yeni oyunda yükselir.
-5. **Komşu sistemi:** ÖNERİ şimdi A (soyut kaynak + ilişki), kahraman/sefer adımında B; C yalnız Sanayi/Modern kararıyla.
-6. **Karşı saldırı şimdi mi?** ÖNERİ: hayır; sefer sistemine bırakılsın (aynı ganimet tablosunu kullanır).
+1. **Karar penceresi oyunu durdurmaz:** uyarı süresince tavır seçilir, varışta yalnız sonuç bildirimi. Durduran pencere yalnız
+   Kuşatma'da (MVP dışı; Orta Çağ dilimi).
+2. **Görünürlük:** herkes için 3 kademe çip (Sakin/Tedirgin/Gergin); sayı ve kesin güç Gözcü Direği / Muhafız Kulesi (≥1 işçi)
+   ya da o tur Keşfet ile açılır.
+3. **Göçebe'de tehdit can almaz:** yalnız yaralı işçi + yiyecek kaybı; ölüm Taş Devri'nden itibaren (kayıp kilidine tabi).
+4. **Zorluk:** varsayılan Normal; Barışçıl seçilebilir (`yeniOyun(tohum, { zorluk })`); `zorlukAyarla` her an düşürür,
+   yükseltme yalnız yeni oyunda. Rahat/Zor verisi tanımlı, arayüzde MVP+1.
+5. **Komşu = A:** soyut kaynak + ilişki puanı (`tehdit.iliski.komsu`); B kahraman/sefer adımında.
+6. **Karşı saldırı yok:** sefer sistemine bırakıldı (`karsi` yalnız veri kimliği olarak ayrıldı).
+
+---
+
+## 12. Çevre: Çit ve Sur (kullanıcı isteği "köyü çitle çevirebilmeliyim") — UYGULANDI
+
+- **Binalar:** `cit` (Göçebe, 1×1, 1 odun, 1 gün, savunma 0,25, Sv1, `yanabilir`) ve mevcut `sur_parcasi` (Orta, 10 taş, 0,5 +
+  sınır kenarında +1, Sv3'e kadar) aynı sistemdedir: `cevre: true`. İkisi de `maliyetSabit` (adetle büyümez) ve `insaatSinirDisi`
+  (eşzamanlı inşaat sınırına sayılmaz; sürükleyerek çizilebilsin).
+- **Savunma** (`savunma.js cevreSavunmasi`): `min(Σ parça × Sv, parcaTavan[çağ]) + (kapalı ? kapaliBonus[çağ] × içerdeki bina / tüm bina : 0)`.
+  `CEVRE.parcaTavan` Göçebe 1 · Taş 2 · Bronz 4 · Antik 8 · Orta 16; `kapaliBonus` 2 · 4 · 6 · 10 · 20 (denge.js). Kapalı çevrede
+  tehdit kayıp oranı ×0,8. Normal'de bedava değil: tüm köyü saran halka Göçebe'de ~25–30 odun (geçiş maliyeti 25 odun) ve en çok
+  +3 savunma verir; köy büyüdükçe halka yeniden çizilmeli (dışarıda kalan bina bonusu düşürür).
+- **Kapalı tespiti** (`src/world/cevre.js`): merkez hücrelerinden 4 yön yürüyüş yerleşim sınırının dışına çıkamıyorsa kapalı.
+  Köşe gerekmez (çapraz geçiş yok). Su/dağ doğal engel. Bina ve sis geçilir.
+- **Geçit kararı:** ayrı `kapi` binası YOK. Yol karosunun karşılıklı iki kenar komşusu (D+B ya da K+G) çit/sur ise yol "geçit"
+  sayılır ve halkayı bozmaz. Göçebe/Taş'ta yol olmadığı için halka tamamen kapalıdır (görselde kapı süsü serbest).
+- **Boşluk:** `cevreDurumu(d) → { kapali, bosluk, bosluklar:[[x,y]], parca, insaatta, hasarli, ic, toplam }`. `bosluk` = halkayı
+  kapatmak için gereken en az parça (merkezden dışarıya en küçük köşe kesimi, birim kapasiteli max-flow: çit kurulabilir boş karo 1,
+  kurulamayan geçilir karo ∞). `bosluklar` o kesimin hücreleri (arayüz vurgular). Kesim > 60 ise `bosluk: null`.
+- **Yanma:** baskın/akıncı yenilgisinde (`sonuc.yenilgi.yakar`) ek olarak 1 yanabilir parça hasar görür (zorluk hasarMax > 0 ise);
+  hasarlı/inşaattaki parça duvar sayılmaz.
+- **Komut:** `insaEtCok(durum, binaId, hucreler)` → `{ durum, kurulan:[{x,y,uid}], atlanan:[{x,y,hata}], hata? }`; kaynak bitince
+  kalanlar atlanır, uygunsuz hücre atlanıp devam edilir; hiçbiri kurulamazsa `hata` ve durum değişmez.
+
+## 13. Uygulama notları (MVP, 2026-10-26)
+
+- Adım `m2` (Tehdit) `m` ile `n` arasında. Varış turunda `istatistik.sonTur.tehditVaris` → `n` kötü olay seçmez.
+- Motor açıkken (`durum.tehdit` var) `tur:'saldiri'` olayları havuz dışı; Keşfet'in kurt zinciri olay yerine gerginlik +15 ekler.
+- `tehdit.rng` = `rngBaslat('tehdit:' + tohum)`; motor `durum.rng`'yi hiç tüketmez (hasar seçimi dahil).
+- Gerginlik negatif olabilir (−20/−30 = barış süresi; alt sınır −50). Engelli doğumda 95'te bekler.
+- Uygulanmayan (MVP+1): Nöbet Tut, Elçi Gönder, Silah Dağıt, Kuşatma'nın durduran penceresi, `hastalik` değiştiricisinde erteleme
+  (çekirdekte hastalık değiştiricisi ayırt edilemiyor; yalnız bekleyen olayda 1 tur erteleme var). Acil Tahkimat UYGULANDI.
+- Varsayım (TODO tasarım): püskürtme `haracSayac`'ı 1 azaltır (belgede düşüş yoktu); kısmi sonuçta gerginlik 0.

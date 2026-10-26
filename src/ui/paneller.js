@@ -14,6 +14,7 @@ import {
   kaynakYeter, eksikMetni, yaraliSayisi, mevcutCag, binaIscisi,
 } from '../core/yardimci.js';
 import { maliyetHesapla, yukseltmeMaliyeti, onarimMaliyeti, insaEdilebilirMi, insaatSinirDolu } from '../core/insa.js';
+import { hamUretimHesapla } from '../core/uretim.js';
 import { arastirilabilirMi, bilgiUretimi } from '../core/arastirma.js';
 import { eylemUygunMu } from '../core/eylem.js';
 import { cagSartlari } from '../core/cag.js';
@@ -272,6 +273,43 @@ export function cagSekmesi(a) {
     h('div', { class: 'soluk kucuk', style: 'margin-top:6px' }, 'Çağ atlayınca kaynak maliyeti ödenir, yerleşim sınırı büyür, yeni bina ve buluşlar açılır.'));
 }
 
+// Kartta işçi atama: büyük −/+, hızlı doldur/boşalt, tahmini üretim. Yalnız `isAta` komutu kullanılır; üretim önizlemesi kopya durumda salt-okunur hesaplanır.
+function isciBlogu(a, b, t, yuva) {
+  const d = a.d;
+  const n = d.atama[b.uid] || 0;
+  const issiz = issizSayisi(d);
+  const kilit = !!d.olay.aktif;
+  const gercek = binaIscisi(d, b);
+  const neden = (artir) => {
+    if (kilit) return 'Önce olayı çöz.';
+    if (artir) return n >= yuva ? 'Yuva dolu.' : issiz <= 0 ? 'Boşta kimse yok (önce başka işten al).' : null;
+    return n <= 0 ? 'Zaten boş.' : null;
+  };
+  const art = neden(true), azl = neden(false);
+  const hedefDoldur = Math.min(yuva, n + issiz);
+  // üretim: bu binanın tahmini günlük katkısı (şimdi ve +1 işçi ile)
+  const uretimOf = (durum) => { try { return hamUretimHesapla(durum).kaynaklar[b.uid] || {}; } catch { return {}; } };
+  const simdi = uretimOf(d);
+  const bir = n < yuva && issiz > 0 ? uretimOf(isAta(d, b.uid, n + 1).durum) : null;
+  const girdili = Object.keys(t.girdi || {}).length > 0;
+  const uretimSatiri = girdili
+    ? h('div', { class: 'soluk kucuk' }, `Dönüşüm: işçi başına ${uretimMetni(t.girdi).replace(/\+/g, '')} → ${uretimMetni(t.uretim)}`)
+    : h('div', { class: 'is-uretim' }, h('span', { class: 'soluk kucuk' }, 'Tahmini üretim'), ' ',
+      h('b', { class: Object.keys(simdi).length ? 'ok' : 'soluk' }, `${uretimMetni(simdi) || '—'}/gün`),
+      bir && Object.keys(bir).length ? h('span', { class: 'soluk kucuk' }, `  (+1 işçi: ${uretimMetni(bir)})`) : null);
+  return h('div', { class: 'is-blok' },
+    h('div', { class: 'is-sayac' },
+      h('button', { class: 'is-d azalt', 'data-is': 'azalt', disabled: !!azl, 'aria-label': 'Bir işçi çıkar', onclick: () => a.islem(isAta, b.uid, n - 1) }, '−'),
+      h('div', { class: `is-sayi${n === 0 ? ' bos' : ''}`, 'data-is': 'sayi' }, h('b', {}, n), h('span', {}, `/${yuva}`), h('small', {}, '👷 işçi')),
+      h('button', { class: 'is-d artir', 'data-is': 'artir', disabled: !!art, 'aria-label': 'Bir işçi ekle', onclick: () => a.islem(isAta, b.uid, n + 1) }, '+')),
+    h('div', { class: `is-issiz${issiz > 0 ? ' var' : ''}` }, `İşsiz: ${issiz}`, gercek < n ? `  ·  çalışan ${gercek} (yaralı var)` : ''),
+    art && !kilit && n < yuva ? h('div', { class: 'neden' }, art) : null,
+    h('div', { class: 'dugmeler is-hizli' },
+      h('button', { 'data-is': 'doldur', disabled: kilit || hedefDoldur <= n, onclick: () => a.islem(isAta, b.uid, hedefDoldur) }, 'Tümünü doldur'),
+      h('button', { 'data-is': 'bosalt', disabled: kilit || n <= 0, onclick: () => a.islem(isAta, b.uid, 0) }, 'Boşalt')),
+    uretimSatiri);
+}
+
 // ---------- Bilgi kartı (içerik; pencere kabuğunu arayuz.js çizer) ----------
 export function binaKarti(a, b) {
   const d = a.d;
@@ -295,7 +333,7 @@ export function binaKarti(a, b) {
     h('div', { class: 'kart-ust' }, binaResmi(b.id, 52), h('div', {},
       h('div', { class: `durum-rozet ${durumSinif}` }, durum),
       h('div', { class: 'soluk kucuk', style: 'margin-top:3px' }, `${t.aciklama || ''}`))),
-    yuva ? h('div', { class: 'satir' }, `👷 İşçi ${binaIscisi(d, b)}/${yuva} ${uretimMetni(t.uretim) ? `· işçi başına ${uretimMetni(t.uretim)}` : ''}`) : null,
+    yuva ? isciBlogu(a, b, t, yuva) : null,
     t.sabitUretim && Object.keys(t.sabitUretim).length ? h('div', { class: 'satir' }, `Sabit: ${uretimMetni(t.sabitUretim)}/gün`) : null,
     t.kapasite ? h('div', { class: 'satir' }, `🏠 Barınak ${t.kapasite + b.seviye - 1} kişi`) : null,
     t.huzur ? h('div', { class: 'satir' }, `😊 Huzur +${t.huzur}`) : null,

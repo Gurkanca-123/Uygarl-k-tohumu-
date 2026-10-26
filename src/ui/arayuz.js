@@ -7,7 +7,7 @@ import { yik } from '../core/komutlar.js';
 import { secenekUygunMu } from '../core/olay.js';
 import { bilgiUretimi } from '../core/arastirma.js';
 import { takvim } from '../core/takvim.js';
-import { kaynakAcik, depoTavani, mevcutCag, binaBul, barinmaKapasitesi, issizSayisi } from '../core/yardimci.js';
+import { kaynakAcik, depoTavani, mevcutCag, binaBul, barinmaKapasitesi, issizSayisi, isciYuvasi, binaIsi } from '../core/yardimci.js';
 import { maliyetHesapla } from '../core/insa.js';
 import { yerUygunMu, uygunYerler } from '../world/yerlestir.js';
 import { merkezNokta } from '../world/harita.js';
@@ -26,6 +26,7 @@ const SEKMELER = [['insa', '🔨', 'İnşa', insaSekmesi], ['is', '👷', 'İş'
   ['onder', '🧭', 'Önder', onderSekmesi], ['cag', '🏛', 'Çağ', cagSekmesi]];
 const MEVSIM_SIMGE = ['🌱', '☀️', '🍂', '❄️'];
 const KALITELER = [['yuksek', 'Yüksek'], ['standart', 'Standart'], ['performans', 'Performans']];
+const ROZET_ZOOM = 1.0;
 const SEVIYE_SIMGE = { iyi: '✔', uyari: '⚠', hata: '✖', bilgi: 'ℹ' };
 
 export class Arayuz {
@@ -47,6 +48,7 @@ export class Arayuz {
     this.kaliteUygula();
     oyun.dinle((tip, veri) => this.olay(tip, veri));
     sahne.onTik = (x, y) => this.hucreTik(x, y);
+    sahne.onKare = () => this.rozetKonumla();
     sahne.onUzerinde = (x, y) => { if (this.yerlestirme && !this.sahneDokunmatik) this.yerlestirmeKonum(x, y); };
   }
 
@@ -79,7 +81,9 @@ export class Arayuz {
     this.panelGovde = h('div', { class: 'govde' });
     this.pencereEl = h('div', { class: 'pencere sag' },
       h('div', { class: 'p-bas', onclick: () => this.pencereKucult() }, this.pIkon, this.pBaslik, this.pKucult, this.pKapat), this.panelGovde);
-    this.ortaEl.append(this.toastEl, this.ipucuEl, this.kartEl, this.cubukEl, this.pencereEl, this.rayEl);
+    this.rozetEl = h('div', { class: 'rozet-katman' });
+    this.rozetler = new Map(); this.rozetAnahtar = null; this.rozetKamera = '';
+    this.ortaEl.append(this.rozetEl, this.toastEl, this.ipucuEl, this.kartEl, this.cubukEl, this.pencereEl, this.rayEl);
     this.modalEl = h('div');
     this.kok.append(this.ustEl, this.ortaEl, this.altEl, this.modalEl);
   }
@@ -153,6 +157,62 @@ export class Arayuz {
   // ---------- seçim ----------
   secimiKaldir() { this.secim = null; this.yikOnay = null; this.sahne.secim(null); this.yenile(); }
 
+  // ---------- işçi rozetleri (haritada bina üstü; DOM katmanı, kamerayla birlikte konumlanır) ----------
+  // Rozete dokunma = bina kartını açar (kartta büyük −/+). Neden: harita sürükleme/kaydırma ile aynı parmak bölgesinde küçük −/+ yanlış basmaya açık;
+  // kart zaten 44px+ düğmeler, üretim önizlemesi ve nedenleri gösterir.
+  rozetKur(d) {
+    const sec = this.secim?.tip === 'bina' ? this.secim.uid : null;
+    const liste = this.yerlestirme || d.olay.aktif ? [] : d.binalar.filter((b) => isciYuvasi(b) > 0 && (!binaIsi(d, b) || b.uid === sec));
+    const anahtar = JSON.stringify([liste.map((b) => [b.uid, d.atama[b.uid] || 0, isciYuvasi(b), b.hasarli]), sec, issizSayisi(d)]);
+    if (anahtar === this.rozetAnahtar) return;
+    this.rozetAnahtar = anahtar;
+    this.rozetEl.replaceChildren(); this.rozetler.clear();
+    const issiz = issizSayisi(d);
+    for (const b of liste) {
+      const n = d.atama[b.uid] || 0, yuva = isciYuvasi(b);
+      const sinif = `rozet${n === 0 ? ' bos' : n >= yuva ? ' dolu' : ''}${b.uid === sec ? ' secili' : ''}${n < yuva && issiz > 0 ? ' bosta' : ''}`;
+      const el = h('button', { class: sinif, 'aria-label': `${BINA[b.id].ad}: ${n}/${yuva} işçi`, onclick: () => this.binaSec(b.uid) }, `👷 ${n}/${yuva}`);
+      this.rozetler.set(b.uid, { el, b, hep: b.uid === sec });
+      this.rozetEl.append(el);
+    }
+    this.rozetKamera = '';
+    this.rozetKonumla();
+  }
+
+  // Yalnız kamera/ekran değişince çalışır; yalnız görünür rozetlere dokunur. Uzak zoomda (seçili hariç) gizler.
+  rozetKonumla() {
+    if (!this.rozetler?.size) return;
+    const S = this.sahne, c = S.canvas, k = S.kamera;
+    const w = c.clientWidth, hh = c.clientHeight;
+    const anahtar = `${S.hedef.x.toFixed(2)},${S.hedef.z.toFixed(2)},${k.zoom.toFixed(3)},${w}x${hh}`;
+    if (anahtar === this.rozetKamera) return;
+    this.rozetKamera = anahtar;
+    const yakin = k.zoom >= ROZET_ZOOM;
+    this.rozetEl.classList.toggle('uzak', !yakin);
+    const r = c.getBoundingClientRect(), r0 = this.rozetEl.getBoundingClientRect();
+    const dx = r.left - r0.left, dy = r.top - r0.top;
+    const p = { x: 0, y: 0 };
+    for (const { el, b, hep } of this.rozetler.values()) {
+      const t = BINA[b.id];
+      if (!yakin && !hep) { if (!el.hidden) el.hidden = true; continue; }
+      S.ekranNokta(b.x + t.boyut[0] / 2, 2.6, b.y + t.boyut[1] / 2, p);
+      const gor = p.x > -20 && p.y > -20 && p.x < w + 20 && p.y < hh + 20;
+      if (el.hidden === gor) el.hidden = !gor;
+      if (gor) el.style.transform = `translate(${Math.round(p.x + dx)}px, ${Math.round(p.y + dy)}px) translate(-50%, -100%)`;
+    }
+  }
+
+  binaSec(uid) {
+    this.sahneDokunmatik = true;
+    const b = this.d && binaBul(this.d, uid);
+    if (!b) return;
+    if (this.pencere !== 'kapali') { this.pencere = 'kapali'; this.kaydetUi(); }
+    this.yikOnay = null;
+    this.secim = { tip: 'bina', uid };
+    this.kartKucuk = false;
+    this.yenile();
+  }
+
   hucreTik(x, y) {
     this.sahneDokunmatik = true;
     if (!this.d) return;
@@ -224,7 +284,7 @@ export class Arayuz {
     if (this.yerlestirme) this.yerlestirmeGostermeden();
 
     this.kok.classList.toggle('yerlesme', !!this.yerlestirme);
-    this.ust(d); this.panel(d); this.alt(d); this.kart(d); this.cubuk(d); this.modal(d);
+    this.ust(d); this.panel(d); this.alt(d); this.kart(d); this.cubuk(d); this.modal(d); this.rozetKur(d);
     this.ogretici.guncelle(d, this.ipucuEl);
   }
 

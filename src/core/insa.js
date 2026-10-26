@@ -5,7 +5,7 @@ import {
 } from '../data/denge.js';
 import {
   BINA, CAG, BULUS, KARO, KAYNAK, kopya, cagSira, mevcutCag, cagAcik, binaBul, binaKurulu, binaIsi, bildir, sonTur,
-  kaynakYeter, eksikMetni, kaynakUygula, atamaDuzelt, olayKilitli, OLAY_KILIDI, hataDon, bulusEtkileri,
+  kaynakYeter, eksikMetni, kaynakUygula, atamaDuzelt, olayKilitli, OLAY_KILIDI, hataDon, bulusEtkileri, etkinDegistiriciler,
 } from './yardimci.js';
 import { izgara, icinde } from '../world/izgara.js';
 import { yerUygunMu, uygunYerler } from '../world/yerlestir.js';
@@ -19,6 +19,7 @@ export function maliyetHesapla(d, binaId) {
   const t = BINA[binaId];
   const mevcut = d.binalar.filter((b) => b.id === binaId).length;
   const k = t.tur === 'konut' ? MALIYET_K_KONUT : MALIYET_K;
+  if (t.maliyetSabit) return { ...t.maliyet }; // çevre parçaları (Çit, Sur): adetle büyümez (TEHDIT.md §12)
   const m = {};
   for (const [r, taban] of Object.entries(t.maliyet)) m[r] = Math.max(taban, Math.round(taban * k ** mevcut));
   return m;
@@ -28,13 +29,22 @@ export function yukseltmeMaliyeti(b) {
   const c = YUKSELTME_MALIYET[b.seviye - 1];
   return Object.fromEntries(Object.entries(t.maliyet).map(([r, m]) => [r, Math.round(m * c)]));
 }
-export function onarimMaliyeti(b) {
+// Toparlanma (TEHDIT.md §5.3.5): `onarimBedava` değiştiricisi varken onarım bedava (d verilirse denetlenir).
+export function onarimMaliyeti(b, d = null) {
+  if (d && etkinDegistiriciler(d).some((m) => m.etki?.onarimBedava)) return {};
   return Object.fromEntries(Object.entries(BINA[b.id].maliyet).map(([r, m]) => [r, Math.round(m * ONARIM)]));
 }
 
 // Eşzamanlı inşaat sınırına yeni inşaat, yükseltme ve orman temizleme sayılır.
 // TODO(tasarim): onarım (1 tur) sınıra sayılır mı yazılmamış → sayılmaz varsayıldı.
-export const suankiInsaatSayisi = (d) => d.insaatSirasi.filter((s) => !s.startsWith('onar:')).length;
+// Çevre parçaları (`insaatSinirDisi`: Çit, Sur) sınıra sayılmaz: sürükleyerek çok parça çizilebilsin (TEHDIT.md §12).
+function sinirSayilir(d, s) {
+  if (s.startsWith('onar:')) return false;
+  if (s.startsWith(TEMIZLE_ONEK)) return true;
+  const b = binaBul(d, s.includes(':') ? s.split(':')[1] : s);
+  return !(b && BINA[b.id].insaatSinirDisi);
+}
+export const suankiInsaatSayisi = (d) => d.insaatSirasi.filter((s) => sinirSayilir(d, s)).length;
 export function insaatSinirDolu(d) {
   return suankiInsaatSayisi(d) >= mevcutCag(d).esZamanliInsaat;
 }
@@ -60,7 +70,7 @@ export function insaEt(durum, binaId, x, y) {
   if (olayKilitli(durum)) return hataDon(durum, OLAY_KILIDI);
   const h1 = insaEdilebilirMi(durum, binaId);
   if (h1) return hataDon(durum, h1);
-  if (insaatSinirDolu(durum)) return hataDon(durum, `Aynı anda en çok ${mevcutCag(durum).esZamanliInsaat} inşaat sürebilir.`);
+  if (!BINA[binaId].insaatSinirDisi && insaatSinirDolu(durum)) return hataDon(durum, `Aynı anda en çok ${mevcutCag(durum).esZamanliInsaat} inşaat sürebilir.`);
   const h2 = yerUygunMu(durum, binaId, x, y);
   if (h2) return hataDon(durum, h2);
   const maliyet = maliyetHesapla(durum, binaId);
@@ -71,6 +81,37 @@ export function insaEt(durum, binaId, x, y) {
   d.binalar.push({ uid, id: binaId, x, y, seviye: 1, insaKalan: BINA[binaId].insaSuresi, hasarli: false });
   d.insaatSirasi = [...d.insaatSirasi, uid];
   return { durum: d, uid };
+}
+
+// Komut: çok parçalı inşa (arayüz sürükleyerek çit/sur çizer). Hücreler sırayla denenir; kaynak bitince kalanlar atlanır,
+// uygun olmayan hücre (dolu, sis, sınır dışı…) atlanıp devam edilir. Hiçbiri kurulamazsa hata döner ve durum değişmez.
+// Dönüş: { durum, kurulan: [{ x, y, uid }], atlanan: [{ x, y, hata }], hata? }
+export function insaEtCok(durum, binaId, hucreler) {
+  if (olayKilitli(durum)) return { ...hataDon(durum, OLAY_KILIDI), kurulan: [], atlanan: [] };
+  const h1 = insaEdilebilirMi(durum, binaId);
+  if (h1) return { ...hataDon(durum, h1), kurulan: [], atlanan: [] };
+  if (!Array.isArray(hucreler) || !hucreler.length) return { ...hataDon(durum, 'Hücre seçilmedi.'), kurulan: [], atlanan: [] };
+  let d = durum;
+  const kurulan = [], atlanan = [];
+  let kaynakBitti = null;
+  const gorulen = new Set();
+  for (const hc of hucreler) {
+    const [x, y] = Array.isArray(hc) ? hc : [hc?.x, hc?.y];
+    const anahtar = `${x},${y}`;
+    if (gorulen.has(anahtar)) continue;
+    gorulen.add(anahtar);
+    if (kaynakBitti) { atlanan.push({ x, y, hata: kaynakBitti }); continue; }
+    const r = insaEt(d, binaId, x, y);
+    if (r.hata) {
+      if (r.hata.startsWith('Kaynak yetersiz')) kaynakBitti = r.hata;
+      atlanan.push({ x, y, hata: r.hata });
+      continue;
+    }
+    d = r.durum;
+    kurulan.push({ x, y, uid: r.uid });
+  }
+  if (!kurulan.length) return { durum, kurulan, atlanan, hata: atlanan[0]?.hata || 'Hiçbir parça kurulamadı.' };
+  return { durum: d, kurulan, atlanan };
 }
 
 // Sv2 kendi çağından itibaren; Sv3 bir sonraki çağdan (ya da `seviyeAc` buluşuyla, Gotik Mimari → Orta Çağ binaları).
@@ -106,7 +147,7 @@ export function onar(durum, uid) {
   if (!b) return hataDon(durum, 'Böyle bir bina yok.');
   if (!b.hasarli) return hataDon(durum, 'Bina hasarlı değil.');
   if (binaIsi(durum, b)) return hataDon(durum, 'Bina üzerinde süren bir iş var.');
-  const maliyet = onarimMaliyeti(b);
+  const maliyet = onarimMaliyeti(b, durum);
   if (!kaynakYeter(durum, maliyet)) return hataDon(durum, `Kaynak yetersiz: ${eksikMetni(durum, maliyet)} eksik.`);
   const d = kopya(durum);
   kaynakUygula(d, Object.fromEntries(Object.entries(maliyet).map(([r, m]) => [r, -m])));

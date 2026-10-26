@@ -14,6 +14,7 @@ import { stilKur } from './stil.js';
 
 const BINA = Object.fromEntries(BINALAR.map((b) => [b.id, b]));
 const ZOOM_MIN = 0.55, ZOOM_MAX = 3.4, YARIM_YUKSEKLIK = 8.5, ZEMIN_Y = 0.3;
+const ROZET_V = new THREE.Vector3();
 const OFSET = new THREE.Vector3(1, 1, 1).multiplyScalar(40);
 
 export class Sahne {
@@ -291,6 +292,14 @@ export class Sahne {
     return rc.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -ZEMIN_Y), hedef);
   }
 
+  // Dünya noktası → ekran (px, tuval köşesine göre); arkada/dışarıda ise null. Arayüz rozetleri için salt-okunur.
+  ekranNokta(x, yuk, z, hedef = { x: 0, y: 0 }) {
+    const g = this.canvas.clientWidth, y = this.canvas.clientHeight;
+    const v = ROZET_V.set(x, yuk, z).project(this.kamera);
+    hedef.x = (v.x + 1) / 2 * g; hedef.y = (1 - v.y) / 2 * y;
+    return hedef;
+  }
+
   hucreBul(px, py) {
     const p = this.ekranZemin(px, py);
     if (!p) return null;
@@ -396,6 +405,7 @@ export class Sahne {
         }
       } else this.renderer.render(this.sahne, this.kamera);
       this.kareSureleri.push(performance.now() - t0);
+      try { this.onKare?.(); } catch (e) { console.warn('[onKare]', e?.message || e); }
       if (this.kareSureleri.length > 120) this.kareSureleri.shift();
     };
     dongu();

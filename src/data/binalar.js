@@ -8,6 +8,8 @@
 //   kesifIyiSonuc (Keşfet iyi sonuç olasılığı +), hastalikKayipCarpani, takas:{ver, al, turBasinaMax?},
 //   olayAgirlik:{tur: çarpan}, kuresel:{hedefEtiket, etki} (bitişiklik sınırı dışı genel bonus),
 //   hastalikKapasitesiIscisiz, savunmaKenar (yerleşim sınırı kenarında ek savunma), etkiIsciGerekir, zafer, anit.
+// Tehdit/çevre (TEHDIT.md): tehditGozcu (çalışır + ≥1 işçi: gerginlik sayısı, kesin güç, uyarı +1), cevre (çit/sur zinciri,
+//   savunması src/world/cevre.js ile hesaplanır), yanabilir, maliyetSabit (adet çarpanı yok), insaatSinirDisi (eşzamanlı sınıra sayılmaz).
 // Aşama 3 (harita/keşif): gorus (bina tamamlanınca kendi çevresinde açtığı yarıçap), kesifYaricap (Keşfet eylemine ek yarıçap).
 //   TODO(tasarim): gorus/kesifYaricap sayıları belgede yok; varsayım (Gözcü 8/+1, Muhafız Kulesi 9, Kale 10).
 // `bitisiklik[].hedef` tek dizgi ya da dizi olabilir (dizi: hedeflerden herhangi biri, ortak `max`).
@@ -61,7 +63,12 @@ export const BINALAR = [
   // TODO(tasarim): Gözcü Direği ve Hayvan İzleri buluşu ikisi de "Keşfet iyi sonuç +%10" diyor; üst üste biner mi, "iyi sonuç" hangileri?
   bina({ id: 'gozcu_diregi', ad: 'Gözcü Direği', cag: 'gocebe', tur: 'savunma', boyut: [1, 1], maliyet: { odun: 6, tas: 2 }, insaSuresi: 1,
     gereksinim: { bulus: 'hayvan_izleri' }, isci: 1, isciTuru: 'nobetci', savunma: 2, isciSavunma: 1, kesifIyiSonuc: 0.10, gorus: 8, kesifYaricap: 1, mvp: true,
-    aciklama: 'Nöbetçi yaklaşan tehlikeyi görür.' }),
+    tehditGozcu: true, aciklama: 'Nöbetçi yaklaşan tehlikeyi görür.' }),
+  // Çevre parçası (TEHDIT.md §12, kullanıcı isteği "köyü çitle çevirebilmeliyim"): ucuz, 1 günde biter, eşzamanlı inşaat sınırına
+  // sayılmaz, maliyeti adetle büyümez; komşu parçalar zincir, merkez çevresinde kapalı halka bonus verir. Yanabilir (baskında yanar).
+  bina({ id: 'cit', ad: 'Çit', cag: 'gocebe', tur: 'savunma', boyut: [1, 1], maliyet: { odun: 1 }, insaSuresi: 1, maxSeviye: 1,
+    savunma: 0.25, cevre: true, yanabilir: true, maliyetSabit: true, insaatSinirDisi: true,
+    aciklama: 'Kazık çit. Köyü kapalı bir halkayla çevirirsen savunma bonusu verir.' }),
   // TODO(tasarim): "+0,3 BP" sabit mi, işçi başına mı? Sabit (bilgi) varsayıldı; işçisiz çalışır mı belirsiz.
   bina({ id: 'sifaci_cadiri', ad: 'Şifacı Çadırı', cag: 'gocebe', tur: 'kamu', boyut: [1, 1], maliyet: { odun: 8, deri: 3 }, insaSuresi: 2,
     isci: 1, bilgi: 0.3, huzur: 3, hastalikKayipCarpani: 0.5, aciklama: 'Hastalık olaylarında kayıplar yarıya iner. (Sürüm 0.2)' }),
@@ -115,7 +122,7 @@ export const BINALAR = [
   bina({ id: 'kuyu', ad: 'Kuyu', cag: 'bronz', tur: 'kamu', boyut: [1, 1], maliyet: { tas: 10, kil: 5 }, insaSuresi: 1,
     huzur: 2, hastalikKapasitesi: 15, aciklama: 'Temiz su hastalığı azaltır.' }),
   bina({ id: 'muhafiz_kulesi', ad: 'Muhafız Kulesi', cag: 'bronz', tur: 'savunma', boyut: [1, 1], maliyet: { tas: 15, metal: 5 }, insaSuresi: 2,
-    isci: 2, isciTuru: 'nobetci', savunma: 6, isciSavunma: 2, gorus: 9, aciklama: 'Nöbetçi kulesi.' }),
+    isci: 2, isciTuru: 'nobetci', savunma: 6, isciSavunma: 2, gorus: 9, tehditGozcu: true, aciklama: 'Nöbetçi kulesi.' }),
   bina({ id: 'mabet', ad: 'Mabet', cag: 'bronz', tur: 'huzur', boyut: [2, 2], maliyet: { kil: 30, tas: 20, metal: 5 }, insaSuresi: 4,
     gereksinim: { tekil: true }, isci: 1, isciTuru: 'rahip', huzur: 12, bilgi: 2, isciBilgi: 1, bakim: { yiyecek: 1 },
     aciklama: 'Rahipler bilgi biriktirir.' }),
@@ -168,7 +175,8 @@ export const BINALAR = [
     gereksinim: { bulus: 'dokumacilik' }, isci: 2, huzur: 5, hastalikKapasitesi: 60, hastalikKapasitesiIscisiz: 20,
     aciklama: 'Hastane; işçisiz yalnız +20 hastalık kapasitesi.' }),
   bina({ id: 'sur_parcasi', ad: 'Sur Parçası', cag: 'ortacag', tur: 'savunma', boyut: [1, 1], maliyet: { tas: 10 }, insaSuresi: 1,
-    savunma: 0.5, savunmaKenar: 1, aciklama: 'Yerleşim sınırının kenarında daha güçlü.' }),
+    savunma: 0.5, savunmaKenar: 1, cevre: true, maliyetSabit: true, insaatSinirDisi: true,
+    aciklama: 'Yerleşim sınırının kenarında daha güçlü; çitle aynı halka sistemine girer.' }),
   bina({ id: 'kale', ad: 'Kale', cag: 'ortacag', tur: 'savunma', boyut: [3, 3], maliyet: { tas: 150, metal: 40, sikke: 50 }, insaSuresi: 6,
     gereksinim: { tekil: true }, isci: 4, isciTuru: 'sovalye', savunma: 25, isciSavunma: 5, gorus: 10, bakim: { sikke: 3 },
     aciklama: 'Şövalyelerin yuvası.' }),

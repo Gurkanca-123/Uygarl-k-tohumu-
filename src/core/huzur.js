@@ -1,8 +1,9 @@
 // Huzur (TASARIM §2.6): hedef hesabı ve en çok HUZUR_KAYMA puanlık kayma (adım j). Saf.
 import {
   HUZUR_HEDEF_TABAN, HUZUR_AYNI_TUR, HUZUR_BARINAKLI, HUZUR_EVSIZ, HUZUR_ACLIK, HUZUR_ISINMA_EKSIK, HUZUR_ISSIZ,
-  HUZUR_KAYMA, VERGI,
+  HUZUR_KAYMA, VERGI, TEHDIT_KORKU_HUZUR,
 } from '../data/denge.js';
+import { savunmaHesapla } from './savunma.js';
 import {
   BINA, kopya, mevcutCag, calisanBinalar, seviyeEtki, evsizSayisi, issizSayisi, etkinDegistiriciler, sinirla,
 } from './yardimci.js';
@@ -33,6 +34,9 @@ export function huzurHedefi(d) {
   p.kalabalik = -Math.max(0, d.nufus - mevcutCag(d).kalabalikEsigi);
   p.vergi = VERGI.find((v) => v.id === d.vergi)?.huzur || 0;
   p.bitisiklik = hesaplaBitisiklik(d).toplamHuzur;
+  // TEHDIT.md §3.5: uyarı sürerken savunma < güç (bilinmiyorsa aralığın üst ucu) → korku.
+  const ta = d.tehdit?.aktif;
+  p.tehdit = ta && savunmaHesapla(d) < (ta.bilinen ? ta.guc : ta.aralik[1]) ? TEHDIT_KORKU_HUZUR : 0;
   p.degistirici = etkinDegistiriciler(d).reduce((a, m) => a + (m.etki?.huzur || 0), 0);
   const hedef = Object.values(p).reduce((a, x) => a + x, 0);
   return { hedef, parcalar: p };

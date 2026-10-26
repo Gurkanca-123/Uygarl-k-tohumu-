@@ -10,7 +10,7 @@
 // Seçim sırası (tur başına en çok 1): kurtarma (koşullu, çağ başına bir) → vadesi gelen zincir (kesin) →
 // diğer koşullu olaylar (ağırlıklı) → rastgele (çağ olasılığıyla, ağırlıklı havuz).
 import {
-  ILK_OLAY_TUR, SARMAL_KOTU_CARPAN, SARMAL_HUZUR_ESIK, TICARET_CARPAN_MAX,
+  ILK_OLAY_TUR, SARMAL_KOTU_CARPAN, SARMAL_HUZUR_ESIK, TICARET_CARPAN_MAX, TEHDIT_IZ_GERGINLIK, TEHDIT_DOGUM_ESIK,
 } from '../data/denge.js';
 import { OLAYLAR } from '../data/olaylar.js';
 import { takvim } from './takvim.js';
@@ -65,9 +65,13 @@ export function olayAgirligi(d, o) {
 }
 
 // Gösterileceği an için uygun olaylar (tetik türüne göre).
+// Tehdit motoru açıkken (durumda `tehdit` var) `tur:'saldiri'` olayları havuz dışı (çifte saldırı yok; kayıtları silinmez).
+// Tehdit varış turunda kötü olay seçilmez (TEHDIT.md §3.6).
+export const tehditMotoru = (d) => !!d.tehdit;
+const havuzDisi = (d, o) => (tehditMotoru(d) && o.tur === 'saldiri') || (o.kotu && !!d.istatistik?.sonTur?.tehditVaris);
 export function uygunOlaylar(d, tetik, zaman) {
   const gosterimTuru = d.tur + 1;
-  return OLAYLAR.filter((o) => o.tetik === tetik && cagaUygun(d, o) && !beklemede(d, o, gosterimTuru)
+  return OLAYLAR.filter((o) => o.tetik === tetik && !havuzDisi(d, o) && cagaUygun(d, o) && !beklemede(d, o, gosterimTuru)
     && !kurtarmaKullanildi(d, o) && kosulSaglanir(d, o.kosul, zaman));
 }
 
@@ -95,6 +99,14 @@ export function adimOlay(durum, bildirimler = []) {
   if (zi >= 0) {
     const z = d.olay.zincir[zi];
     d.olay.zincir = d.olay.zincir.filter((_, i) => i !== zi);
+    // Motor açıkken saldırı zinciri (Keşfet → kurt) olay yerine gerginlik ekler (uyarı sürerken etkisiz).
+    if (tehditMotoru(d) && OLAY[z.olay].tur === 'saldiri') {
+      if (!d.tehdit.aktif) {
+        d.tehdit = { ...d.tehdit, gerginlik: Math.min(TEHDIT_DOGUM_ESIK, d.tehdit.gerginlik + TEHDIT_IZ_GERGINLIK) };
+        bildir(bildirimler, 'tehdit_iz', 'Keşifte yırtıcı izleri görüldü; köyde tedirginlik arttı.', 'uyari');
+      }
+      return d;
+    }
     olayGoster(d, OLAY[z.olay], bildirimler);
     return d;
   }

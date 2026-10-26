@@ -2,8 +2,9 @@
 import { CAGLAR } from '../data/caglar.js';
 import { BINALAR } from '../data/binalar.js';
 import {
-  BASLANGIC_KAYNAK, BASLANGIC_NUFUS, HUZUR_BASLANGIC, HARITA_BOYUT, YENI_KISI_ISI, GORUS_BASLANGIC,
+  BASLANGIC_KAYNAK, BASLANGIC_NUFUS, HUZUR_BASLANGIC, HARITA_BOYUT, YENI_KISI_ISI, GORUS_BASLANGIC, ZORLUK, VARSAYILAN_ZORLUK,
 } from '../data/denge.js';
+import { tehditVarsayilan } from './tehdit.js';
 import { yeniHarita, merkezKonumu } from '../world/harita.js';
 import { bosKesif, kesifUygula } from '../world/kesif.js';
 import { DURUM_SURUM } from './durum.js';
@@ -14,7 +15,8 @@ export const VARSAYILAN_TOHUM = 1;
 // §7.4 başlangıç: Kamp Ateşi (merkez 2×2, haritanın ortası) + 1 Çadır, 3 kişi Toplayıcı'da.
 // Harita (aşama 3): oyun tohumundan türetilen alt-tohumla üretilir (durum.rng'ye dokunmaz); merkez çevresinde
 // GORUS_BASLANGIC yarıçapı açık, gerisi sis.
-export function yeniOyun(tohum = VARSAYILAN_TOHUM) {
+// secenek.zorluk: ZORLUK anahtarı (varsayılan Normal; TEHDIT.md §6). Geçersizse Normal.
+export function yeniOyun(tohum = VARSAYILAN_TOHUM, { zorluk = VARSAYILAN_ZORLUK } = {}) {
   const ilkCag = CAGLAR[0];
   const merkez = BINALAR.find((b) => b.id === ilkCag.merkez);
   const { x: mx, y: my } = merkezKonumu(HARITA_BOYUT);
@@ -46,6 +48,8 @@ export function yeniOyun(tohum = VARSAYILAN_TOHUM) {
     kervanlar: [],
     vergi: 'yok',
     istatistik: {},
+    zorluk: ZORLUK[zorluk] ? zorluk : VARSAYILAN_ZORLUK,
+    tehdit: tehditVarsayilan(tohum),
   };
   kesifUygula(d, { x: mx + merkez.boyut[0] / 2, y: my + merkez.boyut[1] / 2 }, GORUS_BASLANGIC);
   return d;

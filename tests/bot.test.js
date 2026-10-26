@@ -23,3 +23,12 @@ test('kabul ölçütü §9: her tohumda 20–32 tur ve nüfus > 2', { todo: 'den
   assert.equal(ozet.aralikta, TOHUMLAR.length);
   assert.ok(ozet.minNufus > NUFUS_MIN);
 });
+
+// TEHDIT.md §9 ölçüt 1 ve 3 (tehdit motoru açık, Normal, hazırlıklı bot): 50 tohumda ≥ 40 hedef aralıkta, nüfus ≥ 2.
+test('tehdit açıkken 50 tohum Göçebe: ≥ 40/50 tohum 20–32 turda; en düşük nüfus ≥ 2', (t) => {
+  const oz = botOzeti(Array.from({ length: 50 }, (_, i) => i + 1));
+  t.diagnostic(`bitiren ${oz.tamamSayisi}/50 · tur min/ortanca/max ${oz.min}/${oz.ortanca}/${oz.max} · aralıkta ${oz.aralikta}`
+    + ` · en düşük nüfus ${oz.minNufus} · tehdit sonuçları ${JSON.stringify(oz.tehdit)}`);
+  assert.ok(oz.aralikta >= 40, `aralıkta ${oz.aralikta}`);
+  assert.ok(oz.minNufus >= NUFUS_MIN);
+});

@@ -5,7 +5,7 @@ const KIMLIK = /^[a-z][a-z0-9_]*$/;
 const BINA_TURLERI = ['merkez', 'konut', 'uretim', 'donusum', 'depo', 'huzur', 'savunma', 'bilgi', 'kamu', 'anit'];
 const ISCI_TURLERI = ['nobetci', 'asker', 'sovalye', 'rahip', 'bilgin', 'kesis'];
 const BULUS_ETKI_TURLERI = ['uretimCarpani', 'bozulma', 'depoCarpani', 'savunma', 'mevsimCarpani', 'serbestIs',
-  'kesifIyiSonuc', 'isciSavunmaCarpani', 'seviyeAc', 'kesifYaricap'];
+  'kesifIyiSonuc', 'isciSavunmaCarpani', 'seviyeAc', 'kesifYaricap', 'bekciCarpani'];
 
 export function dogrula(v) {
   const h = [];
@@ -20,7 +20,7 @@ export function dogrula(v) {
 
   // --- 1. kimlikler ---
   for (const [ad, tablo] of Object.entries({ CAGLAR: v.CAGLAR, KAYNAKLAR: v.KAYNAKLAR, KAROLAR: v.KAROLAR, BINALAR: v.BINALAR,
-    BULUSLAR: v.BULUSLAR, OLAYLAR: v.OLAYLAR, EYLEMLER: v.EYLEMLER, MEVSIMLER: v.MEVSIMLER })) {
+    BULUSLAR: v.BULUSLAR, OLAYLAR: v.OLAYLAR, EYLEMLER: v.EYLEMLER, MEVSIMLER: v.MEVSIMLER, ...(v.TEHDITLER ? { TEHDITLER: v.TEHDITLER } : {}) })) {
     if (!Array.isArray(tablo)) { hata(`${ad}: dizi değil`); continue; }
     const gorulen = new Set();
     for (const x of tablo) {
@@ -195,6 +195,28 @@ export function dogrula(v) {
     if (e.gereksinim?.bina) binaRef(`${y}.gereksinim`, e.gereksinim.bina);
     kaynakNesne(`${y}.gereksinim.kaynak`, e.gereksinim?.kaynak);
     sonucGez(`${y}.sonuc`, e.sonuc);
+  }
+
+  // --- 5b. tehditler (TEHDIT.md §8.1) ---
+  for (const t of v.TEHDITLER || []) {
+    const y = `TEHDITLER.${t.id}`;
+    if (!(v.TEHDIT_TURLERI || []).includes(t.tur)) hata(`${y}: geçersiz tür "${t.tur}"`);
+    if (!(v.TEHDIT_KAYNAKLARI || []).includes(t.kaynak)) hata(`${y}: geçersiz kaynak "${t.kaynak}"`);
+    cagRef(y, t.cagMin);
+    if (t.cagMax !== null) cagRef(y, t.cagMax);
+    if (t.cagMax !== null && sira(t.cagMin) > sira(t.cagMax)) hata(`${y}: cagMin > cagMax`);
+    if (!Array.isArray(t.secenekler) || !t.secenekler.includes('savun')) hata(`${y}: 'savun' seçeneği zorunlu`);
+    for (const s of t.secenekler || []) if (!(v.TEHDIT_SECENEKLERI || []).includes(s)) hata(`${y}: bilinmeyen seçenek "${s}"`);
+    if (Array.isArray(t.hedef)) for (const r of t.hedef) { if (!kay.has(r)) hata(`${y}.hedef: bilinmeyen kaynak "${r}"`); }
+    else if (!['*', 'tasinabilir'].includes(t.hedef)) hata(`${y}: geçersiz hedef`);
+    if (!(t.uyari >= 2)) hata(`${y}: uyarı en az 2 tur olmalı`);
+    if (!t.sonuc?.kismi || !t.sonuc?.yenilgi) hata(`${y}: sonuc.kismi / sonuc.yenilgi yok`);
+    if (t.secenekler?.includes('harac') && !t.harac) hata(`${y}: haraç tanımı yok`);
+    if (t.secenekler?.includes('saklan') && !t.saklan) hata(`${y}: saklan tanımı yok`);
+    kaynakNesne(`${y}.ganimet`, t.ganimet);
+    kaynakNesne(`${y}.harac`, t.harac?.kaynak);
+    for (const c of Object.keys(t.cagaGore || {})) cagRef(`${y}.cagaGore`, c);
+    if (t.kosul) kosulGez(`${y}.kosul`, t.kosul);
   }
 
   // --- 6. olaylar ---

@@ -21,6 +21,8 @@ import {
   BINA, OLAY, mevcutCag, yaraliSayisi, isciYuvasi, binaKurulu, barinmaKapasitesi, depoTavani, serbestAnahtar,
 } from '../../src/core/yardimci.js';
 import { takvim } from '../../src/core/takvim.js';
+import { beklenenSonuc, haracMaliyeti, TEHDIT, bekciAta, haracOde, tehditTavir } from '../../src/core/tehdit.js';
+import { bekciDegeri } from '../../src/core/savunma.js';
 import { MEVSIM_TUR, YORGUNLUK_MAX } from '../../src/data/denge.js';
 
 const KAYNAKLAR = ['yiyecek', 'odun', 'tas', 'deri'];
@@ -167,8 +169,41 @@ function onderSec(d) {
   return r.hata ? d : r.durum;
 }
 
+// ---------- Tehdit (TEHDIT.md §9 "hazırlıklı bot") ----------
+// Varıştan önceki son oyuncu evresinde (kalan 1): eksik savunmayı bekçiyle kapat (en çok nüfusun yarısı); olmuyorsa
+// yiyecek bolsa haraç, değilse yine kısmiye yetecek kadar bekçi. Bekçi serbest işlerden (en kalabalığından) alınır.
+// strateji 'pasif': hiçbir şey yapmaz (varsayılan tavır Savun).
+function tehditHazirla(d, strateji) {
+  const a = d.tehdit?.aktif;
+  if (strateji === 'pasif' || !a || a.kalan > 1) return d;
+  const b = beklenenSonuc(d);
+  if (b.sonuc === 'puskurtme') return d;
+  const deger = bekciDegeri(d);
+  const gerek = Math.ceil((b.guc - b.savunma) / deger - 1e-9);
+  const ust = Math.floor(d.nufus / 2);
+  const t = TEHDIT[a.id];
+  if (gerek > ust) {
+    const m = haracMaliyeti(d, t, a.guc);
+    const yiyecekSonra = (d.kaynaklar.yiyecek || 0) - (m.yiyecek || 0);
+    if (t.secenekler.includes('harac') && yiyecekSonra >= d.nufus * 3) {
+      const r = haracOde(d);
+      if (!r.hata) return r.durum;
+    }
+  }
+  const n = Math.min(gerek, ust);
+  let x = d;
+  for (let i = 0; i < n; i++) {
+    const kaynak = Object.entries(x.atama).filter(([k, v]) => k.startsWith('serbest:') && k !== 'serbest:bekci' && v > 0)
+      .sort((p, q) => q[1] - p[1])[0];
+    if (!kaynak) break;
+    x = isAta(x, kaynak[0], kaynak[1] - 1).durum;
+    x = bekciAta(x, (x.atama['serbest:bekci'] || 0) + 1).durum;
+  }
+  return x;
+}
+
 // ---------- Ana döngü ----------
-export function botTuru(d) {
+export function botTuru(d, { tehditStrateji = 'hazirlikli' } = {}) {
   let x = d;
   while (x.olay.aktif) x = olaySec(x);
   const s = cagSartlari(x);
@@ -182,17 +217,18 @@ export function botTuru(d) {
   }
   x = insaDene(x);
   x = isleriAta(x);
+  x = tehditHazirla(x, tehditStrateji);
   x = onderSec(x);
   const r = turIlerlet(x);
   return { durum: r.durum, bildirimler: r.bildirimler };
 }
 
 // Göçebe'yi bitirmeyi dener. Dönüş: { tohum, tamam, tur (çağ atlandığı tur), minNufus, son (durum), eksikler }
-export function botOyna(tohum, { maxTur = 80, hedefCag = 'tasdevri' } = {}) {
-  let d = yeniOyun(tohum);
+export function botOyna(tohum, { maxTur = 80, hedefCag = 'tasdevri', zorluk = 'normal', tehditStrateji = 'hazirlikli' } = {}) {
+  let d = yeniOyun(tohum, { zorluk });
   let minNufus = d.nufus;
   for (let i = 0; i < maxTur; i++) {
-    const r = botTuru(d);
+    const r = botTuru(d, { tehditStrateji });
     d = r.durum;
     minNufus = Math.min(minNufus, d.nufus);
     if (d.cag === hedefCag) return { tohum, tamam: true, tur: d.tur, minNufus, son: d };
@@ -200,8 +236,8 @@ export function botOyna(tohum, { maxTur = 80, hedefCag = 'tasdevri' } = {}) {
   return { tohum, tamam: false, tur: d.tur, minNufus, son: d, eksikler: cagSartlari(d).eksikler };
 }
 
-export function botOzeti(tohumlar) {
-  const sonuclar = tohumlar.map((t) => botOyna(t));
+export function botOzeti(tohumlar, secenek = {}) {
+  const sonuclar = tohumlar.map((t) => botOyna(t, secenek));
   const tamam = sonuclar.filter((s) => s.tamam).map((s) => s.tur).sort((a, b) => a - b);
   return {
     sonuclar,
@@ -209,13 +245,15 @@ export function botOzeti(tohumlar) {
     min: tamam[0], max: tamam[tamam.length - 1], ortanca: tamam[Math.floor(tamam.length / 2)],
     aralikta: tamam.filter((t) => t >= 20 && t <= 32).length,
     minNufus: Math.min(...sonuclar.map((s) => s.minNufus)),
+    tehdit: sonuclar.flatMap((s) => s.son.tehdit?.gecmis || []).reduce((a, g) => ({ ...a, [g.sonuc]: (a[g.sonuc] || 0) + 1 }), {}),
   };
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const n = Number(process.argv[2]) || 50;
-  const oz = botOzeti(Array.from({ length: n }, (_, i) => i + 1));
+  const strateji = process.argv[3] || 'hazirlikli';
+  const oz = botOzeti(Array.from({ length: n }, (_, i) => i + 1), { tehditStrateji: strateji, zorluk: process.argv[4] || 'normal' });
   console.log(`Tohum: ${n} · bitiren: ${oz.tamamSayisi} · tur min/ortanca/max: ${oz.min}/${oz.ortanca}/${oz.max}`
-    + ` · 20–32 aralığında: ${oz.aralikta} · en düşük nüfus: ${oz.minNufus}`);
+    + ` · 20–32 aralığında: ${oz.aralikta} · en düşük nüfus: ${oz.minNufus} · tehdit (${strateji}): ${JSON.stringify(oz.tehdit)}`);
   for (const s of oz.sonuclar.filter((x) => !x.tamam).slice(0, 5)) console.log(`  tohum ${s.tohum}: bitiremedi —`, s.eksikler.join('; '));
 }

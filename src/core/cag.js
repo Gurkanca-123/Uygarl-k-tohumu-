@@ -6,6 +6,7 @@ import { CAGLAR } from '../data/caglar.js';
 import { KAROLAR } from '../data/karolar.js';
 import { kesifli, yonAdi } from '../world/kesif.js';
 import { karoAt, merkezNokta } from '../world/harita.js';
+import { TEHDIT_CAG_SINIR, TEHDIT_CAG_NEFES } from '../data/denge.js';
 import {
   BINA, BULUS, CAG, kopya, mevcutCag, kuruluSayisi, kaynakYeter, eksikMetni, kaynakUygula, bildir,
   olayKilitli, OLAY_KILIDI, hataDon, merkezBina,
@@ -42,6 +43,11 @@ export function cagAtla(durum) {
   const m = merkezBina(d);
   if (m) m.id = s.sonraki.merkez;
   for (const r of s.sonraki.yeniKaynaklar) if (d.kaynaklar[r] === undefined) d.kaynaklar[r] = 0;
+  // TEHDIT.md §3.1: "yeni çağ nefesi" — gerginlik en çok 50, 8 tur yeni tehdit doğmaz (aktif uyarı sürer).
+  if (d.tehdit) {
+    d.tehdit.gerginlik = Math.min(d.tehdit.gerginlik, TEHDIT_CAG_SINIR);
+    d.tehdit.nefesKalan = Math.max(d.tehdit.nefesKalan, TEHDIT_CAG_NEFES);
+  }
   const bildirimler = [];
   bildir(bildirimler, 'cag_atlandi', `${s.sonraki.ad} başladı! Merkez: ${BINA[s.sonraki.merkez].ad}.`, 'iyi', { cag: d.cag });
   yeniGorunenler(d, bildirimler);

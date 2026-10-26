@@ -1,7 +1,7 @@
 # PROJECT_STATE (kısa; ayrıntı: `docs/MIMARI.md`, tasarım: `docs/TASARIM.md`)
 
 **Durum:** Aşama 0–5 bitti + görsel/arayüz yenilemesi (pencere sistemi, ayrıntılı köy ve bina modelleri) = **oynanabilir**. Sıradaki: ilk dakika düzeltmesi, aşama 6 (içerik/olay metinleri), 7 (denge).
-Testler: 143 (142 geçer + 1 `todo` = denge hedefi). Tarayıcı testi: `npm run build && npm run e2e` (46 kontrol, `npm test`'e dahil değil). Varsayılan görünüm = stil BD (`?stil=eski` eski render; `?stil=a|b|c|d`).
+Testler: 173 (172 geçer + 1 `todo`). Tarayıcı testi: `npm run build && npm run e2e` (70 kontrol, `npm test`'e dahil değil). Varsayılan görünüm = stil BD (`?stil=eski` eski render; `?stil=a|b|c|d`).
 
 ## Oyun (özet)
 Sıra tabanlı (tur = gün, mevsim 5 gün, yıl 20 gün), 5 çağ, Önder eylemi/tur, yenilgi yok, zafer sonrası serbest kip. 64×64 harita, keşif sisi.
@@ -34,9 +34,10 @@ Sıra tabanlı (tur = gün, mevsim 5 gün, yıl 20 gün), 5 çağ, Önder eylemi
 
 ## DEVAM NOTU (yeni oturum için, 2026-10-26)
 - Kullanıcı kararları: BD stil varsayılan; tehdit belgesi `docs/TEHDIT.md` §11 önerileriyle ONAYLANDI (karar penceresi durdurmaz, 3 kademeli çip, Göçebe'de can kaybı yok, varsayılan Normal+Barışçıl, komşu=soyut kaynak, karşı saldırı yok).
-- Yarım iş (commit'lenmemiş olabilir; `git status` bak): (1) tehdit MVP çekirdeği + çit/sur (`src/data/tehditler.js`, `src/world/cevre.js`, savunma.js, kayıt v3), (2) bina kartında iş atama + işçi rozeti (src/ui). İkisi bitince `npm test`, `npm run build`, `npm run e2e` ile doğrula ve commit'le.
+- BİTTİ ve commit'li: tehdit MVP çekirdeği (`src/core/tehdit.js`, `src/data/tehditler.js`), çit/sur (`src/world/cevre.js`, `cit` binası, `insaEtCok`), bina kartında iş atama + işçi rozeti. UI YOK olanlar: tehdit uyarı çipi/tavır penceresi/savunma göstergesi, çit sürükleyerek çizme + çit modeli (şablona düşüyor).
+- Tehdit API (UI için): `tehditGorunumu(d)`, `beklenenSonuc`, `savunmaDokum`, `cevreDurumu`; komutlar `tehditTavir(d,'savun'|'saklan')`, `haracOde`, `tahkimatYap`, `bekciAta`, `zorlukAyarla`, `insaEtCok(d,binaId,[[x,y]..])`; yeni oyun `yeniOyun(tohum,{zorluk})`; bildirim kodları `tehdit_uyari|varis|bilgi|iz`. Detay: `docs/TEHDIT.md` §12–13. Henüz yok: Nöbet Tut, Elçi Gönder, Silah Dağıt, Kuşatma durduran pencere.
 - Sıradaki: çit çizme arayüzü (sürükleyerek, `insaEtCok`) + çit görseli + tehdit arayüzü (uyarı çipi, tavır penceresi, savunma göstergesi) → Sonnet; sonra kahraman/sefer tasarımı (ayı avı, keşif seferleri; Opus tasarım → onay), çağ genişletme (Sanayi/Modern) kararı, aşama 6 içerik (Haiku metin), aşama 7 denge, bina modelleri (oynanış onayından sonra; Tripo hesabı var, PC'den `TRIPO_API_KEY` ortam sırrı + `api.tripo3d.ai` izni gerekir).
 - Rol kuralı: tasarım/görsel ajanlarına "kıdemli oyun tasarımcısı/sanat yönetmeni" rolü ver. Fable yok → Opus tasarım/çekirdek, Sonnet UI/test, Haiku metin.
 
 ## Kayıt
-Sürüm 2, alan beyaz listeli (`DURUM_SEMASI`), tipik ~2,5 KB, göç zinciri `GOCLER`.
+Sürüm 3 (tehdit alanları; v2 `GOCLER[2]` ile açılır), alan beyaz listeli (`DURUM_SEMASI`), tipik ~2,5 KB, göç zinciri `GOCLER`.

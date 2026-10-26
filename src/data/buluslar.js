@@ -14,8 +14,9 @@ function bulus(o) {
 export const BULUSLAR = [
   // ---------- Göçebe ----------
   bulus({ id: 'mizrak_ucu', ad: 'Mızrak Ucu', cag: 'gocebe', maliyet: { bilgi: 6 }, mvp: true,
-    etkiler: [{ tur: 'uretimCarpani', hedef: 'etiket:avcilik', deger: 1.25 }, { tur: 'savunma', hedef: 'onder', deger: 1 }],
-    aciklama: 'Avcılık ×1,25; önder savunması +1.' }),
+    etkiler: [{ tur: 'uretimCarpani', hedef: 'etiket:avcilik', deger: 1.25 }, { tur: 'savunma', hedef: 'onder', deger: 1 },
+      { tur: 'bekciCarpani', hedef: 'bekci', deger: 1.5 }],
+    aciklama: 'Avcılık ×1,25; önder savunması +1; bekçi ×1,5.' }),
   bulus({ id: 'tas_yontma', ad: 'Taş Yontma', cag: 'gocebe', maliyet: { bilgi: 10 }, mvp: true, acar: { binalar: ['totem'] },
     etkiler: [{ tur: 'serbestIs', hedef: 'tasci', deger: { tas: 1.5 } }], aciklama: 'Totem; serbest Taşçı 1 → 1,5.' }),
   bulus({ id: 'hayvan_izleri', ad: 'Hayvan İzleri', cag: 'gocebe', maliyet: { bilgi: 8 }, mvp: true, acar: { binalar: ['gozcu_diregi'] },

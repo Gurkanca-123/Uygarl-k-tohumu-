@@ -12,6 +12,7 @@ import { adimHuzur } from './huzur.js';
 import { adimArastirma } from './arastirma.js';
 import { adimOlay } from './olay.js';
 import { adimTakvim } from './cag.js';
+import { adimTehdit } from './tehdit.js';
 
 // Adım m: değiştiricilerin süresi −1; 0 olan silinir (kalan null = kalıcı).
 export function adimDegistiriciler(durum) {
@@ -36,6 +37,8 @@ export const ADIMLAR = [
   ['k', 'Nüfus', adimNufus],
   ['l', 'Araştırma', adimArastirma],
   ['m', 'Değiştiriciler', adimDegistiriciler],
+  // TEHDIT.md §8.3: tehdit adımı olaydan ÖNCE; varış turunda n kötü olay seçmez (sonTur.tehditVaris).
+  ['m2', 'Tehdit', adimTehdit],
   ['n', 'Olay', adimOlay],
   ['o', 'Takvim', adimTakvim],
 ];

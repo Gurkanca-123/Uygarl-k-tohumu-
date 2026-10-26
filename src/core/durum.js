@@ -7,11 +7,13 @@ import { BULUSLAR } from '../data/buluslar.js';
 import { OLAYLAR } from '../data/olaylar.js';
 import { EYLEMLER } from '../data/eylemler.js';
 import { KAROLAR } from '../data/karolar.js';
-import { VERGI } from '../data/denge.js';
+import { VERGI, ZORLUK } from '../data/denge.js';
+import { TEHDITLER, TEHDIT_KAYNAKLARI, TEHDIT_TAVIRLARI, TEHDIT_SONUCLARI } from '../data/tehditler.js';
 import { kesifGecerli } from '../world/kesif.js';
 
 // Sürüm 2 (aşama 3): harita = { tohum, boyut, kesif, degisim } (zemin yeniden üretilir); sürüm 1 göçü save/kayit.js'de.
-export const DURUM_SURUM = 2;
+// Sürüm 3 (tehdit MVP): zorluk + tehdit (docs/TEHDIT.md §8.2); göç GOCLER[2].
+export const DURUM_SURUM = 3;
 
 const idler = (t) => t.map((x) => x.id);
 const KAROKOD = new Set(KAROLAR.map((k) => k.kod));
@@ -70,6 +72,22 @@ export const DURUM_SEMASI = S.nesne({
   kervanlar: S.dizi(S.nesne({ kaynak: S.metin({ izinli: idler(KAYNAKLAR) }), miktar: S.sayi(), tur: S.sayi() })),
   vergi: S.metin({ izinli: idler(VERGI) }),
   istatistik: 'sozluk',
+  // Sürüm 3: dış tehdit (TEHDIT.md §8.2).
+  zorluk: S.metin({ izinli: Object.keys(ZORLUK) }),
+  tehdit: S.nesne({
+    gerginlik: S.sayi(), rng: S.sayi(), un: S.sayi(), haracSayac: S.sayi(),
+    sonSonuc: S.metin({ izinli: TEHDIT_SONUCLARI, bos: true }), artArdaYenilgi: S.sayi(),
+    aktif: S.nesne({
+      id: S.metin({ izinli: idler(TEHDITLER) }), guc: S.sayi(), aralik: S.dizi('sayi'), kalan: S.sayi(),
+      tavir: S.metin({ izinli: TEHDIT_TAVIRLARI }), bilinen: 'mantik', erteleme: S.sayi(), tahkimat: 'mantik',
+    }, { bos: true, varsayilan: { tavir: 'savun', bilinen: false, erteleme: 0, tahkimat: false },
+      kontrol: (a) => a.aralik.length === 2 }),
+    bekleme: { tur: 'sozlukSayi', anahtarlar: idler(TEHDITLER) },
+    iliski: { tur: 'sozlukSayi', anahtarlar: TEHDIT_KAYNAKLARI },
+    nefesKalan: S.sayi(),
+    gecmis: S.dizi(S.nesne({ tur: S.sayi(), id: S.metin({ izinli: idler(TEHDITLER) }), guc: S.sayi(), savunma: S.sayi(),
+      sonuc: S.metin({ izinli: TEHDIT_SONUCLARI }) })),
+  }),
 });
 
 const YOK = Symbol('yok');

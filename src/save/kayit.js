@@ -12,6 +12,8 @@ import { KAROLAR } from '../data/karolar.js';
 import { binaHucreleri, icinde } from '../world/izgara.js';
 import { karoAt, karoDegistir, merkezNokta } from '../world/harita.js';
 import { kesifUygula } from '../world/kesif.js';
+import { tehditVarsayilan } from '../core/tehdit.js';
+import { TEHDIT_GOC_NEFES, VARSAYILAN_ZORLUK } from '../data/denge.js';
 
 export const KAYIT_SURUM = DURUM_SURUM;
 export const ANAHTARLAR = { otomatik: KAYIT_ANAHTAR_OTOMATIK, elle: KAYIT_ANAHTAR_ELLE };
@@ -46,8 +48,16 @@ export function goc1to2(eski) {
   return d;
 }
 
+// Sürüm 2 → 3 (tehdit MVP): zorluk Normal; tehdit varsayılanı gerginlik 0 ve 10 tur nefes (yüklenen eski oyun hemen
+// saldırıya uğramaz). Mevcut alanlara dokunulmaz.
+export function goc2to3(eski) {
+  const tohum = typeof eski.tohum === 'number' && Number.isFinite(eski.tohum) ? eski.tohum : undefined;
+  return { ...eski, zorluk: VARSAYILAN_ZORLUK,
+    tehdit: tehditVarsayilan(tohum ?? 1, { gerginlik: 0, nefesKalan: TEHDIT_GOC_NEFES }) };
+}
+
 // GOCLER[n]: sürüm n kaydını sürüm n+1'e çeviren saf fonksiyon.
-export const GOCLER = { 1: goc1to2 };
+export const GOCLER = { 1: goc1to2, 2: goc2to3 };
 
 export class KayitHatasi extends Error {}
 
