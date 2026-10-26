@@ -1,17 +1,20 @@
-// Görsel stil adayları (deneme): `?stil=a|b|c`. Parametre yoksa hiçbir şey kurulmaz, varsayılan görünüm aynen kalır.
+// Görsel stil adayları (deneme): `?stil=a|b|c|d`. Parametre yoksa hiçbir şey kurulmaz, varsayılan görünüm aynen kalır.
 //  a = Minyatür maket: sıcak renk, yumuşak gölge, ucuz AO, tilt-shift (üst/alt şerit bulanık), vinyet.
 //  b = Çizgi film: ışık bantları (4 ton), derinlik + parlaklık tabanlı ince koyu kenar, doygun palet.
 //  c = Boyalı illüstrasyon: 4 çeyrekli Kuwahara (16 örnek), fırça sapması, kâğıt dokusu, sıcak/soluk palet.
+//  d = Konsept diyorama: altın saat + kenar ışığı, iki ölçekli AO, sıcak parlama, doygun palet; ayrıca `stil_d.js`
+//      görsel arazi katmanı (yükseklik alanı, falez, kumsal, derinlik renkli su, yoğun bitki, hayvan, iskele/tekne).
 // Hepsi: sahne → çok örnekli HalfFloat hedef (+derinlik dokusu) → tek tam ekran geçiş (ton eşleme + sRGB burada).
 // Yakın zoom ayrıntısı (üç stilde): bina malzemesinde doku parlaklığından türetilmiş tümsek (ekran türevli normal sapması)
 // + atlas hücresine göre prosedürel tuğla / kiremit / tahta deseni; `kamera.zoom` büyüdükçe güçlenir.
 import * as THREE from 'three';
 import { binaMat } from './malzeme.js';
+import { StilD, kenarIsigi } from './stil_d.js';
 
 export function stilParametresi() {
   try {
     const s = new URLSearchParams(location.search).get('stil');
-    return ['a', 'b', 'c'].includes(s) ? s : null;
+    return ['a', 'b', 'c', 'd'].includes(s) ? s : null;
   } catch { return null; }
 }
 
@@ -31,7 +34,13 @@ function binaDetayYamasi(kip) {
     once(sh, r);
     Object.assign(sh.uniforms, STIL_UNIFORM);
     let f = sh.fragmentShader;
-    f = `uniform float uDetay; uniform float uKip;\nfloat stYuk = 0.0;\n` + f;
+    f = `uniform float uDetay; uniform float uKip;\nfloat stYuk = 0.0;
+float stH3(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+float stG3(vec3 p) {
+  vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(mix(stH3(i), stH3(i + vec3(1, 0, 0)), f.x), mix(stH3(i + vec3(0, 1, 0)), stH3(i + vec3(1, 1, 0)), f.x), f.y),
+             mix(mix(stH3(i + vec3(0, 0, 1)), stH3(i + vec3(1, 0, 1)), f.x), mix(stH3(i + vec3(0, 1, 1)), stH3(i + vec3(1, 1, 1)), f.x), f.y), f.z);
+}\n` + f;
     // doku örneğinden yükseklik: parlaklık + hücreye göre prosedürel desen (atlas hücre no: 0..15)
     f = f.replace('diffuseColor *= sampledDiffuseColor;', `diffuseColor *= sampledDiffuseColor;
     {
@@ -57,6 +66,18 @@ function binaDetayYamasi(kip) {
       stYuk = (lum * 0.8 + desen * 0.45) * net;
       // yakında doku/desen kontrastı
       diffuseColor.rgb *= max(0.3, 1.0 + (lum - 0.55) * 0.5 * net + desen * 0.12 * net);
+      if (uKip > 2.5) { // d: dünya uzayında boya lekesi + dipte kir (her yakınlıkta)
+        float bl = stG3(vDP * 7.0) * 0.65 + stG3(vDP * 23.0) * 0.35;
+        diffuseColor.rgb *= 0.88 + 0.24 * bl;
+        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.08, 1.0, 0.86), smoothstep(0.55, 0.8, bl) * 0.5);
+        diffuseColor.rgb *= mix(0.86, 1.0, smoothstep(0.3, 0.42, vDP.y));
+        // kerpiç / taş kaide üstü: çiğnenmiş toprak avlu (karo biçimli platform hissini kırar)
+        if ((hn == 5.0 || hn == 6.0) && vDN.y > 0.9 && vDP.y < 0.355) {
+          float kn = stG3(vDP * 3.0);
+          vec3 toprak = mix(vec3(0.36, 0.27, 0.16), vec3(0.5, 0.4, 0.26), kn) * (0.9 + 0.2 * bl);
+          diffuseColor.rgb = mix(diffuseColor.rgb, toprak, 0.85);
+        }
+      }
     }`);
     // ekran türevli tümsek (three'nin perturbNormalArb'ı ile aynı)
     f = f.replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
@@ -203,6 +224,33 @@ void main() {
   d *= vinyet(vUv, 0.22);
   gl_FragColor = vec4(srgb(clamp(d, 0.0, 1.0)), 1.0);
 }`,
+  d: `
+void main() {
+  float zk = clamp((uZoom - 1.0) / 2.4, 0.0, 1.0);
+  float dC = derin(vUv);
+  vec3 c = renk(vUv);
+  // iki ölçekli AO: bina dipleri / ağaç altları güçlü ve yumuşak
+  float a1 = ao(vUv, dC, mix(4.0, 9.0, zk) * (0.6 + 0.4 * uZoom));
+  float a2 = ao(vUv, dC, mix(9.0, 16.0, zk) * (0.6 + 0.4 * uZoom));
+  c *= mix(0.58, 1.0, a1 * 0.6 + a2 * 0.4);
+  // sıcak parlama: parlak bölgelerden 12 örnekli disk
+  vec3 bl = vec3(0.0);
+  float br = mix(7.0, 13.0, zk);
+  for (int i = 0; i < 12; i++) {
+    float a = float(i) * 2.39996;
+    float r = sqrt((float(i) + 0.5) / 12.0) * br;
+    vec3 s = renk(vUv + vec2(cos(a), sin(a)) * r * uPiksel);
+    bl += s * smoothstep(1.0, 2.2, parl(s));
+  }
+  bl /= 12.0;
+  vec3 d = aces((c * 1.06 + bl * vec3(1.0, 0.78, 0.5) * 0.55) * vec3(1.03, 1.0, 0.95));
+  d = doygunluk(d, 1.08);
+  float L = parl(d);
+  d = mix(d * vec3(0.92, 0.98, 1.08), d * vec3(1.04, 1.0, 0.93), smoothstep(0.12, 0.65, L)); // serin gölge, sıcak ışık
+  d = (d - 0.5) * 1.08 + 0.5;
+  d *= vinyet(vUv, 0.26);
+  gl_FragColor = vec4(srgb(clamp(d, 0.0, 1.0)), 1.0);
+}`,
 };
 
 // Çizgi film: Lambert ışığını malzemede bantla (3 ışık + 1 gölge tonu) ve gölge kenarını keskinleştir.
@@ -228,6 +276,15 @@ export class Stil {
       sahne.gunes.shadow.mapSize.set(1536, 1536);
     }
     if (kip === 'b') celIsik();
+    if (kip === 'd') {
+      r.shadowMap.type = THREE.PCFShadowMap;
+      sahne.gunes.shadow.radius = 3;
+      sahne.gunes.shadow.mapSize.set(2048, 2048);
+      sahne.gunes.shadow.normalBias = 0.04;
+      kenarIsigi();
+      STIL_UNIFORM.uKip.value = 3;
+      this.d = new StilD(sahne);
+    }
     binaDetayYamasi(kip);
     this.hedef = new THREE.WebGLRenderTarget(1, 1, {
       type: THREE.HalfFloatType, samples: r.capabilities.isWebGL2 ? 4 : 0,
@@ -267,8 +324,10 @@ export class Stil {
     u.uPozlama.value = r.toneMappingExposure;
     u.uAralik.value = kamera.far - kamera.near;
     STIL_UNIFORM.uDetay.value = Math.min(1, Math.max(0, (kamera.zoom - 1.4) / 1.8));
+    this.d?.tik();
     r.setRenderTarget(this.hedef);
     r.render(sahne, kamera);
+    this.bilgi = { cagri: r.info.render.calls, ucgen: r.info.render.triangles };
     r.setRenderTarget(null);
     r.render(this.postSahne, this.postKamera);
   }

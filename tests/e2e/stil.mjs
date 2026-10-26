@@ -1,5 +1,6 @@
 // Görsel stil adayları için ekran görüntüsü (Playwright, global kurulu; `npm run build` sonrası).
-// Aynı köy durumu (bot + Bronz Çağı binaları, yaz) aynı kamerayla `?stil=a|b|c` ile iki yakınlıkta çekilir.
+// Aynı köy durumu (bot + Bronz Çağı binaları, yaz) aynı kamerayla `?stil=a|b|c` ile iki yakınlıkta çekilir
+// (`d` = konsept aday: ayrıca uzak `genis` kare). Varsayılan liste a,b,c; D için: STIL_LISTE=d node tests/e2e/stil.mjs
 // Kullanım: npm run build && node tests/e2e/stil.mjs   (STIL_CIKTI=klasör ile başka yere yazılabilir; ?stil'siz kare: STIL_TABAN=1)
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
@@ -8,6 +9,7 @@ import { botTuru } from '../yardimci/bot.js';
 import { yeniOyun } from '../../src/core/oyun_durumu.js';
 import { uygunYerler } from '../../src/world/yerlestir.js';
 import { merkezNokta } from '../../src/world/harita.js';
+import { kesfet } from '../../src/world/kesif.js';
 
 const gerek = createRequire(import.meta.url);
 let playwright;
@@ -43,10 +45,13 @@ function koyDurumu() {
 
 const durum = koyDurumu();
 const merkez = merkezNokta(durum);
+// stil d: aynı köy, keşif yarıçapı 28 (göl ve dağlar görünsün; yalnız görüntü düzeneği)
+const durumD = kesfet(durum, merkez, 28).durum;
 const sunucu = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore' });
 const bekle = async () => { for (let i = 0; i < 50; i++) { try { if ((await fetch(URL)).ok) return; } catch { /* bekle */ } await new Promise((r) => setTimeout(r, 200)); } throw new Error('sunucu açılmadı'); };
 
 const YAKINLIK = { orta: 1.9, yakin: 3.4 };
+const GENIS = 0.75; // yalnız stil d (uzak: arazi/su/dağ)
 let cikis = 0;
 try {
   await bekle();
@@ -67,18 +72,37 @@ try {
       arayuz.menuAcik = false;
       oyun.ata(d);
       sahne.guncelle(d);
-    }, durum);
-    for (const [ad, z] of Object.entries(YAKINLIK)) {
-      await sayfa.evaluate(({ z, m, ad }) => {
+    }, s === 'd' ? durumD : durum);
+    const yakinliklar = s === 'd' || process.env.STIL_GENIS === '1' ? { genis: GENIS, ...YAKINLIK } : { ...YAKINLIK };
+    // hata ayıklama: STIL_EK="dx,dy,zoom" → merkeze göre ek kare (stil-<s>-ek.png)
+    const ek = process.env.STIL_EK?.split(',').map(Number);
+    if (ek) yakinliklar.ek = ek[2];
+    for (const [ad, z] of Object.entries(yakinliklar)) {
+      await sayfa.evaluate(({ z, m, ad, ek }) => {
         const s = window.__oyun.sahne;
         s.kamera.zoom = z; s.kamera.updateProjectionMatrix();
-        s.odakla(m.x + (ad === 'yakin' ? 0.5 : 0.5), m.y + (ad === 'yakin' ? 0.5 : 0));
-      }, { z, m: merkez, ad });
+        if (ad === 'ek') s.odakla(m.x + ek[0], m.y + ek[1]);
+        else if (ad === 'genis') s.odakla(m.x - 6, m.y - 6);
+        else s.odakla(m.x + (ad === 'yakin' ? 0.5 : 0.5), m.y + (ad === 'yakin' ? 0.5 : 0));
+      }, { z, m: merkez, ad, ek });
       await sayfa.waitForTimeout(1800);
       const yol = `${CIKTI}/stil-${s || 'taban'}-${ad}.png`;
       await sayfa.screenshot({ path: yol });
       const ms = await sayfa.evaluate(() => { const k = window.__oyun.sahne.kareSureleri.slice(-10); return k.reduce((a, b) => a + b, 0) / Math.max(1, k.length); });
-      console.log(`${yol}  (~${ms.toFixed(0)} ms/kare SwiftShader)`);
+      const bilgi = await sayfa.evaluate(() => {
+        const s = window.__oyun.sahne, i = s.stil?.bilgi || { cagri: s.renderer.info.render.calls, ucgen: s.renderer.info.render.triangles };
+        return `${i.cagri} çağrı, ${(i.ucgen / 1000).toFixed(0)} bin üçgen`;
+      });
+      console.log(`${yol}  (~${ms.toFixed(0)} ms/kare SwiftShader; sahne: ${bilgi})`);
+      if (process.env.STIL_SAY === '1') console.log(await sayfa.evaluate(() => {
+        const o = {};
+        for (const m of window.__oyun.sahne.stil?.d?.mesh || []) {
+          const g = m.geometry, t = (g.index ? g.index.count : g.getAttribute('position').count) / 3, k = m.geometry.uuid.slice(0, 4);
+          const ad = `${m.material.customProgramCacheKey?.().slice(0, 14)}|${k}`;
+          o[ad] = o[ad] || [0, 0]; o[ad][0] += m.count ?? 1; o[ad][1] += t * (m.count ?? 1);
+        }
+        return JSON.stringify(Object.fromEntries(Object.entries(o).map(([a, [n, t]]) => [a, `${n} adet ${(t / 1000).toFixed(1)}k`])));
+      }));
     }
     if (hatalar.length) { console.log(`stil ${s}: hata`, hatalar.slice(0, 3).join(' | ')); cikis = 1; }
     await ctx.close();
