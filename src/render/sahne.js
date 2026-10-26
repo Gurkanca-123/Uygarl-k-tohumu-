@@ -10,6 +10,7 @@ import { HaritaCizim, MEVSIM_STIL } from './harita.js';
 import { binaModeli, modeliTemizle } from './binalar.js';
 import { KoyCizim } from './koy.js';
 import { ORTAK } from './malzeme.js';
+import { stilKur } from './stil.js';
 
 const BINA = Object.fromEntries(BINALAR.map((b) => [b.id, b]));
 const ZOOM_MIN = 0.55, ZOOM_MAX = 3.4, YARIM_YUKSEKLIK = 8.5, ZEMIN_Y = 0.3;
@@ -59,6 +60,7 @@ export class Sahne {
     this.arka = new THREE.DirectionalLight(0xbcd0ff, 0.45);
     this.arka.position.set(30, 20, -30);
     this.sahne.add(this.arka);
+    this.stil = stilKur(this); // ?stil=a|b|c deneme son işlemesi; parametresiz null
 
     this.haritaGrup = new THREE.Group();
     this.binaGrup = new THREE.Group();
@@ -256,6 +258,7 @@ export class Sahne {
     });
     this.kamera.updateProjectionMatrix();
     this.renderer.setSize(g, y);
+    this.stil?.boyut();
     this.kirli = true;
   }
 
@@ -379,7 +382,7 @@ export class Sahne {
       const h = this.secimIsareti.userData.halka;
       if (this.secimIsareti.visible && h) { const p = 1 + Math.sin(t * 4) * 0.05; h.scale.set(p, 1, p); h.material.opacity = 0.65 + Math.sin(t * 4) * 0.2; }
       const t0 = performance.now();
-      this.renderer.render(this.sahne, this.kamera);
+      if (this.stil) this.stil.ciz(); else this.renderer.render(this.sahne, this.kamera);
       this.kareSureleri.push(performance.now() - t0);
       if (this.kareSureleri.length > 120) this.kareSureleri.shift();
     };

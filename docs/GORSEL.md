@@ -32,3 +32,26 @@ Hedef: masa üstü maket / diyorama. Yumuşak low-poly, el yapımı hissi, sıca
 
 ## Mevsim
 Bahar yeşil-serin ışık, yaz sarı-sıcak ışık, güz turuncu yaprak + alçak güneş, kış mavi-beyaz ışık + kar tozu + kar yağışı.
+
+## Stil adayları (deneme, `?stil=a|b|c`; parametresiz görünüm aynen)
+Kod: `src/render/stil.js` (sahne.js'te 4 satır kanca). Ekran: `docs/ekran/stil-{a,b,c}-{orta,yakin}.png` (844×390, aynı Bronz köyü, zoom 1.9 / 3.4),
+üretici `node tests/e2e/stil.mjs` (build sonrası). Ortak yol: sahne → 4× MSAA HalfFloat hedef + derinlik dokusu → tek tam ekran geçiş
+(ton eşleme + sRGB burada). Üç stilde de yakın zoom hilesi: bina malzemesinde kaba-mip parlaklığından + hücreye göre prosedürel
+tuğla/kiremit/tahta deseninden ekran türevli tümsek ve kontrast; `kamera.zoom` ve piksel yoğunluğuyla açılır (uzakta sıfır, kumlanmaz).
+Telefon maliyeti (tümü): +1 tam ekran geçiş; dpr 2'de (1,3 Mpx) ek bellek ≈ 40 MB 4× MSAA RGBA16F + ≈ 15 MB çözümleme/derinlik (2× MSAA ya da dpr 1,5 ile yarıya).
+
+**A — Minyatür maket** (12 örnekli disk tilt-shift + 8 derinlik örnekli AO + sıcak ton + vinyet; gölge PCF yarıçap 4)
++ "masa üstü oyuncak" hissi en güçlü; mevcut sıcak diyorama yönünün doğal devamı; yakında derinlik okunuyor.
+− Üst/alt şerit bulanık: arayüz altında ayrıntı kaybı, kaydırırken odak ekranda sabit; AO hafif kirli kenar yapabilir.
+Maliyet: ~21 doku okuması/piksel → orta sınıf telefonda ≈ +1,5–3 ms (yarı çözünürlüklü bulanıklıkla ≈ yarıya iner).
+
+**B — Çizgi film** (Lambert ışığı malzemede 3 bant + keskin gölge; derinlik + log-parlaklık kenarı; doygun palet)
++ En okunur siluetler, küçük ekranda en net; bina/işçi/eşya ayrımı güçlü; kenar kalınlığı zoom'la artar.
+− Atlas dokusunun incelikleri kenar çizgisiyle yarışır (çimen sapları uzakta hafif kumlu); "maket" sıcaklığı azalır.
+Maliyet: 9 doku okuması/piksel + ışık bantlama bedava → ≈ +1–1,5 ms; üç adayın en ucuzu.
+
+**C — Boyalı illüstrasyon** (fırça sapmalı 4 çeyrek × 4 örnek Kuwahara + pigment kenarı + kâğıt/fırça gürültüsü, sıcak-soluk palet)
++ En "sanatsal" ve kendine özgü; low-poly sertliğini ve doku tekrarını gizler; kış/güz paletleriyle iyi uyum beklenir.
+− Yakında küçük ayrıntılar (pencere, eşya, işçi) eriyor; metin/işaret okunurluğu düşük; hareketle kâğıt dokusu ekrana sabit kalır.
+Maliyet: 19 doku okuması + 16 ACES/piksel → ≈ +2–4 ms; en pahalısı (yarı çözünürlükte Kuwahara ile ≈ +1–1,5 ms).
+Not: ms değerleri tahmindir; GPU'lu telefonda ölçülmedi (SwiftShader yalnız görüntü için kullanıldı).
