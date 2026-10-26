@@ -29,3 +29,21 @@
 - Testler: 118 (117 geçti + 1 `todo` = §9 kabul ölçütü, denge aşama 7). `npm run build` geçti.
 - Bot (50 tohum): 50/50 bitirir, tur 30/33/46 (min/ortanca/max), 20–32 aralığında 24/50, en düşük nüfus 3. Sayı değiştirilmedi.
 - Yapan: Opus 5.5.
+
+## 2026-10-26 — Aşama 3: harita üretimi, keşif ve bina yerleştirme
+- Kullanıcı kararı: harita 64×64 (`denge.js` `HARITA_BOYUT`, kodda gömülü değil; testle denetlenir), keşif sisi, yerleşim sınırı
+  8/11/15/20/26 (`YERLESIM_YARICAP`), başlangıç görüşü 6, Keşfet yarıçapı 5. "Açık alan 8 → 16" kuralı ve `CAGLAR.acikAlan` kaldırıldı.
+- `src/world/`: `harita.js` (tohumlu üretim, ayrı alt-tohum → `durum.rng`'ye dokunmaz; göl/nehir/gölet, orman, verimli, kil, taşlık/
+  cevher/mermer kümeleri kademeli uzaklıkta, dağ/kayalık; garanti denetimi + deterministik yeniden deneme), `kesif.js`, `izgara.js`,
+  `yerlestir.js`, `yol.js`. Karolar: +`kil`, `kayalik`, `dag`, `yol`; `gecilir`, `gizliGorunum`, `kesifBildir`.
+- Çekirdek: `insaEt` gerçek yerleşim (sis, sınır, çakışma, karo şartı); `ormanTemizle` (inşaat sırası, 1 tur, +5 odun → çimen),
+  `yolYap`/`yolKaldir` (Bronz+, 1 taş); `yolCarpani` gerçek BFS bağlantısıyla; Sur Parçası sınır kenarında +1; Keşfet eylemi harita
+  keşfi + yönlü bildirim ("Kuzeyde bir taşlık bulundu."); Gözcü Direği/Muhafız Kulesi/Kale tamamlanınca görüş açar; çağ atlayınca
+  keşfedilmiş topraktaki yeni görünür kaynak bildirilir. Bitişiklik görünür karoyla. Kil Ocağı `karoBitisik: kil`.
+- Kayıt v2: `harita = { tohum, boyut, kesif, degisim }`; `GOCLER[1]` (16×16 → 64×64, binalar +24 kayar, altları çimen, köy keşfedilmiş).
+- Testler: 142 (141 geçti + 1 `todo` §9). Yeni: `harita.test.js` (determinizm, 200 tohum garanti, uzaklık sırası, keşif, bulgu,
+  Keşfet eylemi, görüş, kayıt boyutu < 20 KB, v1 göçü), `yerlestir.test.js` (sis, sınır, çakışma, karo şartı gerçek haritada,
+  temizleme, elle sayılan bitişiklik, Sulanan Tarla, yol, Sur). Eski testler `K + x` kaydırmasıyla düz test zemininde.
+  `npm test` ve `npm run build` geçti.
+- Bot (50 tohum, gerçek harita): 50/50, tur 27/31/42, 20–32 aralığında 42/50, en düşük nüfus 3. Sayı ayarı yok.
+- Yapan: Opus 5.5.

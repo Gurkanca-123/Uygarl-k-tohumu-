@@ -1,7 +1,7 @@
 # PROJECT_STATE
 
-**Durum:** Aşama 2 bitti (simülasyon çekirdeği: `turIlerlet` §1.2 a–o + oyuncu komutları + test botu).
-Sıradaki: aşama 3 (ızgara/yerleşim, tohumlu harita, yol). Denge ayarı aşama 7 (bot sonucu aşağıda).
+**Durum:** Aşama 3 bitti (64×64 tohumlu harita, keşif sisi, yerleşim sınırı, bina yerleştirme, orman temizleme, yol, kayıt v2).
+Sıradaki: aşama 4 (MODEL_PLANI'na göre). Denge ayarı aşama 7 (bot sonucu aşağıda).
 
 ## Tasarım özeti
 - 1 tur = 1 gün, mevsim = 5 gün, yıl = 20 gün. Önder soyut eylem menüsü (1/tur), yorgunluk 0–6. Yenilgi yok (nüfus ≥2).
@@ -27,15 +27,25 @@ Sıradaki: aşama 3 (ızgara/yerleşim, tohumlu harita, yol). Denge ayarı aşam
   `eylem.js` (a), `insa.js` (b, c; insaEt/yukselt/onar/yik, maliyet, yerleşim), `uretim.js` (d, e, f; `hesaplaBitisiklik`, çarpanlar),
   `tuketim.js` (g, h), `nufus.js` (i, k; kayıp kilidi, doğum, göç, `isAta`), `huzur.js` (j), `arastirma.js` (l), `olay.js` (n; `olayCoz`),
   `cag.js` (o; `cagSartlari`, `cagAtla`, zafer/serbest kip), `sonuc.js` (ortak §6.1 sonuç uygulayıcı), `savunma.js` (§6.3–6.4),
-  `komutlar.js` (tüm komutlar + `vergiAyarla`, `takasYap`).
+  `komutlar.js` (tüm komutlar + `vergiAyarla`, `takasYap`; aşama 3: `ormanTemizle`, `yolYap`, `yolKaldir` insa.js'de).
 - Bu turun geçici kayıtları `durum.istatistik.sonTur` (kapalı binalar, açlık, ısınma, üretim/tüketim özeti) — kayda girer.
-- `insaatSirasi` girdileri: `'<uid>'` · `'yukselt:<uid>'` · `'onar:<uid>'`. Yaralı işçi = değiştirici `{ id:'yarali', etki:{ yaraliIsci } }`.
+- `insaatSirasi` girdileri: `'<uid>'` · `'yukselt:<uid>'` · `'onar:<uid>'` · `'temizle:<y*n+x>:<kalan>'` (orman temizleme; sınıra sayılır). Yaralı işçi = değiştirici `{ id:'yarali', etki:{ yaraliIsci } }`.
 - `src/save/kayit.js`: `serialize`, `yukle(metin, gocler, hedefSurum)`, `kaydet/oku(depo, anahtar)` (depo enjekte), `GOCLER`, `:bozuk` yedeği,
   `turIlerletVeKaydet(depo, durum)` (§1.2 p, çekirdek dışında).
-- `src/render/sahne.js`: izometrik ortografik sahne, yer tutucu zemin. `src/ui`, `src/world`: boş.
-- `tests/`: 118 test (117 geçer + 1 `todo`): eski 36 + `uretim` 14, `tuketim` 4, `nufus` 8, `huzur` 5, `eylem` 9, `olay` 9,
+- `src/world/` (saf, DOM/three yok; çekirdek bunları kullanır): `izgara.js` (geometri, `izgara`, `kenarKomsulari`, `mesafeHucreleri`,
+  `binaUzakligi`, genel `yerDenetle(baglam, binaId, x, y)`), `harita.js` (üretim `haritaUret`/önbellekli `zemin`, `haritaDenetle`
+  garantileri, `karoAt`/`karoKodu` ham okuma, `karoDegistir` kalıcı değişim, `merkezNokta`, `sinirIcinde`, `haritaIstatistik`),
+  `kesif.js` (bit kümesi base64, `kesifli`, `gorunurKaro` = sis + çağ görünürlüğü, `kesfet`/`kesifUygula`, `kesifHedefi`,
+  `haritaKesfiUygula`, `kesifYaricapi`, `yonAdi`), `yerlestir.js` (`yerUygunMu`, `uygunYerler`, `sinirKenarinda`),
+  `yol.js` (`yolAgi` BFS önbellekli, `yolBagli`).
+- `src/render/sahne.js`: izometrik ortografik sahne, yer tutucu zemin (haritayı henüz çizmiyor). `src/ui`: boş.
+- Harita durumu (kayıt v2): `harita = { tohum (alt-tohum), boyut, kesif (base64 bit kümesi), degisim {'<y*n+x>': kod} }`;
+  zemin her açılışta tohumdan üretilir (≈6 ms, önbellekli). Merkez bina ortada (31,31); yerleşim sınırı `YERLESIM_YARICAP` (Öklid,
+  merkez binanın ortasından). Bitişiklik/yerleşim oyuncunun GÖRDÜĞÜ karoyu kullanır (`gorunurKaro`).
+- `tests/`: 142 test (141 geçer + 1 `todo`; aşama 3: `harita` 13, `yerlestir` 11, veri +1). Önceki: eski 36 + `uretim` 14, `tuketim` 4, `nufus` 8, `huzur` 5, `eylem` 9, `olay` 9,
   `arastirma` 5, `insa` 7, `cag` 7, `tur` 11 (bütünleşik a–g), `bot` 3. Yardımcılar: `tests/yardimci/durum.js`, `tests/yardimci/bot.js`
-  (`node tests/yardimci/bot.js 50` özet yazar).
+  (`node tests/yardimci/bot.js 50` özet yazar). `durum()` yardımcısı formül testleri için "düz test zemini" kurar (merkez r≤12
+  kalıcı değişimle çimen + açık; eski koordinatlar `K + x`); harita/yerleştirme testleri gerçek haritayı kullanır.
 
 ## Aşama 2 motor kararları (TODO(tasarim) varsayımları; `grep -rn "TODO(tasarim)" src`)
 - Olay zamanı: `ILK_OLAY_TUR` = gösterim GÜNÜ (1'den); gün 1–5 olaysız, ilk olay 6. gün (tur 5). `turMin` de gün. Zincir sınırı bekler.
@@ -43,7 +53,9 @@ Sıradaki: aşama 3 (ızgara/yerleşim, tohumlu harita, yol). Denge ayarı aşam
 - Onarım eşzamanlı sınıra sayılmaz · hasarlı konut barınak vermez/yakmaz · sabit BP seviyeyle artmaz · araştırma değiştirmek cezasız
   (ilerleme havuza) · kitap tamamlanmada düşülür · Keşfet bonusları toplanır · Liman tek başına takas açar · Şifacı kayıp ×0,5 olasılıksal.
 - İnşaattaki binaya işçi önceden atanabilir (bitince aynı tur üretir). Çağ atlama komutla hemen olur.
-- Yol çarpanı ve Sur Parçası kenar bonusu aşama 3'e kadar etkisiz (`yolBagli` = true).
+- Aşama 3: Keşfet harita keşfi RNG kullanmaz (eşitlikte yön `tur × altın açı`); orman temizleme inşaat sırasında 1 tur ve
+  eşzamanlı sınıra sayılır; Kil Ocağı artık `kil` karosuna bitişik (eskiden su; kil su kenarında üretilir); `gorus`/`kesifYaricap`
+  sayıları varsayım (Gözcü 8/+1, Muhafız Kulesi 9, Kale 10, Hayvan İzleri +1).
 
 ## Şemaya eklenen alanlar (§10'da yoktu)
 - Bina: `kesifIyiSonuc, hastalikKayipCarpani, takas, olayAgirlik, kuresel, hastalikKapasitesiIscisiz, savunmaKenar, etkiIsciGerekir,
@@ -51,17 +63,22 @@ Sıradaki: aşama 3 (ızgara/yerleşim, tohumlu harita, yol). Denge ayarı aşam
 - Buluş etki türleri: `kesifIyiSonuc, isciSavunmaCarpani, seviyeAc`; `acar.ozellikler` (vergi).
 - Sonuç: `onderYarali, kervan, kosullu, bos, kayipOrani, kayipKilidiKadar, puskurtme, vergi, bekleme, cagOlcek, hasar.binaId`;
   değiştirici `sure: null` = kalıcı, `uretim.etiket '*'`, `uretim.suMesafe`, `uretim.bonus`, `bakim`. Gereksinim: `isciTuruMin`.
-- Karo: `kod`, `yalnizBina`. Çağ: `kimlik`. Olay: `cagBasinaBir`.
+- Karo: `kod`, `yalnizBina`, `gecilir`, `gizliGorunum`, `kesifBildir`, `yapay`; yeni karolar `kil`, `kayalik`, `dag`, `yol`.
+  Çağ: `kimlik` (`acikAlan` kaldırıldı → `denge.js` `YERLESIM_YARICAP`). Olay: `cagBasinaBir`. Eylem: `haritaKesfi`.
+  Bina: `gorus`, `kesifYaricap`. Buluş etkisi: `kesifYaricap`.
 - Durum: `onder.secim` (sözlük|null; Kervan Gönder `{ ver, al }`; eski kayıtta yoksa null, sürüm değişmedi).
 
-## Bot sonucu (aşama 2, 50 tohum, `tests/yardimci/bot.js`)
-- 50/50 Göçebe'yi bitirir; tur min/ortanca/max 30/33/46; 20–32 aralığında 24/50; en düşük nüfus 3 (2'ye düşmedi).
-- Ortalama: 3 Çadır+Totem tur 14, Yerleşik Hayat 16, nüfus 8 tur 19, Kurutma Rafı 25, çağ atlama 33 → darboğaz geçiş maliyeti birikimi.
-- Neden: Göçebe depo 30 = geçiş yiyeceği 30, ama tur sonu yiyecek ≤ (30 − nüfus) × 0,96 → Kurutma Rafı fiilen zorunlu; 25 odun kış
-  ısınmasıyla yarışıyor. Aday ayarlar (aşama 7, değiştirilmedi): `CAGLAR.gocebe.gecis.maliyet` (yiyecek 30 / odun 25) ya da `depoTavani 30`.
+## Bot sonucu (aşama 3, gerçek harita, 50 tohum, `tests/yardimci/bot.js`)
+- 50/50 Göçebe'yi bitirir; tur min/ortanca/max 27/31/42; 20–32 aralığında 42/50; en düşük nüfus 3. (Aşama 2, düz çimen: 30/33/46, 24/50.)
+- Fark: bot artık gerçek orman bitişikliğini kullanıyor (Oduncu/Toplayıcı +%25–50). Bot Keşfet kullanmıyor (Göçebe binaları
+  başlangıç görüşüne sığıyor). Sayı ayarı yapılmadı (aşama 7). Eski darboğaz notu (aşama 2): Göçebe depo 30 = geçiş yiyeceği 30 →
+  Kurutma Rafı fiilen zorunlu; aday ayarlar `CAGLAR.gocebe.gecis.maliyet` ya da `depoTavani 30`.
+- Harita (200 tohum ort.): çimen %54 · orman %20 · dağ %12 · kayalık %7 · su %2,3 · verimli %2,1 · taşlık %0,8 · kil %0,6 · cevher %0,4
+  · mermer %0,3. Merkeze en yakın (ort/min/max): orman 3,6 · taşlık 5,0/4,3/6,0 · su 6,3 · kil 7,2/6,0/10,1 · cevher 11,1/8,7/12,6
+  · mermer 16,1/14,3/17,7. Yeniden deneme ort. 0,2. Tipik kayıt ~2,5 KB.
 
 ## Bilinen eksikler
-- Tohumlu harita üretimi (şimdilik tümü çimen → Taş Ocağı/Balıkçı vb. karo şartlı binalar kurulamaz; aşama 3), yol, arayüz yok.
+- Arayüz yok; sahne haritayı/sisi henüz çizmiyor (render aşaması). Harita 4 yön BFS ile su/dağ geçilmez — köprü yok.
 - Çekirdek henüz `src/main.js`'e bağlı değil (derlemeye girmiyor; arayüz aşama 5).
 - Belgede belirsiz sayılar `TODO(tasarim)` yorumlarıyla işaretli (`grep -rn "TODO(tasarim)" src/data`).
 - Antik Çağ geçişi Kütüphane'yi (Felsefe, 70 BP) gerektirir; §5'teki "zorunlu yol 265" bunu saymaz (gerçek 335; beklenen ~480 içinde).

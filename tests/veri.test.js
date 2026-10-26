@@ -119,10 +119,23 @@ test('olasılık toplamı 1 olmayan sonuç yakalanır', () => {
 
 test('veri modülleri DOM / three içe aktarmaz', async () => {
   const { readdir, readFile } = await import('node:fs/promises');
-  for (const kat of ['src/data', 'src/core']) {
+  for (const kat of ['src/data', 'src/core', 'src/world']) {
     for (const f of await readdir(kat)) {
       const s = await readFile(`${kat}/${f}`, 'utf8');
       assert.ok(!/from\s+['"]three['"]|document\.|window\.|localStorage/.test(s), `${kat}/${f}`);
+    }
+  }
+});
+
+test('harita boyutu yalnız denge.js HARITA_BOYUT sabitinde (kodda 64 gömülü değil)', async () => {
+  const { readdir, readFile } = await import('node:fs/promises');
+  const { HARITA_BOYUT } = await import('../src/data/denge.js');
+  const desen = new RegExp(`(?<![\\w.&>])${HARITA_BOYUT}(?![\\w.])`);
+  for (const kat of ['src/core', 'src/world', 'src/save', 'src/data']) {
+    for (const f of await readdir(kat)) {
+      if (kat === 'src/data' && f === 'denge.js') continue;
+      const s = (await readFile(`${kat}/${f}`, 'utf8')).split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+      assert.ok(!desen.test(s), `${kat}/${f}`);
     }
   }
 });

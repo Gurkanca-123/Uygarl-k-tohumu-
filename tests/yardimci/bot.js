@@ -1,7 +1,7 @@
 // Basit test botu (TASARIM §9 kabul ölçütü): Göçebe Çağı'nı bitirmeye çalışır. Yalnız oyuncu komutlarını kullanır.
 // Strateji: her tur boştaki işçileri "hedefe en uzak" kaynağa (stok + 5 turluk üretim / hedef) atar; bina yuvası varsa
 // önce onu, yoksa serbest işi kullanır. Hedefler = çağ geçiş maliyeti + sıradaki binaların maliyeti + kış odunu.
-// Önder: yorgunsa Dinlen, deri gerekiyorsa Avlan, aksi Hikâye Anlat. Olaylarda beklenen değeri en yüksek seçenek.
+// Önder: yorgunsa Dinlen, deri gerekiyorsa Avlan, aksi Hikâye Anlat (Keşfet kullanmaz; Göçebe başlangıç görüşü yeterli). Olaylarda beklenen değeri en yüksek seçenek.
 // Çalıştırma: `node tests/yardimci/bot.js [tohumSayisi]` → özet yazar.
 import { yeniOyun } from '../../src/core/oyun_durumu.js';
 import { turIlerlet } from '../../src/core/tur.js';
@@ -9,7 +9,9 @@ import {
   isAta, insaEt, arastirmaSec, onderEylemiSec, olayCoz, cagAtla,
 } from '../../src/core/komutlar.js';
 import { cagSartlari } from '../../src/core/cag.js';
-import { maliyetHesapla, insaEdilebilirMi, yerUygunMu, insaatSinirDolu, acikAlan } from '../../src/core/insa.js';
+import { maliyetHesapla, insaEdilebilirMi, insaatSinirDolu, uygunYerler } from '../../src/core/insa.js';
+import { kenarKomsulari } from '../../src/world/izgara.js';
+import { gorunurKaro } from '../../src/world/kesif.js';
 import { arastirilabilirMi } from '../../src/core/arastirma.js';
 import { hamUretimHesapla } from '../../src/core/uretim.js';
 import { yiyecekIhtiyaci } from '../../src/core/tuketim.js';
@@ -64,14 +66,28 @@ function olaySec(d) {
 }
 
 // ---------- İnşaat ----------
+// Aşama 3: gerçek harita. Geçerli yerler (sis/sınır/karo şartı denetli) merkeze yakınlığa göre; karo bitişiklik
+// bonusu olan binalar (Oduncu/Avcı: orman, Toplayıcı: orman/su) bonuslu yeri tercih eder.
+function bitisikPuan(d, binaId, x, y) {
+  const kurallar = BINA[binaId].bitisiklik.filter((k) => [].concat(k.hedef).some((h) => h.startsWith('karo:')));
+  if (!kurallar.length) return 0;
+  let p = 0;
+  for (const k of kurallar) {
+    const hedef = [].concat(k.hedef).map((h) => h.slice(5));
+    const n = kenarKomsulari(d, { id: binaId, x, y }).filter(([a, b]) => hedef.includes(gorunurKaro(d, a, b))).length;
+    p += Math.min(n, k.max);
+  }
+  return p;
+}
 function yerBul(d, binaId) {
-  const a = acikAlan(d);
-  const m = (a.x0 + a.x1) / 2;
-  const adaylar = [];
-  for (let y = a.y0; y < a.y1; y++) for (let x = a.x0; x < a.x1; x++) adaylar.push([x, y, Math.abs(x + 0.5 - m) + Math.abs(y + 0.5 - m)]);
-  adaylar.sort((p, q) => p[2] - q[2]);
-  for (const [x, y] of adaylar) if (!yerUygunMu(d, binaId, x, y)) return [x, y];
-  return null;
+  const yerler = uygunYerler(d, binaId).slice(0, 40);
+  if (!yerler.length) return null;
+  let enIyi = yerler[0], puan = -Infinity;
+  yerler.forEach(([x, y], i) => {
+    const p = bitisikPuan(d, binaId, x, y) * 10 - i * 0.1;
+    if (p > puan) { puan = p; enIyi = [x, y]; }
+  });
+  return enIyi;
 }
 const say = (d, id) => d.binalar.filter((b) => b.id === id).length;
 

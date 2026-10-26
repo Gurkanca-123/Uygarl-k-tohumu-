@@ -5,7 +5,7 @@ const KIMLIK = /^[a-z][a-z0-9_]*$/;
 const BINA_TURLERI = ['merkez', 'konut', 'uretim', 'donusum', 'depo', 'huzur', 'savunma', 'bilgi', 'kamu', 'anit'];
 const ISCI_TURLERI = ['nobetci', 'asker', 'sovalye', 'rahip', 'bilgin', 'kesis'];
 const BULUS_ETKI_TURLERI = ['uretimCarpani', 'bozulma', 'depoCarpani', 'savunma', 'mevsimCarpani', 'serbestIs',
-  'kesifIyiSonuc', 'isciSavunmaCarpani', 'seviyeAc'];
+  'kesifIyiSonuc', 'isciSavunmaCarpani', 'seviyeAc', 'kesifYaricap'];
 
 export function dogrula(v) {
   const h = [];
@@ -103,7 +103,22 @@ export function dogrula(v) {
     kodlar.add(k.kod);
     if (k.temizlenir) { karoRef(`KAROLAR.${k.id}.temizlenir`, k.temizlenir.donusur); kaynakNesne(`KAROLAR.${k.id}.temizlenir`, k.temizlenir.kazanc); }
     for (const id of k.yalnizBina || []) binaRef(`KAROLAR.${k.id}.yalnizBina`, id);
+    if (typeof k.gecilir !== 'boolean') hata(`KAROLAR.${k.id}: gecilir mantıksal olmalı`);
+    if (k.gizliGorunum) karoRef(`KAROLAR.${k.id}.gizliGorunum`, k.gizliGorunum);
   }
+  // Aşama 3: yerleşim sınırı her çağ için tanımlı ve çağla büyür; yol zemini bilinen karo.
+  const yy = v.DENGE?.YERLESIM_YARICAP;
+  if (yy) {
+    let once = 0;
+    for (const c of [...(v.CAGLAR || [])].sort((a, b) => a.sira - b.sira)) {
+      if (!(yy[c.id] > once)) hata(`YERLESIM_YARICAP.${c.id}: tanımsız ya da büyümüyor`);
+      once = yy[c.id] ?? once;
+    }
+  }
+  for (const id of v.DENGE?.YOL_ZEMIN || []) karoRef('YOL_ZEMIN', id);
+  for (const g of v.DENGE?.HARITA_URETIM?.sayim || []) karoRef('HARITA_URETIM.sayim', g.karo);
+  for (const id of v.DENGE?.HARITA_URETIM?.erisim || []) karoRef('HARITA_URETIM.erisim', id);
+  for (const id of v.DENGE?.HARITA_URETIM?.yer || []) binaRef('HARITA_URETIM.yer', id);
   for (const m of v.MEVSIMLER || []) {
     for (const e of Object.keys(m.carpan || {})) if (!(v.MEVSIM_ETIKETLERI || []).includes(e)) hata(`MEVSIMLER.${m.id}: bilinmeyen etiket "${e}"`);
   }

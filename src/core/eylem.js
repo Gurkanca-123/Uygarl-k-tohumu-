@@ -8,6 +8,7 @@ import {
   bulusEtkileri, bildir, sonTur, sinirla, olayKilitli, OLAY_KILIDI, hataDon,
 } from './yardimci.js';
 import { sonucUygula } from './sonuc.js';
+import { haritaKesfiUygula, kesifYaricapi } from '../world/kesif.js';
 
 export const eylemOlcegi = (d, e) => (e.olcekli ? 1 + EYLEM_OLCEK_ADIM * mevcutCag(d).sira : 1);
 
@@ -54,6 +55,15 @@ export function onderEylemiSec(durum, id, secim = null) {
   return { durum: d };
 }
 
+// Kopya üstünde: sisin merkeze en yakın kenarına doğru kesifYaricapi kadar açar; bulgular bildirime yazılır.
+export function haritaKesfi(d, bildirimler) {
+  const r = haritaKesfiUygula(d, kesifYaricapi(d, calisanBinalar(d)));
+  if (!r.hedef) { bildir(bildirimler, 'kesif', 'Haritanın tamamı keşfedildi.'); return r; }
+  if (!r.bulgular.length) bildir(bildirimler, 'kesif', `Keşif: ${r.acilan} yeni karo görüldü.`);
+  for (const b of r.bulgular) bildir(bildirimler, 'kesif_bulgu', b.metin, 'iyi', { karo: b.karo, x: b.x, y: b.y });
+  return r;
+}
+
 // Adım a: önder eylemi sonucu. Ayrıca vadesi gelen kervanlar ulaşır.
 export function adimOnder(durum, bildirimler = []) {
   const d = kopya(durum);
@@ -79,6 +89,8 @@ export function adimOnder(durum, bildirimler = []) {
   } else {
     sonucUygula(d, e.sonuc, { bildirimler, olcek, iyiBonus: kesifIyiBonusu(d, id) });
   }
+  // Aşama 3: Keşfet haritada da keşif yapar (RNG kullanmaz, oyun akışını kaydırmaz).
+  if (e.haritaKesfi) haritaKesfi(d, bildirimler);
   // Vadesi gelen kervanlar (kırpma f adımında).
   const gelen = d.kervanlar.filter((k) => k.tur <= d.tur);
   for (const k of gelen) {

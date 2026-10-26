@@ -40,7 +40,7 @@ test('beyaz liste: bilinmeyen alanlar atılır (üst düzey ve iç içe)', () =>
 });
 
 test('eksik alanlar yeniOyun varsayılanıyla doldurulur', () => {
-  const y = yukle(JSON.stringify({ surum: 1, tohum: 5, tur: 12, nufus: 6 }));
+  const y = yukle(JSON.stringify({ surum: KAYIT_SURUM, tohum: 5, tur: 12, nufus: 6 }));
   const v = yeniOyun(5);
   assert.equal(y.tur, 12);
   assert.equal(y.nufus, 6);
@@ -57,7 +57,7 @@ test('tür hatalı alanlar ve geçersiz kimlikler süzülür', () => {
   ham.buluslar = ['mizrak_ucu', 'isinlanma', 5];
   ham.binalar.push({ uid: 'b9', id: 'uzay_ussu', x: 1, y: 1 });
   ham.binalar.push({ uid: 'b10', id: 'kulube', x: 2, y: 2 }); // eksik seviye vb. → varsayılan
-  ham.harita.karolar = 'zz';
+  ham.harita.kesif = 'zz';
   ham.olay.bekleme = { kurt_surusu: 3, yok_olay: 2 };
   const y = yukle(JSON.stringify(ham));
   assert.equal(y.huzur, 60);
@@ -65,7 +65,7 @@ test('tür hatalı alanlar ve geçersiz kimlikler süzülür', () => {
   assert.deepEqual(y.buluslar, ['mizrak_ucu']);
   assert.deepEqual(y.binalar.map((b) => b.uid), ['b1', 'b2', 'b10']);
   assert.deepEqual(y.binalar[2], { uid: 'b10', id: 'kulube', x: 2, y: 2, seviye: 1, insaKalan: 0, hasarli: false });
-  assert.equal(y.harita.karolar.length, 256);
+  assert.deepEqual(y.harita, yeniOyun().harita); // bozuk harita → varsayılan
   assert.deepEqual(y.olay.bekleme, { kurt_surusu: 3 });
 });
 

@@ -4,7 +4,7 @@
 // etki türleri: uretimCarpani (hedef 'etiket:x' | 'kaynak:x') · bozulma (deger: düşülen oran) · depoCarpani (hedef 'bina:x') ·
 //   savunma (hedef 'onder', ek değer) · mevsimCarpani (hedef 'etiket:mevsim', deger {mevsim: çarpan}) ·
 //   serbestIs (hedef iş id'si, deger {kaynak: işçi başına yeni değer}).
-// Şemaya eklenenler: kesifIyiSonuc (Keşfet iyi sonuç +), isciSavunmaCarpani (hedef 'isciTuru:x'), seviyeAc (hedef 'cag:x', deger maxSv);
+// Şemaya eklenenler: kesifIyiSonuc (Keşfet iyi sonuç +), kesifYaricap (Keşfet harita yarıçapı +, aşama 3; TODO(tasarim) sayı varsayım), isciSavunmaCarpani (hedef 'isciTuru:x'), seviyeAc (hedef 'cag:x', deger maxSv);
 //   acar.ozellikler (örn. 'vergi').
 function bulus(o) {
   return { gerekir: [], etkiler: [], cagBulusu: false, mvp: false, ...o,
@@ -19,7 +19,8 @@ export const BULUSLAR = [
   bulus({ id: 'tas_yontma', ad: 'Taş Yontma', cag: 'gocebe', maliyet: { bilgi: 10 }, mvp: true, acar: { binalar: ['totem'] },
     etkiler: [{ tur: 'serbestIs', hedef: 'tasci', deger: { tas: 1.5 } }], aciklama: 'Totem; serbest Taşçı 1 → 1,5.' }),
   bulus({ id: 'hayvan_izleri', ad: 'Hayvan İzleri', cag: 'gocebe', maliyet: { bilgi: 8 }, mvp: true, acar: { binalar: ['gozcu_diregi'] },
-    etkiler: [{ tur: 'kesifIyiSonuc', hedef: 'kesfet', deger: 0.10 }], aciklama: 'Gözcü Direği; Keşfet iyi sonuç +%10.' }),
+    etkiler: [{ tur: 'kesifIyiSonuc', hedef: 'kesfet', deger: 0.10 }, { tur: 'kesifYaricap', hedef: 'kesfet', deger: 1 }],
+    aciklama: 'Gözcü Direği; Keşfet iyi sonuç +%10, keşif yarıçapı +1.' }),
   bulus({ id: 'deri_isleme', ad: 'Deri İşleme', cag: 'gocebe', maliyet: { bilgi: 8 }, gerekir: ['mizrak_ucu'], mvp: true,
     acar: { binalar: ['kurutma_rafi'] }, etkiler: [{ tur: 'uretimCarpani', hedef: 'kaynak:deri', deger: 1.25 }],
     aciklama: 'Kurutma Rafı; deri üretimi ×1,25.' }),

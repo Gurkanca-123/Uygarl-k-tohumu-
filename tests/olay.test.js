@@ -5,7 +5,7 @@ import { savunmaHesapla, saldiriGucu, hastalikCarpani } from '../src/core/savunm
 import { OLAY } from '../src/core/yardimci.js';
 import { ILK_OLAY_TUR } from '../src/data/denge.js';
 import { rngBaslat } from '../src/core/rng.js';
-import { durum, binaEkle } from './yardimci/durum.js';
+import { durum, binaEkle, K } from './yardimci/durum.js';
 
 const aktifOlay = (id, ek = {}) => durum({ olay: { aktif: { id }, bekleme: {}, zincir: [], kurtarmaKullanildi: {} }, ...ek });
 
@@ -65,9 +65,9 @@ test('koşul denetimi: turMin (gün), mevsim, kaynak, bina, buluş, işçi tür�
   assert.equal(kosulSaglanir(d, { kaynakMin: { yiyecek: 10 } }), true);
   assert.equal(kosulSaglanir(d, { kaynakMin: { yiyecek: 11 } }), false);
   assert.equal(kosulSaglanir(d, { binaVar: ['totem'] }), false);
-  assert.equal(kosulSaglanir(binaEkle(d, 'totem', 5, 5), { binaVar: ['totem'] }), true);
+  assert.equal(kosulSaglanir(binaEkle(d, 'totem', K + 5, K + 5), { binaVar: ['totem'] }), true);
   assert.equal(kosulSaglanir(d, { bulusVar: ['mizrak_ucu'] }), false);
-  const k = binaEkle(durum({ cag: 'antik', nufus: 5, atama: { k: 2 } }), 'kisla', 4, 4, { uid: 'k' });
+  const k = binaEkle(durum({ cag: 'antik', nufus: 5, atama: { k: 2 } }), 'kisla', K + 4, K + 4, { uid: 'k' });
   assert.equal(kosulSaglanir(k, { isciTuruMin: { asker: 2 } }), true);
   assert.equal(kosulSaglanir({ ...k, atama: { k: 1 } }, { isciTuruMin: { asker: 2 } }), false);
 });
@@ -119,7 +119,7 @@ test('§6.3 savunma testi: püskürtme / kısmi / yenilgi', () => {
   const kismi = olayCoz({ ...k, buluslar: ['mizrak_ucu'] }, 0).durum; // 2 ≥ 2
   assert.equal(kismi.kaynaklar.yiyecek, 18);
   assert.equal(kismi.nufus, 3);
-  let g = binaEkle({ ...k, buluslar: ['mizrak_ucu'], atama: { g: 1, 'serbest:toplayici': 2 } }, 'gozcu_diregi', 5, 5, { uid: 'g' });
+  let g = binaEkle({ ...k, buluslar: ['mizrak_ucu'], atama: { g: 1, 'serbest:toplayici': 2 } }, 'gozcu_diregi', K + 5, K + 5, { uid: 'g' });
   assert.equal(savunmaHesapla(g), 5);
   g = olayCoz(g, 0).durum;
   assert.equal(g.huzur, 65);

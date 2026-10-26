@@ -5,7 +5,7 @@ import {
 } from '../src/core/nufus.js';
 import { etkinAtama, issizSayisi } from '../src/core/yardimci.js';
 import { rngBaslat } from '../src/core/rng.js';
-import { durum, binaEkle } from './yardimci/durum.js';
+import { durum, binaEkle, K } from './yardimci/durum.js';
 
 const sonTurlu = (d, st) => ({ ...d, istatistik: { sonTur: { ...st } } });
 
@@ -38,17 +38,17 @@ test('§7.3 kayıp kilidi: 3 turluk pencerede max(1, floor(nüfus × 0,05)); nü
 });
 
 test('kayıpta önce işsizler düşer, sonra serbest işler (Toplayıcı en son), sonra binalar', () => {
-  const d = binaEkle(durum({ nufus: 30, atama: { 'serbest:toplayici': 10, 'serbest:tasci': 5, k: 2 } }), 'oduncu_kampi', 5, 5, { uid: 'k' });
+  const d = binaEkle(durum({ nufus: 30, atama: { 'serbest:toplayici': 10, 'serbest:tasci': 5, k: 2 } }), 'oduncu_kampi', K + 5, K + 5, { uid: 'k' });
   // 13 işsiz; kayıp işsizden düşer
   kayipUygula(d, 1, 'x');
   assert.deepEqual(d.atama, { 'serbest:toplayici': 10, 'serbest:tasci': 5, k: 2 });
-  const tam = binaEkle(durum({ nufus: 4, atama: { 'serbest:toplayici': 1, 'serbest:tasci': 1, k: 2 } }), 'oduncu_kampi', 5, 5, { uid: 'k' });
+  const tam = binaEkle(durum({ nufus: 4, atama: { 'serbest:toplayici': 1, 'serbest:tasci': 1, k: 2 } }), 'oduncu_kampi', K + 5, K + 5, { uid: 'k' });
   kayipUygula(tam, 1, 'x');
   assert.deepEqual(tam.atama, { 'serbest:toplayici': 1, k: 2 });
 });
 
 test('doğum: her 4 turda; boş barınak, yiyecek ≥ 2×nüfus, huzur ≥ 40, açlık yok', () => {
-  const temel = binaEkle(durum({ tur: 3, kaynaklar: { yiyecek: 6 } }), 'cadir', 5, 5);
+  const temel = binaEkle(durum({ tur: 3, kaynaklar: { yiyecek: 6 } }), 'cadir', K + 5, K + 5);
   assert.equal(dogumTuruMu(temel), true);
   assert.equal(dogumTuruMu({ ...temel, tur: 4 }), false);
   assert.equal(dogumSartlari(temel).uygun, true);
@@ -65,7 +65,7 @@ test('doğum: her 4 turda; boş barınak, yiyecek ≥ 2×nüfus, huzur ≥ 40, a
 
 test('doğan sayı = min(1 + floor(nüfus / 30), boş barınak)', () => {
   let d = durum({ tur: 3, nufus: 60, kaynaklar: { yiyecek: 200 }, huzur: 60 });
-  for (let i = 0; i < 25; i++) d = binaEkle(d, 'kulube', 4 + (i % 8), 4 + Math.floor(i / 8) * 4 % 8);
+  for (let i = 0; i < 25; i++) d = binaEkle(d, 'kulube', K + 4 + (i % 8), K + 4 + Math.floor(i / 8) * 4 % 8);
   assert.equal(dogumSartlari(d).adet, 3);
 });
 
@@ -80,7 +80,7 @@ test('göç: huzur < 15 iken %20 olasılıkla 1 kişi (tohumlu)', () => {
 });
 
 test('isAta: yuva sınırı, nüfus sınırı, bilinmeyen yuva; geçersiz komut durumu değiştirmez', () => {
-  const d = binaEkle(durum(), 'oduncu_kampi', 5, 5, { uid: 'k' });
+  const d = binaEkle(durum(), 'oduncu_kampi', K + 5, K + 5, { uid: 'k' });
   assert.match(isAta(d, 'k', 3).hata, /en çok 2/);
   assert.equal(isAta(d, 'k', 3).durum, d);
   assert.match(isAta(d, 'b2', 1).hata, /işçi almaz/);

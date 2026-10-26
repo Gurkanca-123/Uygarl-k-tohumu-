@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { yeniOyun, turIlerlet } from '../src/core/oyun_durumu.js';
 import { takvim } from '../src/core/takvim.js';
 import { DURUM_ALANLARI, suz } from '../src/core/durum.js';
+import { HARITA_BOYUT } from '../src/data/denge.js';
 import { rngBaslat, rngSonraki, rngTamsayi, rngOlasilik, rngAgirlikli, durumRastgele } from '../src/core/rng.js';
 
 test('yeniOyun §7.4 başlangıç değerleri', () => {
@@ -16,7 +17,9 @@ test('yeniOyun §7.4 başlangıç değerleri', () => {
   assert.deepEqual(d.binalar.map((b) => b.id), ['kamp_atesi', 'cadir']);
   assert.deepEqual(d.atama, { 'serbest:toplayici': 3 });
   assert.equal(d.vergi, 'yok');
-  assert.equal(d.harita.karolar.length, 256);
+  assert.deepEqual(Object.keys(d.harita).sort(), ['boyut', 'degisim', 'kesif', 'tohum']);
+  assert.equal(d.harita.boyut, HARITA_BOYUT);
+  assert.deepEqual(d.harita.degisim, {});
 });
 
 test('yeniOyun şemadaki tüm alanları içerir, fazlasını içermez', () => {
@@ -30,8 +33,9 @@ test('yeniOyun şema süzgecinden değişmeden geçer', () => {
 
 test('Kamp Ateşi ortada, Çadır ona bitişik', () => {
   const [kamp, cadir] = yeniOyun().binalar;
-  assert.deepEqual([kamp.x, kamp.y], [7, 7]);
-  assert.deepEqual([cadir.x, cadir.y], [9, 7]);
+  const m = HARITA_BOYUT / 2 - 1;
+  assert.deepEqual([kamp.x, kamp.y], [m, m]);
+  assert.deepEqual([cadir.x, cadir.y], [m + 2, m]);
 });
 
 test('takvim: Bahar 1. gün başlar, 16. gün ilk kış, 21. gün 2. yıl', () => {

@@ -1,5 +1,6 @@
 // Önder eylemleri (TASARIM §1.3, şema §10). Her tur 1 eylem; seçilmezse Dinlen.
-// Alanlar: id, ad, cag (açıldığı çağ), yorgunluk (+/−), gereksinim:{ bina?, kaynak? }, sonuc (§6.1 sonuc biçimi), olcekli, mvp
+// Alanlar: id, ad, cag (açıldığı çağ), yorgunluk (+/−), gereksinim:{ bina?, kaynak? }, sonuc (§6.1 sonuc biçimi), olcekli, mvp,
+//   haritaKesfi? (aşama 3: harita keşfi yapar)
 // olcekli: sonuçtaki kaynak miktarları × (1 + EYLEM_OLCEK_ADIM × çağSırası).
 // Şemaya eklenen sonuc alanları: onderYarali (tur), yorgunluk, kervan:{ ver, al, gecikme }, kosullu:[{ kosul, sonuc }] (eşleşen ilk
 //   kosullu sonuç ana sonucun yerine geçer), bos (hiçbir şey olmaz).
@@ -12,7 +13,8 @@ export const EYLEMLER = [
     sonuc: { kaynak: { yiyecek: 4, deri: 1 }, olasilik: [{ p: 0.1, sonuc: { onderYarali: 2 } }, { p: 0.9, sonuc: { bos: true } }] } },
   // TODO(tasarim): "%40: +6 odun ya da +4 taş" — ikisi arasındaki pay yazılmamış; 0,5/0,5 varsayıldı.
   // TODO(tasarim): "iyi sonuç +%10" (Hayvan İzleri / Gözcü Direği) hangi dilimden alınıp hangi dilimlere dağıtılır? Motor (aşama 2) kararı.
-  { id: 'kesfet', ad: 'Keşfet', cag: 'gocebe', yorgunluk: 2, gereksinim: {}, olcekli: true, mvp: true,
+  // Aşama 3: `haritaKesfi` → eylem ayrıca haritada sisin merkeze en yakın kenarına bakıp KESIF_YARICAP (+ bonus) açar (RNG kullanmaz).
+  { id: 'kesfet', ad: 'Keşfet', cag: 'gocebe', yorgunluk: 2, gereksinim: {}, olcekli: true, mvp: true, haritaKesfi: true,
     sonuc: { olasilik: [
       { p: 0.40, sonuc: { olasilik: [{ p: 0.5, sonuc: { kaynak: { odun: 6 } } }, { p: 0.5, sonuc: { kaynak: { tas: 4 } } }] }, iyi: true },
       { p: 0.25, sonuc: { bilgi: 3 }, iyi: true },

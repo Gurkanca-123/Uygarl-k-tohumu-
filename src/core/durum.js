@@ -8,8 +8,10 @@ import { OLAYLAR } from '../data/olaylar.js';
 import { EYLEMLER } from '../data/eylemler.js';
 import { KAROLAR } from '../data/karolar.js';
 import { VERGI } from '../data/denge.js';
+import { kesifGecerli } from '../world/kesif.js';
 
-export const DURUM_SURUM = 1;
+// Sürüm 2 (aşama 3): harita = { tohum, boyut, kesif, degisim } (zemin yeniden üretilir); sürüm 1 göçü save/kayit.js'de.
+export const DURUM_SURUM = 2;
 
 const idler = (t) => t.map((x) => x.id);
 const KAROKOD = new Set(KAROLAR.map((k) => k.kod));
@@ -17,6 +19,7 @@ const KAROKOD = new Set(KAROLAR.map((k) => k.kod));
 // Şema dili: 'sayi' | 'metin' | 'mantik' | 'sozluk' (herhangi JSON nesnesi) |
 //   { tur:'metin', izinli?, kontrol? } | { tur:'sayi', bos? } (bos: null olabilir) |
 //   { tur:'sozlukSayi', anahtarlar? } | { tur:'sozlukMantik', anahtarlar? } | { tur:'metinDizi', izinli? } |
+//   { tur:'sozlukMetin', anahtar?(k → bool), izinli? } |
 //   { tur:'nesne', alanlar, bos?, varsayilan? } | { tur:'dizi', oge }
 const S = {
   sayi: (o = {}) => ({ tur: 'sayi', ...o }),
@@ -49,10 +52,14 @@ export const DURUM_SEMASI = S.nesne({
     seviye: S.sayi(), insaKalan: S.sayi(), hasarli: 'mantik',
   }, { varsayilan: { seviye: 1, insaKalan: 0, hasarli: false } })),
   insaatSirasi: { tur: 'metinDizi' },
+  // Harita (aşama 3): yalnız alt-tohum, boyut, keşif bit kümesi (base64) ve kalıcı karo değişimleri saklanır.
   harita: S.nesne({
+    tohum: S.sayi(),
     boyut: S.sayi(),
-    karolar: S.metin({ kontrol: (s) => [...s].every((c) => KAROKOD.has(c)) }),
-  }, { kontrol: (h) => h.karolar.length === h.boyut * h.boyut }),
+    kesif: S.metin(),
+    degisim: { tur: 'sozlukMetin', anahtar: (k) => /^\d+$/.test(k), izinli: [...KAROKOD] },
+  }, { kontrol: (h) => Number.isInteger(h.boyut) && h.boyut >= 8 && h.boyut <= 256 && Number.isInteger(h.tohum)
+    && kesifGecerli(h.kesif, h.boyut) && Object.keys(h.degisim).every((k) => Number(k) < h.boyut * h.boyut) }),
   olay: S.nesne({
     aktif: S.nesne({ id: S.metin({ izinli: idler(OLAYLAR) }) }, { bos: true }),
     bekleme: { tur: 'sozlukSayi', anahtarlar: idler(OLAYLAR) },
@@ -95,6 +102,15 @@ function suzDeger(deger, sema, varsayilan) {
       for (const [k, x] of Object.entries(deger)) {
         if (sema.anahtarlar && !sema.anahtarlar.includes(k)) continue;
         if (typeof x === tip && (tip !== 'number' || Number.isFinite(x))) sonuc[k] = x;
+      }
+      return sonuc;
+    }
+    case 'sozlukMetin': {
+      if (!duzNesne(deger)) return v;
+      const sonuc = {};
+      for (const [k, x] of Object.entries(deger)) {
+        if (sema.anahtar && !sema.anahtar(k)) continue;
+        if (typeof x === 'string' && (!sema.izinli || sema.izinli.includes(x))) sonuc[k] = x;
       }
       return sonuc;
     }

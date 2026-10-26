@@ -6,7 +6,7 @@ import { yeniOyun } from '../src/core/oyun_durumu.js';
 import { onderEylemiSec, olayCoz, cagAtla } from '../src/core/komutlar.js';
 import { serialize, yukle, turIlerletVeKaydet, ANAHTARLAR, oku } from '../src/save/kayit.js';
 import { botTuru } from './yardimci/bot.js';
-import { durum, binaEkle, yuvarla } from './yardimci/durum.js';
+import { durum, binaEkle, yuvarla, K } from './yardimci/durum.js';
 
 const oyna = (d, n, fn = botTuru) => { let x = d; for (let i = 0; i < n; i++) x = fn(x).durum; return x; };
 
@@ -52,7 +52,7 @@ test('(b) bir turun kaynak muhasebesi elle hesaplananla eşleşir', () => {
 test('(c) açlık → ölüm → kayıp kilidi → nüfus ≥ 2', () => {
   // Kimse çalışmıyor, yiyecek yok: 3. aç turda ölüm, kilit 3 turda en çok 1 kişi, nüfus 2'de durur.
   let d = durum({ nufus: 6, atama: {}, kaynaklar: { yiyecek: 0, odun: 50, tas: 0, deri: 0 } });
-  d = binaEkle(binaEkle(d, 'cadir', 4, 4), 'cadir', 5, 4);
+  d = binaEkle(binaEkle(d, 'cadir', K + 4, K + 4), 'cadir', K + 5, K + 4);
   const nufus = [];
   const olumTurlari = [];
   for (let i = 0; i < 30; i++) {
@@ -71,7 +71,7 @@ test('(c) açlık → ölüm → kayıp kilidi → nüfus ≥ 2', () => {
 
 test('(d) ilk kış 16. günde (tur 15): ısınma odunu yalnız o turdan itibaren yakılır', () => {
   let d = durum({ tur: 14, atama: { 'serbest:toplayici': 3 }, kaynaklar: { yiyecek: 20, odun: 10, tas: 0, deri: 0 } });
-  d = binaEkle(d, 'cadir', 4, 4);
+  d = binaEkle(d, 'cadir', K + 4, K + 4);
   const s14 = turIlerlet(d).durum;
   assert.equal(s14.kaynaklar.odun, 10);
   assert.equal(s14.istatistik.sonTur.tuketim.odun, undefined);

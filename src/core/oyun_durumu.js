@@ -1,26 +1,24 @@
 // Simülasyon çekirdeği: sıra tabanlı (tur = gün). DOM/Three.js bilmez. Durum değişmez (immutable) güncellenir.
 import { CAGLAR } from '../data/caglar.js';
 import { BINALAR } from '../data/binalar.js';
-import { KAROLAR } from '../data/karolar.js';
-import { BASLANGIC_KAYNAK, BASLANGIC_NUFUS, HUZUR_BASLANGIC, HARITA_BOYUT, YENI_KISI_ISI } from '../data/denge.js';
+import {
+  BASLANGIC_KAYNAK, BASLANGIC_NUFUS, HUZUR_BASLANGIC, HARITA_BOYUT, YENI_KISI_ISI, GORUS_BASLANGIC,
+} from '../data/denge.js';
+import { yeniHarita, merkezKonumu } from '../world/harita.js';
+import { bosKesif, kesifUygula } from '../world/kesif.js';
 import { DURUM_SURUM } from './durum.js';
 import { rngBaslat } from './rng.js';
 
 export const VARSAYILAN_TOHUM = 1;
 
-// Yer tutucu harita: tümü çimen. TODO(aşama 3): tohumlu harita üretimi ve §3.1 garantileri (src/world).
-function bosHarita(boyut = HARITA_BOYUT) {
-  const cimen = KAROLAR.find((k) => k.id === 'cimen').kod;
-  return { boyut, karolar: cimen.repeat(boyut * boyut) };
-}
-
 // §7.4 başlangıç: Kamp Ateşi (merkez 2×2, haritanın ortası) + 1 Çadır, 3 kişi Toplayıcı'da.
+// Harita (aşama 3): oyun tohumundan türetilen alt-tohumla üretilir (durum.rng'ye dokunmaz); merkez çevresinde
+// GORUS_BASLANGIC yarıçapı açık, gerisi sis.
 export function yeniOyun(tohum = VARSAYILAN_TOHUM) {
   const ilkCag = CAGLAR[0];
   const merkez = BINALAR.find((b) => b.id === ilkCag.merkez);
-  const mx = HARITA_BOYUT / 2 - merkez.boyut[0] / 2;
-  const my = HARITA_BOYUT / 2 - merkez.boyut[1] / 2;
-  return {
+  const { x: mx, y: my } = merkezKonumu(HARITA_BOYUT);
+  const d = {
     surum: DURUM_SURUM,
     tohum,
     rng: rngBaslat(tohum),
@@ -42,13 +40,15 @@ export function yeniOyun(tohum = VARSAYILAN_TOHUM) {
       { uid: 'b2', id: ilkCag.konut, x: mx + merkez.boyut[0], y: my, seviye: 1, insaKalan: 0, hasarli: false },
     ],
     insaatSirasi: [],
-    harita: bosHarita(),
+    harita: yeniHarita(tohum, HARITA_BOYUT, bosKesif(HARITA_BOYUT)),
     olay: { aktif: null, bekleme: {}, zincir: [], kurtarmaKullanildi: {} },
     degistiriciler: [],
     kervanlar: [],
     vergi: 'yok',
     istatistik: {},
   };
+  kesifUygula(d, { x: mx + merkez.boyut[0] / 2, y: my + merkez.boyut[1] / 2 }, GORUS_BASLANGIC);
+  return d;
 }
 
 // Tur çözümlemesi (§1.2 a–o) tur.js'de; geriye uyum için buradan da dışa aktarılır. Dönüş: { durum, bildirimler, hata? }.

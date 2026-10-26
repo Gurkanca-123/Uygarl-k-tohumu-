@@ -95,10 +95,45 @@ export const HASTALIK_MIN = 0.5;
 export const HASTALIK_MAX = 3;
 export const HASTALIK_ISINMA_EKSIK = 2;
 
-// --- §3 ızgara / yol ---
-export const HARITA_BOYUT = 16;
+// --- §3 ızgara / harita / keşif / yol (aşama 3, kullanıcı kararı: büyük harita + keşif sisi) ---
+// Boyut YALNIZ burada; kodda harita boyutu gömülmez. Merkez bina haritanın ortasındadır.
+export const HARITA_BOYUT = 64;
+// Yerleşim sınırı: merkez binanın ortasından (Öklid) yarıçap; inşa yalnız sınır içinde VE keşfedilmiş karoda (§3.1).
+export const YERLESIM_YARICAP = { gocebe: 8, tasdevri: 11, bronz: 15, antik: 20, ortacag: 26 };
+export const GORUS_BASLANGIC = 6;         // yeni oyunda merkez çevresinde açık yarıçap
+export const KESIF_YARICAP = 5;           // Keşfet eyleminin açtığı yarıçap (+ bina/buluş `kesifYaricap`)
 export const YOL_MALIYET = { tas: 1 };
+export const YOL_ZEMIN = ['cimen', 'verimli'];  // §3.4: yol yalnız bunların üstüne
 export const BOYUTLAR = [[1, 1], [2, 2], [3, 3]];
+// Harita üretimi (src/world/harita.js). Uzaklıklar merkezden karo cinsinden. Garantiler üretimden sonra denetlenir;
+// tutmazsa aynı tohumdan sonraki deneme üretilir (deterministik).
+export const HARITA_URETIM = {
+  denemeMax: 40,
+  guvenliYaricap: 3,                                  // tümü çimen
+  dag: { minUzaklik: 12, egim: 0.35, esik: 0.85, kayalikEsik: 0.78 },
+  gol: { uzaklik: [7, 9], yaricap: [1.6, 2.6] },
+  nehir: { olasilik: 0.85, sapma: 0.55 },
+  golet: { adet: [3, 6], uzaklik: [14, 30], yaricap: [1.3, 2.6] },
+  orman: { esikYakin: 0.68, esikUzak: 0.6, yakinKume: { uzaklik: [4, 5.5], yaricap: 1.9 } },
+  verimli: { esik: 0.55, suMesafe: 2, yama: { uzaklik: [3.5, 5], yaricap: 1.3 } },
+  kil: { olasilik: 0.3, minUzaklik: 6 },
+  tasli: { ilk: { uzaklik: [5, 6.5], ek: 2 }, ekAdet: [7, 11], uzaklik: [9, 30], ekKaro: [1, 4] },
+  cevher: { ilk: { uzaklik: [11, 13], ek: 2 }, ekAdet: [3, 5], uzaklik: [19, 30], ekKaro: [1, 3] },
+  mermer: { ilk: { uzaklik: [16, 18], ek: 2 }, ekAdet: [2, 3], uzaklik: [24, 30], ekKaro: [1, 3] },
+  // Garantiler: { karo, enAz, yaricap } sayımı + merkezden geçilebilir erişim + ilgili binanın sınır içinde yeri.
+  sayim: [
+    { karo: 'orman', enAz: 6, yaricap: 6 },
+    { karo: 'verimli', enAz: 2, yaricap: 6 },
+    { karo: 'tasli', enAz: 2, yaricap: 8 },
+    { karo: 'su', enAz: 3, yaricap: 11 },
+    { karo: 'kil', enAz: 3, yaricap: 15 },
+    { karo: 'cevher', enAz: 4, yaricap: 15 },
+    { karo: 'mermer', enAz: 4, yaricap: 20 },
+  ],
+  erisim: ['tasli', 'orman', 'su', 'kil', 'cevher', 'mermer'],
+  // Bina yeri garantisi: o binanın çağının yerleşim sınırı içinde, erişilebilir karolarda en az bir geçerli yer.
+  yer: ['tas_ocagi', 'balikci_siginagi', 'kil_ocagi', 'maden_ocagi', 'mermer_ocagi', 'liman'],
+};
 
 // --- §7.4 başlangıç ---
 export const BASLANGIC_KAYNAK = { yiyecek: 10, odun: 5, tas: 0, deri: 0 };

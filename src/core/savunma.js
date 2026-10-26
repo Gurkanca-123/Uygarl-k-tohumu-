@@ -9,13 +9,14 @@ import {
 } from './yardimci.js';
 import { huzurEkle } from './huzur.js';
 import { kayipUygula } from './nufus.js';
+import { sinirKenarinda } from '../world/yerlestir.js';
 
 export function saldiriGucu(d) {
   return mevcutCag(d).saldiriTaban + Math.floor((d.tur - d.cagBaslangicTuru) / SALDIRI_TUR_BOLEN);
 }
 
 // savunma = önder (1 + buluş) + Σ bina.savunma × Sv + Σ işçi × isciSavunma × buluş çarpanı + değiştiriciler.
-// TODO(aşama 3): Sur Parçası "açık alan kenarında +1" (savunmaKenar) ızgara gerektirir; şimdilik taban değer.
+// Sur Parçası: yerleşim sınırının kenarındaysa (bir kenar komşusu sınır dışında) + savunmaKenar (× Sv etkisi).
 export function savunmaHesapla(d) {
   let s = ONDER_SAVUNMA;
   for (const e of bulusEtkileri(d, 'savunma')) if (e.hedef === 'onder') s += e.deger;
@@ -23,6 +24,7 @@ export function savunmaHesapla(d) {
   for (const b of calisanBinalar(d)) {
     const t = BINA[b.id];
     s += (t.savunma || 0) * seviyeEtki(b);
+    if (t.savunmaKenar && sinirKenarinda(d, b)) s += t.savunmaKenar * seviyeEtki(b);
     if (t.isciSavunma) {
       let c = 1;
       for (const e of bulusEtkileri(d, 'isciSavunmaCarpani')) if (e.hedef === `isciTuru:${t.isciTuru}`) c *= e.deger;

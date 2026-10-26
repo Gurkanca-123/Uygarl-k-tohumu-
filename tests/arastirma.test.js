@@ -2,12 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { arastirmaSec, adimArastirma, bilgiUretimi } from '../src/core/arastirma.js';
 import { turIlerlet } from '../src/core/tur.js';
-import { durum, binaEkle } from './yardimci/durum.js';
+import { durum, binaEkle, K } from './yardimci/durum.js';
 
 test('BP üretimi: merkez tabanı + bina sabit BP + işçi BP', () => {
   assert.equal(bilgiUretimi(durum()), 0.5);
-  assert.equal(bilgiUretimi(binaEkle(durum(), 'totem', 5, 5)), 1.5);
-  const m = binaEkle(durum({ cag: 'tasdevri', atama: { m: 1 } }), 'magara_resmi', 4, 4, { uid: 'm' });
+  assert.equal(bilgiUretimi(binaEkle(durum(), 'totem', K + 5, K + 5)), 1.5);
+  const m = binaEkle(durum({ cag: 'tasdevri', atama: { m: 1 } }), 'magara_resmi', K + 4, K + 4, { uid: 'm' });
   assert.equal(bilgiUretimi(m), 1 + 1 + 0.5);
 });
 

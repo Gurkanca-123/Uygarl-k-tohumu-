@@ -3,16 +3,16 @@ import assert from 'node:assert/strict';
 import { cagSartlari, cagAtla, adimTakvim, zaferSaglandi } from '../src/core/cag.js';
 import { vergiAyarla, takasYap, mevsimSonunaIlerlet, isAta, insaEt, onderEylemiSec, arastirmaSec } from '../src/core/komutlar.js';
 import { depoTavani } from '../src/core/yardimci.js';
-import { durum, binaEkle } from './yardimci/durum.js';
+import { durum, binaEkle, K } from './yardimci/durum.js';
 
 // Göçebe → Taş Devri şartlarının tamamı sağlanmış durum (§4.1).
 function hazir() {
   let d = durum({ tur: 24, nufus: 8, atama: { 'serbest:toplayici': 8 }, buluslar: ['mizrak_ucu', 'tas_yontma', 'deri_isleme', 'yerlesik_hayat'],
     kaynaklar: { yiyecek: 35, odun: 25, tas: 15, deri: 10 } });
-  d = binaEkle(d, 'cadir', 4, 4);
-  d = binaEkle(d, 'cadir', 5, 4);
-  d = binaEkle(d, 'totem', 6, 4);
-  d = binaEkle(d, 'kurutma_rafi', 7, 4);
+  d = binaEkle(d, 'cadir', K + 4, K + 4);
+  d = binaEkle(d, 'cadir', K + 5, K + 4);
+  d = binaEkle(d, 'totem', K + 6, K + 4);
+  d = binaEkle(d, 'kurutma_rafi', K + 7, K + 4);
   return d;
 }
 
@@ -46,7 +46,7 @@ test('cagAtla: maliyet ödenir, merkez dönüşür, yeni kaynak açılır, açı
   assert.match(cagAtla(durum()).hata, /Çağ atlanamaz/);
   assert.equal(cagAtla(durum()).durum.cag, 'gocebe');
   // Kulübe artık kurulabilir, alet_yap açıldı
-  assert.equal(insaEt({ ...d, kaynaklar: { ...d.kaynaklar, odun: 20, tas: 10 } }, 'kulube', 4, 6).hata, undefined);
+  assert.equal(insaEt({ ...d, kaynaklar: { ...d.kaynaklar, odun: 20, tas: 10 } }, 'kulube', K + 4, K + 6).hata, undefined);
   assert.equal(onderEylemiSec({ ...d, kaynaklar: { ...d.kaynaklar, tas: 5, odun: 5 } }, 'alet_yap').hata, undefined);
 });
 
@@ -58,7 +58,7 @@ test('adım o: tur +1; şartlar sağlanınca bir kez bildirim; son çağda zafer
   const b2 = [];
   adimTakvim(d, b2);
   assert.equal(b2.length, 0);
-  let o = binaEkle(durum({ cag: 'ortacag', nufus: 150, atama: {} }), 'katedral', 2, 2);
+  let o = binaEkle(durum({ cag: 'ortacag', nufus: 150, atama: {} }), 'katedral', K + 2, K + 2);
   assert.equal(zaferSaglandi(o), true);
   o = adimTakvim(o);
   assert.deepEqual(o.istatistik.zafer, { tur: 1 });
@@ -75,7 +75,7 @@ test('vergi: Para buluşu gerekir; düzey geçerli olmalı', () => {
 
 test('takas: Pazar Yeri 3 → 2, tur başına en çok 20 birim; ticaret kapalıyken yok', () => {
   assert.match(takasYap(durum(), 'odun', 'tas', 3).hata, /Pazar/);
-  const d = binaEkle(durum({ cag: 'bronz', tur: 30, kaynaklar: { yiyecek: 0, odun: 60, tas: 0, deri: 0, kil: 0 } }), 'pazar_yeri', 4, 4);
+  const d = binaEkle(durum({ cag: 'bronz', tur: 30, kaynaklar: { yiyecek: 0, odun: 60, tas: 0, deri: 0, kil: 0 } }), 'pazar_yeri', K + 4, K + 4);
   const r = takasYap(d, 'odun', 'kil', 15);
   assert.equal(r.alinan, 10);
   assert.equal(r.durum.kaynaklar.odun, 45);
@@ -88,7 +88,7 @@ test('takas: Pazar Yeri 3 → 2, tur başına en çok 20 birim; ticaret kapalıy
 
 test('bekleyen olay varken komutlar kilitli (olayCoz hariç)', () => {
   const d = durum({ olay: { aktif: { id: 'firtina' }, bekleme: {}, zincir: [], kurtarmaKullanildi: {} } });
-  for (const r of [isAta(d, 'serbest:avci', 1), insaEt(d, 'cadir', 5, 5), arastirmaSec(d, 'mizrak_ucu'),
+  for (const r of [isAta(d, 'serbest:avci', 1), insaEt(d, 'cadir', K + 5, K + 5), arastirmaSec(d, 'mizrak_ucu'),
     onderEylemiSec(d, 'avlan'), cagAtla(d), mevsimSonunaIlerlet(d)]) {
     assert.match(r.hata, /bekleyen olayı çöz/);
     assert.equal(r.durum, d);
@@ -104,7 +104,7 @@ test('mevsim sonuna ilerlet: en çok 5 tur, önder Dinlen; mevsim bitince durur'
   const orta = mevsimSonunaIlerlet(durum({ tur: 2 }));
   assert.equal(orta.durum.tur, 5);
   assert.equal(orta.turSayisi, 3);
-  const ins = mevsimSonunaIlerlet(insaEt(durum({ tur: 6, kaynaklar: { yiyecek: 20, odun: 10, tas: 0, deri: 0 } }), 'oduncu_kampi', 5, 5).durum);
+  const ins = mevsimSonunaIlerlet(insaEt(durum({ tur: 6, kaynaklar: { yiyecek: 20, odun: 10, tas: 0, deri: 0 } }), 'oduncu_kampi', K + 5, K + 5).durum);
   assert.equal(ins.neden, 'insaat');
   assert.equal(ins.turSayisi, 1);
 });

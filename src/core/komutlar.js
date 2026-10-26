@@ -7,7 +7,7 @@ import {
 } from './yardimci.js';
 
 export { isAta } from './nufus.js';
-export { insaEt, yukselt, onar, yik } from './insa.js';
+export { insaEt, yukselt, onar, yik, ormanTemizle, yolYap, yolKaldir } from './insa.js';
 export { arastirmaSec } from './arastirma.js';
 export { onderEylemiSec } from './eylem.js';
 export { olayCoz } from './olay.js';

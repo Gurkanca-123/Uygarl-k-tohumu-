@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { huzurHedefi, adimHuzur, huzurEkle } from '../src/core/huzur.js';
-import { durum, binaEkle } from './yardimci/durum.js';
+import { durum, binaEkle, K } from './yardimci/durum.js';
 
 test('başlangıç hedefi 60 = 50 + Kamp Ateşi 5 + barınaklı 5', () => {
   const { hedef, parcalar } = huzurHedefi(durum());
@@ -20,12 +20,12 @@ test('evsiz, açlık, ısınma, işsiz, kalabalık cezaları', () => {
 });
 
 test('bina huzuru: aynı türden ikincisi %50; Sv2 ×1,5; hasarlı sayılmaz', () => {
-  let d = binaEkle(durum({ cag: 'bronz' }), 'kuyu', 5, 5);
-  d = binaEkle(d, 'kuyu', 5, 6);
+  let d = binaEkle(durum({ cag: 'bronz' }), 'kuyu', K + 5, K + 5);
+  d = binaEkle(d, 'kuyu', K + 5, K + 6);
   assert.equal(huzurHedefi(d).parcalar.binalar, 2 + 1);
-  d = binaEkle(d, 'kuyu', 5, 4, { seviye: 2 });
+  d = binaEkle(d, 'kuyu', K + 5, K + 4, { seviye: 2 });
   assert.equal(huzurHedefi(d).parcalar.binalar, 3 + 1 + 1);
-  const h = binaEkle(durum(), 'totem', 5, 5, { hasarli: true });
+  const h = binaEkle(durum(), 'totem', K + 5, K + 5, { hasarli: true });
   assert.equal(huzurHedefi(h).parcalar.binalar, 0);
 });
 
@@ -35,7 +35,7 @@ test('vergi ve değiştirici huzuru hedefe eklenir', () => {
 });
 
 test('adım j: hedefe doğru en çok 5 puan kayar, 0–100 arasında', () => {
-  const d = binaEkle(durum(), 'totem', 5, 5); // hedef 66
+  const d = binaEkle(durum(), 'totem', K + 5, K + 5); // hedef 66
   assert.equal(adimHuzur(d).huzur, 65);
   assert.equal(adimHuzur({ ...d, huzur: 64 }).huzur, 66);
   assert.equal(adimHuzur(durum({ huzur: 90 })).huzur, 85);

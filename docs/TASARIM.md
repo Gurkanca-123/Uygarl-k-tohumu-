@@ -49,7 +49,7 @@ Yorgunluk 6 iken yalnız **Dinlen** seçilebilir. Sonuçlardaki kaynak miktarlar
 | Eylem | Çağ | Yorgunluk | Sonuç |
 |---|---|---|---|
 | Avlan | Göçebe | +2 | +4 yiyecek, +1 deri; %10 yaralanma → önder 2 tur yalnız Dinlen |
-| Keşfet | Göçebe | +2 | %40: +6 odun ya da +4 taş · %25: +3 BP · %15: "Yabancı Aile" olayı · %10: "Kurt Sürüsü" olayı · %10: boş |
+| Keşfet | Göçebe | +2 | %40: +6 odun ya da +4 taş · %25: +3 BP · %15: "Yabancı Aile" olayı · %10: "Kurt Sürüsü" olayı · %10: boş; ayrıca haritada sisin kenarını 5 (+bonus) yarıçap açar (§3.1) |
 | Hikâye Anlat | Göçebe | +1 | +2 BP, +2 huzur (anında) |
 | Dinlen | Göçebe | −3 | — |
 | Alet Yap | Taş Devri | +1 | 2 taş + 1 odun → 1 alet |
@@ -102,7 +102,7 @@ uretim = isciBasina × isciSayisi × seviyeCarpani × (1 + bitisiklik) × mevsim
 - `bitisiklik`: §3.3, toplam en fazla +0,50
 - `huzurCarpani`: huzur ≥70 → 1,10 · 30–69 → 1,00 · 15–29 → 0,85 · <15 → 0,70
 - `bulusCarpani`: ilgili buluşların çarpımı (örn. Mızrak Ucu avcılık ×1,25)
-- `yolCarpani`: §3.4 (Bronz+), aksi 1,0
+- `yolCarpani`: §3.4 (Bronz+ binası merkeze yolla bağlı değilse 0,75), aksi 1,0
 - Dönüşüm binalarında girdi de `isciSayisi × seviyeCarpani` ile ölçeklenir; diğer çarpanlar yalnız çıktıya uygulanır.
 - Sonuçlar ondalıklı tutulur, arayüz aşağı yuvarlar.
 
@@ -148,24 +148,41 @@ Başlangıç kontrolü: 50 + Kamp Ateşi 5 + barınaklı 5 = **60** (= başlang�
 
 ## 3. Izgara ve bina sistemi
 
-### 3.1 Izgara
-- Dünya **16×16** karo, tohumlu (`tohum`) üretilir. Açık (kullanılabilir) alan merkezden kare olarak büyür:
-  Göçebe 8×8 · Taş 10×10 · Bronz 12×12 · Antik 14×14 · Orta Çağ 16×16.
-- Karo türleri (`src/data/karolar.js`): `cimen` (inşa edilir) · `orman` (inşa edilmez; 1 tur "temizle" → +5 odun, `cimen` olur)
-  · `tasli` (inşa edilmez, taş yatağı) · `su` (inşa edilmez) · `verimli` (inşa edilir, tarım bonusu) · `cevher` (Bronz'da görünür)
-  · `mermer` (Antik'te görünür). `cevher`/`mermer` yalnız ilgili ocak binası üstüne kurulabilir.
-- Üretim garantileri (açık Göçebe alanında): ≥6 orman, ≥2 taşlı, ≥3 su kenarı karosu, ≥2 verimli; merkez 2×2 boş.
-  Her açılan halkada ≥2 `cevher` (Bronz halkası) ve ≥2 `mermer` (Antik halkası).
+### 3.1 Izgara, harita ve keşif (aşama 3 — kullanıcı kararı: büyük harita + keşif sisi)
+- Dünya **64×64** karo (`denge.js` → `HARITA_BOYUT`; kodda boyut gömülmez), tohumlu üretilir (`src/world/harita.js`).
+  Harita alt-tohumu oyun tohumundan türetilir (`harita.tohum`); üretim `durum.rng`'ye dokunmaz (oyun akışını kaydırmaz).
+  Merkez bina haritanın ortasında.
+- **Keşif sisi:** harita başta gizli; merkez çevresinde `GORUS_BASLANGIC` = 6 yarıçap açık. Sisteki karoya bina kurulamaz,
+  karo/kaynak bilgisi verilmez (bitişiklikte de sayılmaz). Keşfedilmiş hücreler durumda bit kümesi olarak saklanır.
+- **Yerleşim sınırı** (eski "açık alan 8 → 16" kuralının yerine): merkez binanın ortasından Öklid yarıçapı, çağla büyür —
+  Göçebe 8 · Taş 11 · Bronz 15 · Antik 20 · Orta Çağ 26 (`YERLESIM_YARICAP`). İnşa yalnız **keşfedilmiş VE sınır içi** karoda.
+- **Keşfet** önder eylemi (§1.3) eski olasılıklı sonucuna ek olarak sisin merkeze en yakın kenarına bakar ve oradan dışa doğru
+  `KESIF_YARICAP` = 5 (+ bonus) yarıçap açar (RNG kullanmaz; eşitlikte yön tur ile döner). Bonus: Hayvan İzleri +1,
+  çalışan Gözcü Direği +1 (`kesifYaricap`). Gözcü Direği / Muhafız Kulesi / Kale tamamlanınca kendi çevresini 8 / 9 / 10 açar
+  (`gorus`). Yeni açılan kaynaklar bildirilir: "Kuzeyde bir taşlık bulundu." (karo `kesifBildir`).
+- Karo türleri (`src/data/karolar.js`): `cimen` (inşa edilir) · `orman` (inşa edilmez; temizle → +5 odun, `cimen` olur)
+  · `tasli` (taş yatağı; Taş Ocağı bitişik) · `su` (geçilmez) · `verimli` (inşa edilir, tarım bonusu) · `kil` (kil yatağı, su
+  kenarında; Kil Ocağı bitişik) · `cevher` (Bronz'dan önce kayalık görünür; yalnız Maden üstüne) · `mermer` (Antik'ten önce kayalık;
+  yalnız Mermer Ocağı üstüne) · `kayalik` (geçilir, inşa edilmez) · `dag` (geçilmez) · `yol` (oyuncu yapar, §3.4).
+- **Üretim:** merkez yarıçap 3 tümü çimen; yakında orman kümesi ve verimli yama; merkezden 7–9'da göl (+ çoğunlukla kenara akan
+  nehir), uzakta göletler; su kenarında kil; ilk taşlık 5–6,5'te, ilk cevher kümesi (2×2 çekirdek) 11–13'te, ilk mermer 16–18'de;
+  ek kaynak kümeleri, dağ ve kayalık uzakta (`HARITA_URETIM`).
+- **Garantiler** (üretimden sonra denetlenir; tutmazsa aynı tohumdan sonraki deneme): r≤6 ≥6 orman ve ≥2 verimli · r≤8 ≥2 taşlık
+  · r≤11 ≥3 su · r≤15 ≥3 kil ve ≥4 cevher · r≤20 ≥4 mermer; merkezden geçilebilir (su/dağ dışı, 4 yön) erişim: taş, orman, su, kil,
+  cevher, mermer; Taş Ocağı, Balıkçı Sığınağı, Kil Ocağı, Maden, Mermer Ocağı ve Liman için kendi çağının sınırında geçerli yer.
 
-### 3.2 Bina boyutları ve yerleşim
+### 3.2 Bina boyutları ve yerleşim (`src/world/yerlestir.js`, `src/world/izgara.js`)
 - Boyutlar: **1×1** (konut, küçük atölye), **2×2** (üretim, depo, kamu), **3×3** (tekil büyük yapılar, anıt). Döndürme yok.
-- Tüm karolar açık alanda, boş ve inşa edilebilir olmalı; `karoUstu` (örn. Maden: en az 1 kaplanan karo `cevher`) ve
-  `karoBitisik` (örn. Taş Ocağı: bitişik ≥1 `tasli`) şartları veri tablosundan okunur.
+- Denetim sırası: harita dışı → sis → yerleşim sınırı → dolu (bina) → karo türü (`insaEdilir` / `yalnizBina`) → `karoUstu`
+  (örn. Maden: en az 1 kaplanan karo `cevher`) → `karoBitisik` (örn. Taş Ocağı: kenar komşusu ≥1 `tasli`; sis komşu sayılmaz).
+- **Orman temizleme** (komut `ormanTemizle`): keşfedilmiş, sınır içi orman; inşaat sırasına girer (eşzamanlı sınıra sayılır),
+  1 tur sonra karo çimen olur ve +5 odun (depo tavanında kırpılır).
 - **Yıkım:** anında, ödenen taban maliyetin %50'si iade. Merkez bina yıkılamaz/taşınamaz.
 - **Hasar:** olaylar binayı `hasarli` yapabilir: üretmez, huzur/savunma vermez. **Onar:** taban maliyetin %25'i, 1 tur.
 
 ### 3.3 Bitişiklik
-- **Bitişik** = binanın kapladığı alanın dışında, kenar paylaşan (4 yön, çapraz değil) karolar/binalar.
+- **Bitişik** = binanın kapladığı alanın dışında, kenar paylaşan (4 yön, çapraz değil) karolar/binalar. Karo hedefleri yalnız
+  bina kaplamayan ve keşfedilmiş karolarda, oyuncunun gördüğü türle sayılır (çağından önceki cevher kayalık sayılır).
 - Kural biçimi: `{ hedef: 'karo:orman' | 'bina:<id>' | 'etiket:<etiket>', etki: { uretim: 0.25 } | { huzur: -2 }, max: 2 }`
   (`max` = bu kuralın sayılabileceği en fazla bitişik adedi; aynı bina iki kez sayılmaz).
 - Üretim bonusları toplanır, **toplam en fazla +0,50**. Huzur etkileri genel huzur hedefine eklenir.
@@ -174,9 +191,12 @@ Başlangıç kontrolü: 50 + Kamp Ateşi 5 + barınaklı 5 = **60** (= başlang�
 - Genel kurallar: `etiket:atolye` olan bina bir konuta bitişikse o konut başına −2 huzur (gürültü, Bronz+).
 
 ### 3.4 Yol (Bronz+)
-- Yol karosu: 1 taş, anında. Yalnız `cimen`/`verimli` üstüne.
-- `cag ≥ bronz` olan binalar merkez binaya yol (veya merkez binaya doğrudan bitişiklik) ile bağlı değilse `yolCarpani = 0,75`.
-  Göçebe/Taş binaları yoldan muaftır (eski köy dokusu).
+- Yol karosu (komut `yolYap`): 1 taş, anında, Bronz'dan itibaren. Yalnız keşfedilmiş, sınır içi, boş `cimen`/`verimli` üstüne;
+  üstüne bina kurulmaz. `yolKaldir` iadesizdir (altındaki zemin geri gelir; temizlenmiş ormanda çimen).
+- Yol ağı: merkez binaya kenar komşu yol karolarından BFS (4 yön). Bina, merkeze doğrudan kenar bitişikse ya da bir kenar komşusu
+  ağdaysa **bağlıdır** (`src/world/yol.js`, sonuç önbellekli).
+- `cag ≥ bronz` olan binalar bağlı değilse `yolCarpani = 0,75`. Göçebe/Taş binaları yoldan muaftır (eski köy dokusu).
+- Sur Parçası: bir kenar komşusu yerleşim sınırının dışındaysa (sınır kenarı) +1 savunma (× Sv etkisi).
 
 ### 3.5 Yükseltme ve inşaat
 - Seviyeler: Sv1–Sv3. **Sv2** bina kendi çağındayken; **Sv3** bir sonraki çağa geçince açılır (Orta Çağ binaları Sv3'ü Gotik Mimari ile açar).
@@ -206,7 +226,7 @@ yanar, maliyet ödenir, sonraki tur yeni çağ başlar: merkez bina dönüşür,
 | Oduncu Kampı | `oduncu_kampi` | 1×1 | 6 odun | 1 | 2 | 2 odun; orman bitişik +0,25 (max 2) | başta |
 | Kurutma Rafı | `kurutma_rafi` | 1×1 | 6 odun, 2 deri | 1 | — | depo +20 yiyecek, bozulma −1 puan | Deri İşleme |
 | Totem | `totem` | 1×1 | 4 odun, 4 taş | 2 | — | huzur +6, +1 BP; tekil | Taş Yontma |
-| Gözcü Direği | `gozcu_diregi` | 1×1 | 6 odun, 2 taş | 1 | 1 nöbetçi | savunma +2, nöbetçi +1; Keşfet iyi sonuç +%10 | Hayvan İzleri |
+| Gözcü Direği | `gozcu_diregi` | 1×1 | 6 odun, 2 taş | 1 | 1 nöbetçi | savunma +2, nöbetçi +1; Keşfet iyi sonuç +%10, keşif yarıçapı +1; tamamlanınca görüş 8 | Hayvan İzleri |
 | Şifacı Çadırı | `sifaci_cadiri` | 1×1 | 8 odun, 3 deri | 2 | 1 | +0,3 BP; huzur +3; hastalık olaylarında kayıplar yarıya | başta (0.2) |
 
 **Yeni kaynaklar:** yiyecek, odun, taş, deri.
@@ -240,7 +260,7 @@ maliyet 60 yiyecek, 50 odun, 40 taş, 15 alet.
 | Bina | id | Boyut | Maliyet | Süre | İşçi | Etki / üretim | Açılış |
 |---|---|---|---|---|---|---|---|
 | Kerpiç Ev | `kerpic_ev` | 1×1 | 6 odun, 10 kil | 2 | — | kapasite 5, ısınma 0,5 | çağ başı |
-| Kil Ocağı | `kil_ocagi` | 1×1 | 10 odun, 4 alet | 1 | 2 | 2 kil; `karoBitisik: su` zorunlu | çağ başı |
+| Kil Ocağı | `kil_ocagi` | 1×1 | 10 odun, 4 alet | 1 | 2 | 2 kil; `karoBitisik: kil` (kil yatağı, su kenarında; aşama 3) zorunlu | çağ başı |
 | Maden Ocağı | `maden_ocagi` | 2×2 | 20 odun, 10 taş, 6 alet | 3 | 3 | 1 cevher; `karoUstu: cevher` | çağ başı |
 | Eritme Fırını | `eritme_firini` | 1×1 | 15 kil, 10 taş | 2 | 2 | girdi 1 cevher + 1 odun → 1 metal; `atolye` | çağ başı |
 | Demirci | `demirci` | 1×1 | 15 kil, 5 metal | 2 | 2 | girdi 0,5 metal + 0,5 odun → 1 alet; `atolye` | Tunç Döküm |
@@ -292,7 +312,7 @@ maliyet 200 yiyecek, 150 taş, 80 mermer, 100 sikke, 50 metal.
 | Lonca Binası | `lonca_binasi` | 2×2 | 60 taş, 30 sikke, 20 kumaş | 4 | — | tüm `atolye` +0,20 (bitişiklik sınırı dışı); bakım 2 sikke; tekil | Lonca Sistemi |
 | Han | `han` | 2×2 | 50 odun, 40 taş, 20 sikke | 3 | — | +2 sikke/tur sabit; ticaret ×2, göçmen ×1,5 olay ağırlığı (toplam ticaret çarpanı en çok ×3) | çağ başı |
 | Darüşşifa | `darussifa` | 2×2 | 60 taş, 20 kumaş, 20 sikke | 4 | 2 | huzur +5; hastalık kapasitesi +60 (işçi yoksa +20) | Dokumacılık |
-| Sur Parçası | `sur_parcasi` | 1×1 | 10 taş | 1 | — | savunma +0,5 (açık alan kenarında +1) | çağ başı |
+| Sur Parçası | `sur_parcasi` | 1×1 | 10 taş | 1 | — | savunma +0,5 (yerleşim sınırı kenarında +1) | çağ başı |
 | Kale | `kale` | 3×3 | 150 taş, 40 metal, 50 sikke | 6 | 4 şövalye | savunma +25, şövalye +5; bakım 3 sikke; tekil | çağ başı |
 | Katedral | `katedral` | 3×3 | 300 taş, 100 mermer, 150 sikke, 40 kumaş, 30 kitap | 20 | — | huzur +30; anıt; tamamlanınca **zafer** şartı | Gotik Mimari |
 
@@ -310,7 +330,7 @@ Bir çağın buluşu yalnız o çağda (veya sonrasında) araştırılabilir. �
 |---|---|---|---|---|---|
 | Göçebe | Mızrak Ucu | `mizrak_ucu` | 6 BP | — | `avcilik` ×1,25; önder savunma +1 |
 | Göçebe | Taş Yontma | `tas_yontma` | 10 BP | — | Totem; serbest Taşçı 1 → 1,5 |
-| Göçebe | Hayvan İzleri | `hayvan_izleri` | 8 BP | — | Gözcü Direği; Keşfet iyi sonuç +%10 |
+| Göçebe | Hayvan İzleri | `hayvan_izleri` | 8 BP | — | Gözcü Direği; Keşfet iyi sonuç +%10, keşif yarıçapı +1 |
 | Göçebe | Deri İşleme | `deri_isleme` | 8 BP | Mızrak Ucu | Kurutma Rafı; deri üretimi ×1,25 |
 | Göçebe | ★ Yerleşik Hayat | `yerlesik_hayat` | 12 BP | Taş Yontma, Deri İşleme | Taş Devri'ne geçiş |
 | Taş | Balıkçılık | `balikcilik` | 15 BP | Mızrak Ucu | Balıkçı Sığınağı |
@@ -467,6 +487,11 @@ inşaat bitince durur.
 - Kayıt = durum nesnesinin JSON'u; `surum` alanı zorunlu. Yükleme: `src/save/` sürüm göçleri (`gocler[surum]`) sırayla uygulanır,
   sonra **alan beyaz listesi** ile süzülür; bilinmeyen alan atılır, eksik alan `yeniOyun` varsayılanıyla doldurulur.
 - RNG durumu (`tohum`, `rng`) kayda girer → aynı kayıttan aynı sonuç (kayıt-yükle ile zar yeniden atılamaz).
+- **Harita sığ saklanır** (aşama 3): `harita = { tohum, boyut, kesif, degisim }`. Zemin `tohum`dan yeniden üretilir; `kesif` =
+  keşfedilmiş hücre bit kümesi (base64, 64×64 → 684 karakter); `degisim` = kalıcı karo değişimleri `{ '<y*n+x>': kod }`
+  (temizlenen orman, yol). Tipik kayıt ~2,5 KB (bot, 60 tur); hedef < 20 KB.
+- **Sürüm göçü 1 → 2:** 16×16 yer tutucu harita yerine tohumlu harita; binalar yeni merkeze kaydırılır (+24), altlarındaki
+  kurulamaz karolar kalıcı değişimle çimen yapılır, merkez çevresinde max(6, çağın sınırı) keşfedilmiş sayılır.
 - Bozuk/okunamayan kayıt: oyuncuya "Kayıt okunamadı" + yeni oyun; eski kayıt silinmez, `:bozuk` ekiyle saklanır.
 
 ---
@@ -484,7 +509,8 @@ inşaat bitince durur.
   (a: −4 odun · b: 1 Çadır hasarlı), Öksürük Salgını (Şifacısız sürüm: a) ayır 2 yaralı / b) dua %50 1 kayıp), Yaşlı Bilge
   (a: 5 yiyecek → +6 BP), Mamut Sürüsü, Komşu Kabile Takası.
 - **Sistemler:** tur akışı (§1.2 tamamı; bakım/yol/vergi yok), mevsimler, açlık/ısınma, huzur, doğum, bitişiklik, Sv1–Sv2,
-  izgara 8×8 → 10×10, saldırı testi, kayıt + "Mevsim sonuna ilerlet", dokunmatik yatay arayüz.
+  64×64 tohumlu harita + keşif sisi, yerleşim sınırı 8 → 11, Keşfet ile keşif, orman temizleme, saldırı testi,
+  kayıt + "Mevsim sonuna ilerlet", dokunmatik yatay arayüz.
 - **Kabul ölçütü:** test botu (her tur boşta işçiyi en düşük stoklu kaynağa atayan basit strateji) Göçebe'yi 20–32 turda bitirir,
   hiçbir tohumda nüfus 2'ye düşmez.
 
@@ -495,12 +521,13 @@ inşaat bitince durur.
 Tüm tablolar dizi olarak dışa aktarılır, `id` benzersiz ve ASCII (`snake_case`), `ad` Türkçe. Miktar nesneleri `{ kaynakId: sayı }`.
 
 **`caglar.js` → `CAGLAR`** (mevcut dosya genişletilir; `konut` alanı ad yerine bina id'si olur, ad `BINALAR`'dan okunur)
-`id, ad, sira, konut, merkez, acikAlan, depoTavani, bilgiTaban, merkezHuzur, esZamanliInsaat, dogumAraligi, kalabalikEsigi,
+`id, ad, sira, konut, merkez, depoTavani, bilgiTaban, merkezHuzur, esZamanliInsaat, dogumAraligi, kalabalikEsigi,
 olayOlasiligi, saldiriTaban, hedefTur, yeniKaynaklar[], acilanEylemler[], gecis: { nufus, binalar:{id:adet}, bulus, maliyet:{} } | null, zafer?: { bina, nufus }`
 
 **`kaynaklar.js` → `KAYNAKLAR`**: `id, ad, cag, simge, bozulur:boolean`
 
-**`karolar.js` → `KAROLAR`**: `id, ad, insaEdilir:boolean, gorunurCag, temizlenir?:{ sure, kazanc:{}, donusur }`
+**`karolar.js` → `KAROLAR`**: `id, ad, kod, insaEdilir:boolean, gecilir:boolean, gorunurCag, temizlenir?:{ sure, kazanc:{}, donusur },
+yalnizBina?[], gizliGorunum?, kesifBildir?, yapay?` (yerleşim sınırı yarıçapı çağ tablosunda değil, `denge.js` `YERLESIM_YARICAP`)
 
 **`binalar.js` → `BINALAR`**
 `id, ad, cag, tur: 'merkez'|'konut'|'uretim'|'donusum'|'depo'|'huzur'|'savunma'|'bilgi'|'kamu'|'anit', etiketler[] (ör. 'atolye','tarim'),
@@ -526,7 +553,7 @@ maxSeviye (2|3), aciklama`
   nufus, atama:{ '<binaUid>': n, 'serbest:toplayici': n, ... }, huzur, acTur, kayiplar:[{ tur, adet }],
   onder:{ yorgunluk, yaraliKalan, eylem },
   binalar:[{ uid, id, x, y, seviye, insaKalan, hasarli }], insaatSirasi:[],
-  harita:{ boyut:16, karolar:'<256 karakterlik kod dizgisi>' },
+  harita:{ tohum, boyut:64, kesif:'<base64 bit kümesi>', degisim:{ '<y*n+x>': karoKodu } },
   olay:{ aktif:{ id } | null, bekleme:{ id: tur }, zincir:[{ olay, tur }], kurtarmaKullanildi:{ cag:true } },
   degistiriciler:[{ id, kalan, etki }], kervanlar:[{ kaynak, miktar, tur }], vergi:'yok', istatistik:{} }
 ```

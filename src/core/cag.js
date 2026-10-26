@@ -1,7 +1,11 @@
 // Çağlar (TASARIM §4, §7.2; adım o'daki çağ kontrolü): geçiş şartları, çağ atlama komutu, zafer ve serbest kip. Saf.
 // Çağ atlama bir oyuncu eylemidir: şartlar sağlanınca maliyet ödenir, çağ hemen değişir (bir sonraki tur yeni çağda çözülür):
-// merkez bina dönüşür, açık alan büyür (acikAlan çağdan okunur), yeni kaynaklar/binalar/eylemler açılır.
+// merkez bina dönüşür, yerleşim sınırı büyür (denge.js YERLESIM_YARICAP), yeni kaynaklar/binalar/eylemler açılır;
+// keşfedilmiş topraktaki, bu çağda görünür olan karolar (cevher, mermer) bildirilir.
 import { CAGLAR } from '../data/caglar.js';
+import { KAROLAR } from '../data/karolar.js';
+import { kesifli, yonAdi } from '../world/kesif.js';
+import { karoAt, merkezNokta } from '../world/harita.js';
 import {
   BINA, BULUS, CAG, kopya, mevcutCag, kuruluSayisi, kaynakYeter, eksikMetni, kaynakUygula, bildir,
   olayKilitli, OLAY_KILIDI, hataDon, merkezBina,
@@ -40,7 +44,28 @@ export function cagAtla(durum) {
   for (const r of s.sonraki.yeniKaynaklar) if (d.kaynaklar[r] === undefined) d.kaynaklar[r] = 0;
   const bildirimler = [];
   bildir(bildirimler, 'cag_atlandi', `${s.sonraki.ad} başladı! Merkez: ${BINA[s.sonraki.merkez].ad}.`, 'iyi', { cag: d.cag });
+  yeniGorunenler(d, bildirimler);
   return { durum: d, bildirimler };
+}
+
+// Bu çağda görünür olan karo türlerinden keşfedilmiş topraktakileri (merkeze en yakın) bildirir.
+function yeniGorunenler(d, bildirimler) {
+  const yeni = KAROLAR.filter((k) => k.gorunurCag === d.cag && k.kesifBildir);
+  if (!yeni.length) return;
+  const n = d.harita.boyut;
+  const m = merkezNokta(d);
+  for (const k of yeni) {
+    let enIyi = null;
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      if (!kesifli(d, x, y) || karoAt(d, x, y) !== k.id) continue;
+      const u = Math.hypot(x + 0.5 - m.x, y + 0.5 - m.y);
+      if (!enIyi || u < enIyi.u) enIyi = { x, y, u };
+    }
+    if (enIyi) {
+      const yon = yonAdi(enIyi.x + 0.5 - m.x, enIyi.y + 0.5 - m.y);
+      bildir(bildirimler, 'kesif_bulgu', `${yon} ${k.kesifBildir} görüldü.`, 'iyi', { karo: k.id, x: enIyi.x, y: enIyi.y });
+    }
+  }
 }
 
 // Zafer (son çağ): zafer binası kurulu ve nüfus yeterli. Sonrasında oyun serbest kipte sürer.

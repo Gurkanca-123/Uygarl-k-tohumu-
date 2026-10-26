@@ -4,7 +4,7 @@ import {
   hamUretimHesapla, hesaplaBitisiklik, huzurCarpani, mevsimCarpani, adimHamUretim, adimDonusum, adimDepoKirp,
 } from '../src/core/uretim.js';
 import { depoTavani } from '../src/core/yardimci.js';
-import { durum, binaEkle, karoKoy, yuvarla } from './yardimci/durum.js';
+import { durum, binaEkle, karoKoy, yuvarla, K } from './yardimci/durum.js';
 
 const y = (d) => yuvarla(hamUretimHesapla(d).toplam.yiyecek || 0);
 
@@ -41,49 +41,49 @@ test('kemer sıkma: açlıkta serbest işler +%50', () => {
 });
 
 test('bitişiklik: Avcı Kulübesi orman başına +0,25, en çok 2', () => {
-  let d = binaEkle(durum({ atama: { k: 2 } }), 'avci_kulubesi', 5, 5, { uid: 'k' });
+  let d = binaEkle(durum({ atama: { k: 2 } }), 'avci_kulubesi', K + 5, K + 5, { uid: 'k' });
   assert.equal(y(d), 3); // 2 × 1,5
-  d = karoKoy(d, 4, 5, 'orman');
+  d = karoKoy(d, K + 4, K + 5, 'orman');
   assert.equal(hesaplaBitisiklik(d).k.uretim, 0.25);
   assert.equal(y(d), 3.75);
-  d = karoKoy(karoKoy(d, 5, 4, 'orman'), 6, 5, 'orman');
+  d = karoKoy(karoKoy(d, K + 5, K + 4, 'orman'), K + 6, K + 5, 'orman');
   assert.equal(hesaplaBitisiklik(d).k.uretim, 0.5);
   // çapraz sayılmaz
-  const c = karoKoy(binaEkle(durum(), 'avci_kulubesi', 5, 5, { uid: 'k' }), 4, 4, 'orman');
+  const c = karoKoy(binaEkle(durum(), 'avci_kulubesi', K + 5, K + 5, { uid: 'k' }), K + 4, K + 4, 'orman');
   assert.equal(hesaplaBitisiklik(c).k.uretim, 0);
 });
 
 test('bitişiklik: bina kaplamayan karo sayılır, dizi hedef (orman/su) ortak sınır', () => {
-  let d = binaEkle(durum(), 'toplayici_barinagi', 5, 5, { uid: 'k' });
-  d = karoKoy(karoKoy(karoKoy(d, 4, 5, 'orman'), 6, 5, 'su'), 5, 6, 'su');
+  let d = binaEkle(durum(), 'toplayici_barinagi', K + 5, K + 5, { uid: 'k' });
+  d = karoKoy(karoKoy(karoKoy(d, K + 4, K + 5, 'orman'), K + 6, K + 5, 'su'), K + 5, K + 6, 'su');
   assert.equal(hesaplaBitisiklik(d).k.uretim, 0.5);
 });
 
 test('etki alanı üst üste binmez; farklı türler toplanır; değirmen işçisiz kapalı', () => {
   let d = durum({ cag: 'ortacag', atama: {} });
-  d = binaEkle(d, 'tahil_bahcesi', 2, 2, { uid: 'tb' });
-  d = binaEkle(d, 'su_kemeri', 5, 2, { uid: 's1' });
-  d = binaEkle(d, 'su_kemeri', 2, 5, { uid: 's2' });
+  d = binaEkle(d, 'tahil_bahcesi', K + 2, K + 2, { uid: 'tb' });
+  d = binaEkle(d, 'su_kemeri', K + 5, K + 2, { uid: 's1' });
+  d = binaEkle(d, 'su_kemeri', K + 2, K + 5, { uid: 's2' });
   assert.equal(yuvarla(hesaplaBitisiklik(d).tb.alan), 0.2);
-  d = binaEkle(d, 'degirmen', 5, 5, { uid: 'dg' });
+  d = binaEkle(d, 'degirmen', K + 5, K + 5, { uid: 'dg' });
   assert.equal(yuvarla(hesaplaBitisiklik(d).tb.alan), 0.2);
   d = { ...d, atama: { dg: 1 } };
   assert.equal(yuvarla(hesaplaBitisiklik(d).tb.alan), 0.45);
 });
 
 test('atölye gürültüsü: konuta bitişik atölye Bronz+ −2 huzur', () => {
-  let d = binaEkle(durum({ cag: 'tasdevri' }), 'alet_yapimcisi', 10, 7, { uid: 'a' });
+  let d = binaEkle(durum({ cag: 'tasdevri' }), 'alet_yapimcisi', K + 10, K + 7, { uid: 'a' });
   assert.equal(hesaplaBitisiklik(d).toplamHuzur, 0);
   d = { ...d, cag: 'bronz' };
   assert.equal(hesaplaBitisiklik(d).toplamHuzur, -2); // Çadır (9,7) bitişik
 });
 
 test('inşaattaki ve hasarlı bina üretmez', () => {
-  const a = binaEkle(durum({ atama: { k: 2 } }), 'oduncu_kampi', 5, 5, { uid: 'k', insaKalan: 1 });
+  const a = binaEkle(durum({ atama: { k: 2 } }), 'oduncu_kampi', K + 5, K + 5, { uid: 'k', insaKalan: 1 });
   assert.equal(hamUretimHesapla(a).toplam.odun || 0, 0);
-  const b = binaEkle(durum({ atama: { k: 2 } }), 'oduncu_kampi', 5, 5, { uid: 'k', hasarli: true });
+  const b = binaEkle(durum({ atama: { k: 2 } }), 'oduncu_kampi', K + 5, K + 5, { uid: 'k', hasarli: true });
   assert.equal(hamUretimHesapla(b).toplam.odun || 0, 0);
-  const c = binaEkle(durum({ atama: { k: 2 } }), 'oduncu_kampi', 5, 5, { uid: 'k' });
+  const c = binaEkle(durum({ atama: { k: 2 } }), 'oduncu_kampi', K + 5, K + 5, { uid: 'k' });
   assert.equal(hamUretimHesapla(c).toplam.odun, 4);
 });
 
@@ -104,7 +104,7 @@ test('adım d: ham üretim depoya eklenir, kırpma f adımında', () => {
 
 test('adım f: depo tavanı çağdan + depo binalarından; uyarı verilir', () => {
   let d = durum({ kaynaklar: { yiyecek: 60, odun: 31, tas: 0, deri: 0 } });
-  d = binaEkle(d, 'kurutma_rafi', 5, 5);
+  d = binaEkle(d, 'kurutma_rafi', K + 5, K + 5);
   assert.equal(depoTavani(d, 'yiyecek'), 50);
   const b = [];
   const f = adimDepoKirp(d, b);
@@ -115,7 +115,7 @@ test('adım f: depo tavanı çağdan + depo binalarından; uyarı verilir', () =
 
 test('adım e: dönüşüm girdisi yetmeyen işçi üretmez (kısmi çalışma)', () => {
   let d = durum({ cag: 'tasdevri', kaynaklar: { yiyecek: 10, odun: 5, tas: 1.5, deri: 0, alet: 0 }, atama: { a: 2 } });
-  d = binaEkle(d, 'alet_yapimcisi', 5, 5, { uid: 'a' });
+  d = binaEkle(d, 'alet_yapimcisi', K + 5, K + 5, { uid: 'a' });
   const b = [];
   const e = adimDonusum(d, b);
   assert.equal(e.kaynaklar.alet, 0.5);

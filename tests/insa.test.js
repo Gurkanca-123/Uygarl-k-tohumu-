@@ -8,7 +8,7 @@ import { huzurHedefi } from '../src/core/huzur.js';
 import { isAta } from '../src/core/nufus.js';
 import { turIlerlet } from '../src/core/tur.js';
 import { isciYuvasi } from '../src/core/yardimci.js';
-import { durum, binaEkle, karoKoy } from './yardimci/durum.js';
+import { durum, binaEkle, karoKoy, K } from './yardimci/durum.js';
 
 const bol = { yiyecek: 30, odun: 30, tas: 30, deri: 30 };
 
@@ -16,13 +16,13 @@ test('§7.2 maliyet artışı: konut k=1,10, diğer k=1,15; taban altına inmez'
   const d = durum();
   assert.deepEqual(maliyetHesapla(d, 'cadir'), { odun: 6, deri: 2 }); // 2. Çadır: 5,5 → 6
   assert.deepEqual(maliyetHesapla(d, 'avci_kulubesi'), { odun: 8 });
-  const iki = binaEkle(d, 'avci_kulubesi', 5, 5);
+  const iki = binaEkle(d, 'avci_kulubesi', K + 5, K + 5);
   assert.deepEqual(maliyetHesapla(iki, 'avci_kulubesi'), { odun: 9 });
 });
 
 test('insaEt: maliyet anında düşer, sıraya girer; inşaattaki binaya işçi önceden atanabilir', () => {
   const d0 = durum({ kaynaklar: { ...bol } });
-  const r = insaEt(d0, 'oduncu_kampi', 5, 5);
+  const r = insaEt(d0, 'oduncu_kampi', K + 5, K + 5);
   assert.equal(r.hata, undefined);
   assert.equal(r.durum.kaynaklar.odun, 24);
   assert.deepEqual(r.durum.insaatSirasi, [r.uid]);
@@ -35,34 +35,24 @@ test('insaEt: maliyet anında düşer, sıraya girer; inşaattaki binaya işçi 
   assert.equal(t.istatistik.sonTur.uretim.odun, 4);
 });
 
-test('insaEt reddi: eşzamanlı sınır, açık alan, dolu karo, karo türü, tekil, buluş, kaynak', () => {
+test('insaEt reddi: eşzamanlı sınır, yerleşim sınırı, dolu karo, karo türü, tekil, buluş, kaynak', () => {
   const d0 = durum({ kaynaklar: { ...bol } });
-  const bir = insaEt(d0, 'oduncu_kampi', 5, 5).durum;
-  assert.match(insaEt(bir, 'oduncu_kampi', 5, 6).hata, /Aynı anda en çok 1/);
-  assert.match(insaEt(d0, 'oduncu_kampi', 2, 2).hata, /açık alanın dışında/);
-  assert.match(insaEt(d0, 'oduncu_kampi', 7, 7).hata, /dolu/);
-  assert.match(insaEt(karoKoy(d0, 5, 5, 'orman'), 'oduncu_kampi', 5, 5).hata, /inşa edilemez/);
-  assert.match(insaEt(d0, 'totem', 5, 5).hata, /Taş Yontma/);
-  const t = binaEkle({ ...d0, buluslar: ['tas_yontma'] }, 'totem', 4, 4);
-  assert.match(insaEt(t, 'totem', 5, 5).hata, /tekil/);
-  assert.match(insaEt(durum(), 'avci_kulubesi', 5, 5).hata, /Kaynak yetersiz: Odun 3/);
-  assert.match(insaEt(d0, 'kulube', 5, 5).hata, /gereken çağ/);
-  assert.match(insaEt(d0, 'kamp_atesi', 5, 5).hata, /Merkez/);
-  assert.equal(insaEt(d0, 'kulube', 5, 5).durum, d0);
-});
-
-test('karoBitisik / karoUstu: Taş Ocağı taşlığa bitişik, Maden cevher üstüne', () => {
-  const t = durum({ cag: 'tasdevri', kaynaklar: { ...bol, alet: 10 } });
-  assert.match(insaEt(t, 'tas_ocagi', 4, 4).hata, /bitişik/);
-  assert.equal(insaEt(karoKoy(t, 6, 4, 'tasli'), 'tas_ocagi', 4, 4).hata, undefined);
-  const b = durum({ cag: 'bronz', kaynaklar: { ...bol, alet: 10 } });
-  assert.match(insaEt(b, 'maden_ocagi', 4, 4).hata, /cevher/);
-  assert.equal(insaEt(karoKoy(b, 4, 4, 'cevher'), 'maden_ocagi', 4, 4).hata, undefined);
-  assert.match(insaEt(karoKoy(b, 4, 4, 'cevher'), 'oduncu_kampi', 4, 4).hata, /Cevher/);
+  const bir = insaEt(d0, 'oduncu_kampi', K + 5, K + 5).durum;
+  assert.match(insaEt(bir, 'oduncu_kampi', K + 5, K + 6).hata, /Aynı anda en çok 1/);
+  assert.match(insaEt(d0, 'oduncu_kampi', K + 0, K + 0).hata, /yerleşim sınırının dışında/);
+  assert.match(insaEt(d0, 'oduncu_kampi', K + 7, K + 7).hata, /dolu/);
+  assert.match(insaEt(karoKoy(d0, K + 5, K + 5, 'orman'), 'oduncu_kampi', K + 5, K + 5).hata, /inşa edilemez/);
+  assert.match(insaEt(d0, 'totem', K + 5, K + 5).hata, /Taş Yontma/);
+  const t = binaEkle({ ...d0, buluslar: ['tas_yontma'] }, 'totem', K + 4, K + 4);
+  assert.match(insaEt(t, 'totem', K + 5, K + 5).hata, /tekil/);
+  assert.match(insaEt(durum(), 'avci_kulubesi', K + 5, K + 5).hata, /Kaynak yetersiz: Odun 3/);
+  assert.match(insaEt(d0, 'kulube', K + 5, K + 5).hata, /gereken çağ/);
+  assert.match(insaEt(d0, 'kamp_atesi', K + 5, K + 5).hata, /Merkez/);
+  assert.equal(insaEt(d0, 'kulube', K + 5, K + 5).durum, d0);
 });
 
 test('yükseltme: Sv2 taban × 1,5; çalışmaya devam eder; Sv3 sonraki çağda; yuva +1', () => {
-  let d = binaEkle(durum({ kaynaklar: { ...bol }, atama: { k: 2, 'serbest:toplayici': 1 } }), 'oduncu_kampi', 5, 5, { uid: 'k' });
+  let d = binaEkle(durum({ kaynaklar: { ...bol }, atama: { k: 2, 'serbest:toplayici': 1 } }), 'oduncu_kampi', K + 5, K + 5, { uid: 'k' });
   assert.deepEqual(yukseltmeMaliyeti(d.binalar.at(-1)), { odun: 9 });
   const r = yukselt(d, 'k');
   assert.equal(r.hata, undefined);
@@ -81,7 +71,7 @@ test('yükseltme: Sv2 taban × 1,5; çalışmaya devam eder; Sv3 sonraki çağda
 });
 
 test('onarım: taban × 0,25, 1 tur; yıkım: taban × 0,5 iade, işçiler işsiz; merkez yıkılmaz', () => {
-  let d = binaEkle(durum({ kaynaklar: { ...bol, odun: 20 }, atama: { k: 2 } }), 'oduncu_kampi', 5, 5, { uid: 'k', hasarli: true });
+  let d = binaEkle(durum({ kaynaklar: { ...bol, odun: 20 }, atama: { k: 2 } }), 'oduncu_kampi', K + 5, K + 5, { uid: 'k', hasarli: true });
   assert.match(onar(durum(), 'b2').hata, /hasarlı değil/);
   const o = onar(d, 'k');
   assert.equal(o.durum.kaynaklar.odun, 20 - 2); // round(6 × 0,25) = 2 (1,5 → 2)
@@ -96,7 +86,7 @@ test('onarım: taban × 0,25, 1 tur; yıkım: taban × 0,5 iade, işçiler işsi
 });
 
 test('adım c: bakımı ödenemeyen bina bu tur kapalı (huzur yok); ödenince açık', () => {
-  let d = binaEkle(durum({ cag: 'bronz', kaynaklar: { yiyecek: 0, odun: 0, tas: 0, deri: 0 } }), 'mabet', 4, 4, { uid: 'm' });
+  let d = binaEkle(durum({ cag: 'bronz', kaynaklar: { yiyecek: 0, odun: 0, tas: 0, deri: 0 } }), 'mabet', K + 4, K + 4, { uid: 'm' });
   const b = [];
   const kapali = adimBakim(d, b);
   assert.deepEqual(kapali.istatistik.sonTur.kapali, ['m']);

@@ -4,7 +4,7 @@ import { onderEylemiSec, adimOnder, kesifIyiBonusu, eylemOlcegi } from '../src/c
 import { olasilikDagit } from '../src/core/sonuc.js';
 import { EYLEM } from '../src/core/yardimci.js';
 import { rngBaslat } from '../src/core/rng.js';
-import { durum, binaEkle, yuvarla } from './yardimci/durum.js';
+import { durum, binaEkle, yuvarla, K } from './yardimci/durum.js';
 
 const sec = (d, id, secim) => {
   const r = onderEylemiSec(d, id, secim);
@@ -81,7 +81,7 @@ test('Keşfet iyi sonuç bonusu: iyi dilimler artar, diğerleri orantılı azal�
   assert.equal(top(olasilikDagit(liste, 0.1)), 1);
   let d = durum({ buluslar: ['hayvan_izleri'] });
   assert.equal(kesifIyiBonusu(d, 'kesfet'), 0.1);
-  d = binaEkle(d, 'gozcu_diregi', 5, 5);
+  d = binaEkle(d, 'gozcu_diregi', K + 5, K + 5);
   assert.equal(yuvarla(kesifIyiBonusu(d, 'kesfet')), 0.2);
   assert.equal(kesifIyiBonusu(d, 'avlan'), 0);
 });
@@ -98,7 +98,7 @@ test('Keşfet olay dilimi zincire girer (gecikme 0)', () => {
 });
 
 test('Kervan Gönder (Bronz, Pazar Yeri): 20 birim gider, 3 tur sonra 15 birim gelir', () => {
-  let d = binaEkle(durum({ cag: 'bronz', tur: 10, kaynaklar: { yiyecek: 50, odun: 30, tas: 0, deri: 0, kil: 0 } }), 'pazar_yeri', 4, 4);
+  let d = binaEkle(durum({ cag: 'bronz', tur: 10, kaynaklar: { yiyecek: 50, odun: 30, tas: 0, deri: 0, kil: 0 } }), 'pazar_yeri', K + 4, K + 4);
   assert.match(onderEylemiSec(d, 'kervan_gonder', null).hata, /kaynak seç/);
   d = adimOnder(sec(d, 'kervan_gonder', { ver: 'odun', al: 'kil' }));
   assert.equal(d.kaynaklar.odun, 10);

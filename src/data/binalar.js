@@ -7,7 +7,9 @@
 // Şemaya eklenen alanlar (belgede sayısı olan ama §10'da alanı olmayan etkiler):
 //   kesifIyiSonuc (Keşfet iyi sonuç olasılığı +), hastalikKayipCarpani, takas:{ver, al, turBasinaMax?},
 //   olayAgirlik:{tur: çarpan}, kuresel:{hedefEtiket, etki} (bitişiklik sınırı dışı genel bonus),
-//   hastalikKapasitesiIscisiz, savunmaKenar, etkiIsciGerekir, zafer, anit.
+//   hastalikKapasitesiIscisiz, savunmaKenar (yerleşim sınırı kenarında ek savunma), etkiIsciGerekir, zafer, anit.
+// Aşama 3 (harita/keşif): gorus (bina tamamlanınca kendi çevresinde açtığı yarıçap), kesifYaricap (Keşfet eylemine ek yarıçap).
+//   TODO(tasarim): gorus/kesifYaricap sayıları belgede yok; varsayım (Gözcü 8/+1, Muhafız Kulesi 9, Kale 10).
 // `bitisiklik[].hedef` tek dizgi ya da dizi olabilir (dizi: hedeflerden herhangi biri, ortak `max`).
 // Merkez binaların huzur/depo/BP/eşzamanlı inşaat değerleri CAGLAR tablosundan okunur (tek kaynak).
 import { KAYNAKLAR } from './kaynaklar.js';
@@ -58,7 +60,7 @@ export const BINALAR = [
     gereksinim: { bulus: 'tas_yontma', tekil: true }, huzur: 6, bilgi: 1, mvp: true, aciklama: 'Kabilenin kutsal direği.' }),
   // TODO(tasarim): Gözcü Direği ve Hayvan İzleri buluşu ikisi de "Keşfet iyi sonuç +%10" diyor; üst üste biner mi, "iyi sonuç" hangileri?
   bina({ id: 'gozcu_diregi', ad: 'Gözcü Direği', cag: 'gocebe', tur: 'savunma', boyut: [1, 1], maliyet: { odun: 6, tas: 2 }, insaSuresi: 1,
-    gereksinim: { bulus: 'hayvan_izleri' }, isci: 1, isciTuru: 'nobetci', savunma: 2, isciSavunma: 1, kesifIyiSonuc: 0.10, mvp: true,
+    gereksinim: { bulus: 'hayvan_izleri' }, isci: 1, isciTuru: 'nobetci', savunma: 2, isciSavunma: 1, kesifIyiSonuc: 0.10, gorus: 8, kesifYaricap: 1, mvp: true,
     aciklama: 'Nöbetçi yaklaşan tehlikeyi görür.' }),
   // TODO(tasarim): "+0,3 BP" sabit mi, işçi başına mı? Sabit (bilgi) varsayıldı; işçisiz çalışır mı belirsiz.
   bina({ id: 'sifaci_cadiri', ad: 'Şifacı Çadırı', cag: 'gocebe', tur: 'kamu', boyut: [1, 1], maliyet: { odun: 8, deri: 3 }, insaSuresi: 2,
@@ -92,7 +94,7 @@ export const BINALAR = [
   bina({ id: 'kerpic_ev', ad: 'Kerpiç Ev', cag: 'bronz', tur: 'konut', boyut: [1, 1], maliyet: { odun: 6, kil: 10 }, insaSuresi: 2,
     kapasite: 5, isinma: 0.5, aciklama: '5 kişi barındırır.' }),
   bina({ id: 'kil_ocagi', ad: 'Kil Ocağı', cag: 'bronz', tur: 'uretim', boyut: [1, 1], maliyet: { odun: 10, alet: 4 }, insaSuresi: 1,
-    gereksinim: { karoBitisik: 'su' }, isci: 2, uretim: { kil: 2 }, aciklama: 'Suya bitişik kurulur.' }),
+    gereksinim: { karoBitisik: 'kil' }, isci: 2, uretim: { kil: 2 }, aciklama: 'Kil yatağına (su kenarı) bitişik kurulur.' }),
   bina({ id: 'maden_ocagi', ad: 'Maden Ocağı', cag: 'bronz', tur: 'uretim', boyut: [2, 2], maliyet: { odun: 20, tas: 10, alet: 6 }, insaSuresi: 3,
     gereksinim: { karoUstu: 'cevher' }, isci: 3, uretim: { cevher: 1 }, aciklama: 'Cevher damarı üstüne kurulur.' }),
   bina({ id: 'eritme_firini', ad: 'Eritme Fırını', cag: 'bronz', tur: 'donusum', etiketler: ['atolye'], boyut: [1, 1],
@@ -113,7 +115,7 @@ export const BINALAR = [
   bina({ id: 'kuyu', ad: 'Kuyu', cag: 'bronz', tur: 'kamu', boyut: [1, 1], maliyet: { tas: 10, kil: 5 }, insaSuresi: 1,
     huzur: 2, hastalikKapasitesi: 15, aciklama: 'Temiz su hastalığı azaltır.' }),
   bina({ id: 'muhafiz_kulesi', ad: 'Muhafız Kulesi', cag: 'bronz', tur: 'savunma', boyut: [1, 1], maliyet: { tas: 15, metal: 5 }, insaSuresi: 2,
-    isci: 2, isciTuru: 'nobetci', savunma: 6, isciSavunma: 2, aciklama: 'Nöbetçi kulesi.' }),
+    isci: 2, isciTuru: 'nobetci', savunma: 6, isciSavunma: 2, gorus: 9, aciklama: 'Nöbetçi kulesi.' }),
   bina({ id: 'mabet', ad: 'Mabet', cag: 'bronz', tur: 'huzur', boyut: [2, 2], maliyet: { kil: 30, tas: 20, metal: 5 }, insaSuresi: 4,
     gereksinim: { tekil: true }, isci: 1, isciTuru: 'rahip', huzur: 12, bilgi: 2, isciBilgi: 1, bakim: { yiyecek: 1 },
     aciklama: 'Rahipler bilgi biriktirir.' }),
@@ -166,9 +168,9 @@ export const BINALAR = [
     gereksinim: { bulus: 'dokumacilik' }, isci: 2, huzur: 5, hastalikKapasitesi: 60, hastalikKapasitesiIscisiz: 20,
     aciklama: 'Hastane; işçisiz yalnız +20 hastalık kapasitesi.' }),
   bina({ id: 'sur_parcasi', ad: 'Sur Parçası', cag: 'ortacag', tur: 'savunma', boyut: [1, 1], maliyet: { tas: 10 }, insaSuresi: 1,
-    savunma: 0.5, savunmaKenar: 1, aciklama: 'Açık alan kenarında daha güçlü.' }),
+    savunma: 0.5, savunmaKenar: 1, aciklama: 'Yerleşim sınırının kenarında daha güçlü.' }),
   bina({ id: 'kale', ad: 'Kale', cag: 'ortacag', tur: 'savunma', boyut: [3, 3], maliyet: { tas: 150, metal: 40, sikke: 50 }, insaSuresi: 6,
-    gereksinim: { tekil: true }, isci: 4, isciTuru: 'sovalye', savunma: 25, isciSavunma: 5, bakim: { sikke: 3 },
+    gereksinim: { tekil: true }, isci: 4, isciTuru: 'sovalye', savunma: 25, isciSavunma: 5, gorus: 10, bakim: { sikke: 3 },
     aciklama: 'Şövalyelerin yuvası.' }),
   // TODO(tasarim): Katedral tekil mi ve yükseltilebilir mi yazılmamış; anıt olduğu için tekil ve maxSeviye 1 varsayıldı.
   bina({ id: 'katedral', ad: 'Katedral', cag: 'ortacag', tur: 'anit', boyut: [3, 3],

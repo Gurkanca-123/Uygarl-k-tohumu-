@@ -10,58 +10,19 @@ import {
   YOL_CEZA, YOL_CAG, VERGI,
 } from '../data/denge.js';
 import { takvim } from './takvim.js';
+import { izgara, kenarKomsulari, mesafeHucreleri, binaUzakligi } from '../world/izgara.js';
+import { gorunurKaro } from '../world/kesif.js';
+import { yolAgi, yolBagli } from '../world/yol.js';
 import {
-  BINA, KARO_KOD, kopya, cagSira, binaKurulu, binaCalisir, etkinAtama, seviyeCarpani, bulusEtkileri,
+  BINA, kopya, cagSira, binaKurulu, binaCalisir, etkinAtama, seviyeCarpani, bulusEtkileri,
   serbestAnahtar, depoTavani, etkinDegistiriciler, sonTur, bildir, KAYNAK, binaBul,
 } from './yardimci.js';
 
 // ---------- Izgara ----------
-// Not: gerçek ızgara/yerleşim sistemi aşama 3'te (src/world). Burada yalnız durumdaki bina konumlarından
-// kenar komşuluğu ve karo okuması yapılır.
-export function izgara(d) {
-  const n = d.harita.boyut;
-  const hucre = new Array(n * n).fill(null);
-  for (const b of d.binalar) {
-    const [g, y] = BINA[b.id].boyut;
-    for (let dy = 0; dy < y; dy++) for (let dx = 0; dx < g; dx++) {
-      const x = b.x + dx, yy = b.y + dy;
-      if (x >= 0 && yy >= 0 && x < n && yy < n) hucre[yy * n + x] = b.uid;
-    }
-  }
-  return hucre;
-}
-export function karoAt(d, x, y) {
-  const n = d.harita.boyut;
-  if (x < 0 || y < 0 || x >= n || y >= n) return null;
-  return KARO_KOD[d.harita.karolar[y * n + x]]?.id ?? null;
-}
-// Binanın dışında, kenar paylaşan (4 yön) karolar.
-export function kenarKomsulari(d, b) {
-  const [g, h] = BINA[b.id].boyut;
-  const n = d.harita.boyut;
-  const c = [];
-  for (let i = 0; i < g; i++) { c.push([b.x + i, b.y - 1], [b.x + i, b.y + h]); }
-  for (let j = 0; j < h; j++) { c.push([b.x - 1, b.y + j], [b.x + g, b.y + j]); }
-  return c.filter(([x, y]) => x >= 0 && y >= 0 && x < n && y < n);
-}
-// Binanın dışında, Chebyshev uzaklığı 1..m olan karolar.
-function mesafeHucreleri(d, b, m) {
-  const [g, h] = BINA[b.id].boyut;
-  const n = d.harita.boyut;
-  const c = [];
-  for (let y = b.y - m; y < b.y + h + m; y++) for (let x = b.x - m; x < b.x + g + m; x++) {
-    const ic = x >= b.x && x < b.x + g && y >= b.y && y < b.y + h;
-    if (!ic && x >= 0 && y >= 0 && x < n && y < n) c.push([x, y]);
-  }
-  return c;
-}
-// İki dikdörtgen bina arasındaki Chebyshev uzaklığı (en yakın karolar arası).
-export function binaUzakligi(a, b) {
-  const [ag, ah] = BINA[a.id].boyut, [bg, bh] = BINA[b.id].boyut;
-  const dx = Math.max(0, a.x - (b.x + bg - 1), b.x - (a.x + ag - 1));
-  const dy = Math.max(0, a.y - (b.y + bh - 1), b.y - (a.y + ah - 1));
-  return Math.max(dx, dy);
-}
+// Gerçek ızgara src/world'de (aşama 3). Bitişiklikte karolar oyuncunun GÖRDÜĞÜ hâliyle sayılır (sis sayılmaz, çağından
+// önceki cevher/mermer kayalık sayılır).
+export { izgara, kenarKomsulari, binaUzakligi };
+export const karoAt = (d, x, y) => gorunurKaro(d, x, y);
 function suYakin(d, b, m) {
   return mesafeHucreleri(d, b, m).some(([x, y]) => karoAt(d, x, y) === 'su');
 }
@@ -180,13 +141,12 @@ export function degistiriciUretim(d, etiketler, bina = null) {
   return { carpan, bonus };
 }
 
-// §3.4: Bronz+ binaları merkeze yolla bağlı değilse YOL_CEZA. Yol ızgarası aşama 3'te gelecek;
-// TODO(aşama 3): yol bağlantısı. Durumda yol karosu henüz yok; şimdilik tüm binalar bağlı kabul edilir (çarpan 1).
-// YOL_CEZA / YOL_CAG burada okunur ki aşama 3 yalnız `yolBagli`yı doldursun.
-export function yolBagli(/* d, b */) { return true; }
-export function yolCarpani(d, b) {
+// §3.4: Bronz+ binaları merkeze yolla (ya da doğrudan merkez bitişikliğiyle) bağlı değilse YOL_CEZA (world/yol.js).
+// Göçebe/Taş binaları muaf. `ag`: önceden hesaplanmış yol ağı (verilmezse önbellekli hesaplanır).
+export { yolBagli };
+export function yolCarpani(d, b, ag) {
   if (cagSira(BINA[b.id].cag) < cagSira(YOL_CAG)) return 1;
-  return yolBagli(d, b) ? 1 : YOL_CEZA;
+  return yolBagli(d, b, ag ?? yolAgi(d)) ? 1 : YOL_CEZA;
 }
 
 const binaEtiketleri = (t) => (t.mevsimEtiketi ? [...t.etiketler, t.mevsimEtiketi] : [...t.etiketler]);

@@ -1,13 +1,18 @@
 // İnşaat (TASARIM §3.2, §3.5, §7.2): maliyet, yerleşim denetimi, süre, işçi yuvası, bakım; adımlar b (inşaat) ve c (bakım).
 // Komutlar: insaEt, yukselt, onar, yik → { durum, hata? }. Geçersiz komut durumu değiştirmez.
 import {
-  MALIYET_K, MALIYET_K_KONUT, YUKSELTME_MALIYET, YIKIM_IADE, ONARIM, ONARIM_SURE,
+  MALIYET_K, MALIYET_K_KONUT, YUKSELTME_MALIYET, YIKIM_IADE, ONARIM, ONARIM_SURE, YOL_MALIYET, YOL_ZEMIN, YOL_CAG,
 } from '../data/denge.js';
 import {
-  BINA, CAG, BULUS, KARO_KOD, kopya, cagSira, mevcutCag, cagAcik, binaBul, binaKurulu, binaIsi, bildir, sonTur,
+  BINA, CAG, BULUS, KARO, KAYNAK, kopya, cagSira, mevcutCag, cagAcik, binaBul, binaKurulu, binaIsi, bildir, sonTur,
   kaynakYeter, eksikMetni, kaynakUygula, atamaDuzelt, olayKilitli, OLAY_KILIDI, hataDon, bulusEtkileri,
 } from './yardimci.js';
-import { izgara, karoAt, kenarKomsulari } from './uretim.js';
+import { izgara, icinde } from '../world/izgara.js';
+import { yerUygunMu, uygunYerler } from '../world/yerlestir.js';
+import { gorunurKaro, kesifUygula } from '../world/kesif.js';
+import { karoDegistir, sinirIcinde, zeminKaro } from '../world/harita.js';
+
+export { yerUygunMu, uygunYerler };
 
 // §7.2: n'inci bina = max(taban, round(taban × k^(n−1))); yıkılanlar sayılmaz, inşaatta olanlar sayılır.
 export function maliyetHesapla(d, binaId) {
@@ -27,18 +32,11 @@ export function onarimMaliyeti(b) {
   return Object.fromEntries(Object.entries(BINA[b.id].maliyet).map(([r, m]) => [r, Math.round(m * ONARIM)]));
 }
 
-// Eşzamanlı inşaat sınırına yeni inşaat ve yükseltme sayılır.
+// Eşzamanlı inşaat sınırına yeni inşaat, yükseltme ve orman temizleme sayılır.
 // TODO(tasarim): onarım (1 tur) sınıra sayılır mı yazılmamış → sayılmaz varsayıldı.
 export const suankiInsaatSayisi = (d) => d.insaatSirasi.filter((s) => !s.startsWith('onar:')).length;
 export function insaatSinirDolu(d) {
   return suankiInsaatSayisi(d) >= mevcutCag(d).esZamanliInsaat;
-}
-
-// Açık alan merkezden kare büyür (§3.1).
-export function acikAlan(d) {
-  const a = mevcutCag(d).acikAlan;
-  const bas = (d.harita.boyut - a) / 2;
-  return { x0: bas, y0: bas, x1: bas + a, y1: bas + a };
 }
 
 export function insaEdilebilirMi(d, binaId) {
@@ -49,33 +47,6 @@ export function insaEdilebilirMi(d, binaId) {
   const g = t.gereksinim;
   if (g.bulus && !d.buluslar.includes(g.bulus)) return `${t.ad} için önce "${BULUS[g.bulus].ad}" buluşu gerekir.`;
   if (g.tekil && d.binalar.some((b) => b.id === binaId)) return `${t.ad} tekildir; yalnız bir tane kurulabilir.`;
-  return null;
-}
-
-export function yerUygunMu(d, binaId, x, y) {
-  const t = BINA[binaId];
-  const [g, h] = t.boyut;
-  if (!Number.isInteger(x) || !Number.isInteger(y)) return 'Geçersiz konum.';
-  const a = acikAlan(d);
-  if (x < a.x0 || y < a.y0 || x + g > a.x1 || y + h > a.y1) return 'Konum açık alanın dışında.';
-  const hucre = izgara(d);
-  const n = d.harita.boyut;
-  let ustte = false;
-  for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < g; dx++) {
-    if (hucre[(y + dy) * n + x + dx]) return 'Bu karolar dolu.';
-    const karo = KARO_KOD[d.harita.karolar[(y + dy) * n + x + dx]];
-    const izinli = karo.insaEdilir || (karo.yalnizBina || []).includes(binaId);
-    if (!izinli) return `${karo.ad} üstüne inşa edilemez.`;
-    if (karo.yalnizBina && !karo.yalnizBina.includes(binaId)) return `${karo.ad} yalnız ilgili ocak için.`;
-    if (t.gereksinim.karoUstu && karo.id === t.gereksinim.karoUstu) ustte = true;
-  }
-  if (t.gereksinim.karoUstu && !ustte) return `${t.ad} en az bir ${t.gereksinim.karoUstu} karosunun üstüne kurulmalı.`;
-  if (t.gereksinim.karoBitisik) {
-    const sanal = { id: binaId, x, y };
-    if (!kenarKomsulari(d, sanal).some(([kx, ky]) => karoAt(d, kx, ky) === t.gereksinim.karoBitisik)) {
-      return `${t.ad} bir ${t.gereksinim.karoBitisik} karosuna bitişik olmalı.`;
-    }
-  }
   return null;
 }
 
@@ -165,6 +136,12 @@ export function adimInsaat(durum, bildirimler = []) {
   const d = kopya(durum);
   const kalan = [];
   for (const s of d.insaatSirasi) {
+    if (s.startsWith(TEMIZLE_ONEK)) {
+      const t = temizlemeCoz(s);
+      if (t.kalan > 1) { kalan.push(temizlemeKodu(t.i, t.kalan - 1)); continue; }
+      temizlemeBitir(d, t.i, bildirimler);
+      continue;
+    }
     const [tur, uid] = s.includes(':') ? s.split(':') : ['insa', s];
     const b = binaBul(d, uid);
     if (!b) continue;
@@ -179,6 +156,12 @@ export function adimInsaat(durum, bildirimler = []) {
       bildir(bildirimler, 'insaat_bitti', `${ad} onarıldı.`, 'iyi', { uid });
     } else {
       bildir(bildirimler, 'insaat_bitti', `${ad} tamamlandı.`, 'iyi', { uid });
+      // Görüş: gözcü yapıları tamamlanınca çevrelerini açar (aşama 3).
+      const t = BINA[b.id];
+      if (t.gorus) {
+        const r = kesifUygula(d, { x: b.x + t.boyut[0] / 2, y: b.y + t.boyut[1] / 2 }, t.gorus);
+        for (const bul of r.bulgular) bildir(bildirimler, 'kesif_bulgu', bul.metin, 'iyi', { karo: bul.karo, x: bul.x, y: bul.y });
+      }
     }
   }
   d.insaatSirasi = kalan;
@@ -213,4 +196,70 @@ export function adimBakim(durum, bildirimler = []) {
     }
   }
   return d;
+}
+
+// ---------- Orman temizleme ve yol (aşama 3) ----------
+// insaatSirasi girdisi: 'temizle:<hücre indeksi>:<kalan tur>'. Eşzamanlı inşaat sınırına sayılır; bitince karo
+// `temizlenir.donusur` olur ve `kazanc` depoya eklenir (tavanda kırpılır).
+export const TEMIZLE_ONEK = 'temizle:';
+const temizlemeKodu = (i, kalan) => `${TEMIZLE_ONEK}${i}:${kalan}`;
+function temizlemeCoz(s) {
+  const [, i, k] = s.split(':');
+  return { i: Number(i), kalan: Number(k) || 1 };
+}
+export const temizlemeSuruyor = (d, x, y) => d.insaatSirasi.some((s) => s.startsWith(TEMIZLE_ONEK)
+  && temizlemeCoz(s).i === y * d.harita.boyut + x);
+
+function temizlemeBitir(d, i, bildirimler) {
+  const n = d.harita.boyut;
+  const x = i % n, y = (i - x) / n;
+  const karo = KARO[gorunurKaro(d, x, y)];
+  if (!karo?.temizlenir) return;
+  karoDegistir(d, x, y, karo.temizlenir.donusur);
+  const uyg = kaynakUygula(d, karo.temizlenir.kazanc);
+  const kazanc = Object.entries(uyg).filter(([, m]) => m > 0).map(([r, m]) => `+${Math.round(m * 10) / 10} ${KAYNAK[r]?.ad ?? r}`).join(', ');
+  bildir(bildirimler, 'temizlendi', `${karo.ad} temizlendi${kazanc ? ` (${kazanc})` : ''}.`, 'iyi', { x, y });
+}
+
+// Komut: temizlenebilir karoyu (orman) temizle. Keşfedilmiş ve yerleşim sınırı içinde olmalı.
+export function ormanTemizle(durum, x, y) {
+  if (olayKilitli(durum)) return hataDon(durum, OLAY_KILIDI);
+  if (!Number.isInteger(x) || !Number.isInteger(y) || !icinde(durum.harita.boyut, x, y)) return hataDon(durum, 'Geçersiz konum.');
+  const id = gorunurKaro(durum, x, y);
+  if (id === null) return hataDon(durum, 'Bu karo keşfedilmemiş (sis).');
+  if (!sinirIcinde(durum, x, y)) return hataDon(durum, 'Konum yerleşim sınırının dışında.');
+  const karo = KARO[id];
+  if (!karo.temizlenir) return hataDon(durum, `${karo.ad} temizlenemez.`);
+  if (temizlemeSuruyor(durum, x, y)) return hataDon(durum, 'Bu karo zaten temizleniyor.');
+  if (insaatSinirDolu(durum)) return hataDon(durum, `Aynı anda en çok ${mevcutCag(durum).esZamanliInsaat} inşaat sürebilir.`);
+  const d = kopya(durum);
+  d.insaatSirasi = [...d.insaatSirasi, temizlemeKodu(y * d.harita.boyut + x, karo.temizlenir.sure)];
+  return { durum: d };
+}
+
+// Komut: yol yap (§3.4). Bronz+, anında, YOL_MALIYET; yalnız YOL_ZEMIN karolarına, boş, keşfedilmiş ve sınır içinde.
+export function yolYap(durum, x, y) {
+  if (olayKilitli(durum)) return hataDon(durum, OLAY_KILIDI);
+  if (!cagAcik(durum, YOL_CAG)) return hataDon(durum, `Yol ${CAG[YOL_CAG].ad}'nda açılır.`);
+  if (!Number.isInteger(x) || !Number.isInteger(y) || !icinde(durum.harita.boyut, x, y)) return hataDon(durum, 'Geçersiz konum.');
+  const id = gorunurKaro(durum, x, y);
+  if (id === null) return hataDon(durum, 'Bu karo keşfedilmemiş (sis).');
+  if (!sinirIcinde(durum, x, y)) return hataDon(durum, 'Konum yerleşim sınırının dışında.');
+  if (id === 'yol') return hataDon(durum, 'Burada zaten yol var.');
+  if (!YOL_ZEMIN.includes(id)) return hataDon(durum, `${KARO[id].ad} üstüne yol yapılamaz.`);
+  if (izgara(durum)[y * durum.harita.boyut + x]) return hataDon(durum, 'Bu karo dolu.');
+  if (!kaynakYeter(durum, YOL_MALIYET)) return hataDon(durum, `Kaynak yetersiz: ${eksikMetni(durum, YOL_MALIYET)} eksik.`);
+  const d = kopya(durum);
+  kaynakUygula(d, Object.fromEntries(Object.entries(YOL_MALIYET).map(([r, m]) => [r, -m])));
+  karoDegistir(d, x, y, 'yol');
+  return { durum: d };
+}
+
+// Komut: yolu kaldır (iade yok). Altındaki zemin yol yapılabilir türdense geri gelir, değilse (temizlenmiş orman) çimen.
+export function yolKaldir(durum, x, y) {
+  if (olayKilitli(durum)) return hataDon(durum, OLAY_KILIDI);
+  if (gorunurKaro(durum, x, y) !== 'yol') return hataDon(durum, 'Burada yol yok.');
+  const d = kopya(durum);
+  karoDegistir(d, x, y, YOL_ZEMIN.includes(zeminKaro(d, x, y)) ? zeminKaro(d, x, y) : 'cimen');
+  return { durum: d };
 }
