@@ -5,9 +5,11 @@ import { BINALAR } from '../data/binalar.js';
 import { izgara } from '../world/izgara.js';
 import { merkezNokta, sinirYaricapi } from '../world/harita.js';
 import { takvim } from '../core/takvim.js';
-import { binaIsi } from '../core/yardimci.js';
+import { binaIsi, binaCalisir } from '../core/yardimci.js';
 import { HaritaCizim, MEVSIM_STIL } from './harita.js';
 import { binaModeli, modeliTemizle } from './binalar.js';
+import { KoyCizim } from './koy.js';
+import { ORTAK } from './malzeme.js';
 
 const BINA = Object.fromEntries(BINALAR.map((b) => [b.id, b]));
 const ZOOM_MIN = 0.55, ZOOM_MAX = 3.4, YARIM_YUKSEKLIK = 8.5, ZEMIN_Y = 0.3;
@@ -28,15 +30,20 @@ export class Sahne {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.autoUpdate = false; // gölge haritası yalnız sahne/kamera değişince (animasyon karelerinde değil)
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.0;
     this.canvas = this.renderer.domElement;
     this.canvas.style.display = 'block';
     this.canvas.style.touchAction = 'none';
     kap.appendChild(this.canvas);
 
     this.sahne = new THREE.Scene();
-    this.sahne.background = new THREE.Color(0x14110d);
+    this.sahne.background = new THREE.Color(0x2c313a);
+    this.sahne.fog = new THREE.Fog(0x2c313a, 72, 125); // izometrik derinlik pusu (ekranın üstü hafif soluk)
     this.kamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 200);
-    this.kamera.zoom = 1;
+    this.kamera.zoom = 1.6;
 
     this.gunes = new THREE.DirectionalLight(0xfff2dd, 2.5);
     this.gunes.castShadow = true;
@@ -46,14 +53,22 @@ export class Sahne {
     g.camera.near = 1; g.camera.far = 120;
     g.bias = -0.0006; g.normalBias = 0.03;
     this.sahne.add(this.gunes, this.gunes.target);
-    this.hemi = new THREE.HemisphereLight(0xdfeaff, 0x7a6a50, 1.0);
+    this.hemi = new THREE.HemisphereLight(0xcfe2ff, 0x7a6a48, 1.05);
     this.sahne.add(this.hemi);
+    // karşı ışık (gölge yok): siluetleri arka plandan ayırır
+    this.arka = new THREE.DirectionalLight(0xbcd0ff, 0.45);
+    this.arka.position.set(30, 20, -30);
+    this.sahne.add(this.arka);
 
     this.haritaGrup = new THREE.Group();
     this.binaGrup = new THREE.Group();
     this.isaretGrup = new THREE.Group();
     this.sahne.add(this.haritaGrup, this.binaGrup, this.isaretGrup);
     this.harita = new HaritaCizim(this.haritaGrup);
+    this.koyGrup = new THREE.Group();
+    this.sahne.add(this.koyGrup);
+    this.koy = new KoyCizim(this.koyGrup);
+    this.binaModelleri = [];
 
     this.isaretleriKur();
     this.girisKur();
@@ -83,7 +98,15 @@ export class Sahne {
       grup.userData = { dolgu, cizgi };
       return grup;
     };
-    this.secimIsareti = kare(0xffd34d, 0.28);
+    this.secimIsareti = kare(0xffd34d, 0.16);
+    const halka = new THREE.Mesh(
+      new THREE.RingGeometry(0.56, 0.66, 40).rotateX(-Math.PI / 2),
+      new THREE.MeshBasicMaterial({ color: 0xffd34d, transparent: true, opacity: 0.85, depthTest: false, depthWrite: false, toneMapped: false }),
+    );
+    halka.renderOrder = 12;
+    halka.position.y = -0.3;
+    this.secimIsareti.add(halka);
+    this.secimIsareti.userData.halka = halka;
     this.onizlemeIsareti = kare(0x4cd964, 0.35);
     this.hayaletGrup = new THREE.Group();
     this.hayaletGrup.visible = false;
@@ -157,24 +180,39 @@ export class Sahne {
       this.mevsimId = ms;
       const s = MEVSIM_STIL[ms];
       this.gunes.color.setHex(s.isik); this.gunes.intensity = s.siddet; this.hemi.intensity = s.ortam;
+      this.hemi.color.setHex(s.gok); this.hemi.groundColor.setHex(s.yer);
       this.harita.mevsimAyarla(ms);
+      this.koy.mevsim(ms);
+      const arka = new THREE.Color(s.sis).multiplyScalar(0.42);
+      this.sahne.background.copy(arka); this.sahne.fog.color.copy(arka).lerp(new THREE.Color(s.sis), 0.5);
     }
     this.harita.guncelle(d);
 
-    const bAnahtar = JSON.stringify([d.binalar, d.insaatSirasi, d.cag]);
+    const kapali = d.istatistik?.sonTur?.kapali || [];
+    const bAnahtar = JSON.stringify([d.binalar, d.insaatSirasi, d.cag, kapali]);
+    const kAnahtar = JSON.stringify([d.atama, d.nufus, d.degistiriciler?.length]);
     if (bAnahtar !== this.anahtarlar.bina) {
       this.anahtarlar.bina = bAnahtar;
       for (const c of [...this.binaGrup.children]) { modeliTemizle(c); this.binaGrup.remove(c); }
+      this.binaModelleri = [];
       for (const b of d.binalar) {
         const t = BINA[b.id];
         const isi = binaIsi(d, b);
         const model = binaModeli(b, {
           insa: isi === 'insa' ? 1 - b.insaKalan / Math.max(1, t.insaSuresi) : null,
-          hasarli: b.hasarli, isi,
+          hasarli: b.hasarli, isi, kapali: isi !== 'insa' && !b.hasarli && kapali.includes(b.uid),
         });
         model.position.set(b.x + t.boyut[0] / 2, 0, b.y + t.boyut[1] / 2);
+        // çeşitlilik: kapı her zaman kameraya bakan iki yüzden birinde (+z / +x)
+        if (t.tur !== 'merkez' && ((b.x * 7 + b.y * 13) & 1)) model.rotation.y = Math.PI / 2;
         this.binaGrup.add(model);
+        this.binaModelleri.push({ b, model });
       }
+      this.koy.binalar(d, this.binaModelleri);
+      this.anahtarlar.koy = kAnahtar;
+    } else if (kAnahtar !== this.anahtarlar.koy) {
+      this.anahtarlar.koy = kAnahtar;
+      this.koy.figurKur(d);
     }
     const sAnahtar = `${d.cag}|${d.binalar.find((b) => BINA[b.id].tur === 'merkez')?.x}`;
     if (sAnahtar !== this.anahtarlar.sinir) {
@@ -228,6 +266,8 @@ export class Sahne {
     this.kamera.lookAt(this.hedef);
     this.kamera.updateMatrixWorld(true);
     this.gunes.position.set(this.hedef.x - 14, 34, this.hedef.z + 8);
+    const gk = Math.min(46, Math.max(16, 22 / this.kamera.zoom)), gc = this.gunes.shadow.camera;
+    if (Math.abs(gc.right - gk) > 0.5) { gc.left = -gk; gc.right = gk; gc.top = gk; gc.bottom = -gk; gc.updateProjectionMatrix(); }
     this.gunes.target.position.copy(this.hedef);
     this.gunes.target.updateMatrixWorld();
     this.kirli = true;
@@ -321,10 +361,27 @@ export class Sahne {
     c.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 
+  // Döngü: etkileşimde hemen çizer; ortam animasyonu (duman, ateş, işçi, rüzgâr, su) ~30 fps ile sınırlı.
   baslat() {
+    this.saat = new THREE.Clock();
+    this.son = 0;
+    this.kareSureleri = [];
     const dongu = () => {
-      if (this.kirli) { this.kirli = false; this.renderer.render(this.sahne, this.kamera); }
       requestAnimationFrame(dongu);
+      const t = this.saat.getElapsedTime();
+      if (!this.kirli && t - this.son < 1 / 31) return;
+      const dt = Math.min(0.1, t - this.son);
+      this.son = t;
+      if (this.kirli) this.renderer.shadowMap.needsUpdate = true;
+      this.kirli = false;
+      ORTAK.uZaman.value = t;
+      this.koy.tik(dt, t, this.hedef);
+      const h = this.secimIsareti.userData.halka;
+      if (this.secimIsareti.visible && h) { const p = 1 + Math.sin(t * 4) * 0.05; h.scale.set(p, 1, p); h.material.opacity = 0.65 + Math.sin(t * 4) * 0.2; }
+      const t0 = performance.now();
+      this.renderer.render(this.sahne, this.kamera);
+      this.kareSureleri.push(performance.now() - t0);
+      if (this.kareSureleri.length > 120) this.kareSureleri.shift();
     };
     dongu();
   }
