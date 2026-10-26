@@ -3,6 +3,7 @@
 // (`d` = konsept aday, `bd` = yüksek stilize B+D: ayrıca uzak `genis` kare). Varsayılan liste a,b,c; D için: STIL_LISTE=d,
 // BD için: STIL_LISTE=bd (ek olarak bina ekleme yeniden kurulum süresi + üç kalitede çağrı/üçgen sayısı yazılır).
 // Kullanım: npm run build && node tests/e2e/stil.mjs   (STIL_CIKTI=klasör ile başka yere yazılabilir; ?stil'siz kare: STIL_TABAN=1)
+// STIL_ONEK=bd2: dosya adı öneki (stil-bd2-*.png; eski kareler ezilmez) + bd'de seçili bina (mabet) ve bir inşaat alanı gösterilir.
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
@@ -48,6 +49,13 @@ const durum = koyDurumu();
 const merkez = merkezNokta(durum);
 // stil d: aynı köy, keşif yarıçapı 28 (göl ve dağlar görünsün; yalnız görüntü düzeneği)
 const durumD = kesfet(durum, merkez, 28).durum;
+const ONEK = process.env.STIL_ONEK || '';
+// bd2: aynı köy + bir inşaat alanı (kerpiç ev, sırada) — zemin işaretleri görünsün
+const durumBD2 = JSON.parse(JSON.stringify(durumD));
+{
+  const yer = uygunYerler(durumBD2, 'kerpic_ev')[3];
+  if (yer) { durumBD2.binalar.push({ uid: 'b9998', id: 'kerpic_ev', x: yer[0], y: yer[1], seviye: 1, insaKalan: 2, hasarli: false }); durumBD2.insaatSirasi = ['b9998']; }
+}
 const sunucu = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore' });
 const bekle = async () => { for (let i = 0; i < 50; i++) { try { if ((await fetch(URL)).ok) return; } catch { /* bekle */ } await new Promise((r) => setTimeout(r, 200)); } throw new Error('sunucu açılmadı'); };
 
@@ -68,12 +76,14 @@ try {
     await sayfa.goto(s ? `${URL}?stil=${s}` : URL);
     await sayfa.waitForSelector('.menu');
     await sayfa.addStyleTag({ content: '#arayuz{display:none!important}' });
-    await sayfa.evaluate((d) => {
+    const secim = s === 'bd' && !!ONEK;
+    await sayfa.evaluate(([d, secim]) => {
       const { oyun, arayuz, sahne } = window.__oyun;
       arayuz.menuAcik = false;
       oyun.ata(d);
       sahne.guncelle(d);
-    }, s === 'd' || s === 'bd' ? durumD : durum);
+      if (secim) sahne.secim({ tip: 'bina', bina: d.binalar.find((b) => b.id === 'mabet') });
+    }, [s === 'bd' && ONEK ? durumBD2 : s === 'd' || s === 'bd' ? durumD : durum, secim]);
     const yakinliklar = s === 'd' || s === 'bd' || process.env.STIL_GENIS === '1' ? { genis: GENIS, ...YAKINLIK } : { ...YAKINLIK };
     // hata ayıklama: STIL_EK="dx,dy,zoom" → merkeze göre ek kare (stil-<s>-ek.png)
     const ek = process.env.STIL_EK?.split(',').map(Number);
@@ -87,7 +97,7 @@ try {
         else s.odakla(m.x + (ad === 'yakin' ? 0.5 : 0.5), m.y + (ad === 'yakin' ? 0.5 : 0));
       }, { z, m: merkez, ad, ek });
       await sayfa.waitForTimeout(1800);
-      const yol = `${CIKTI}/stil-${s || 'taban'}-${ad}.png`;
+      const yol = `${CIKTI}/stil-${(s === 'bd' && ONEK) || s || 'taban'}-${ad}.png`;
       await sayfa.screenshot({ path: yol });
       const ms = await sayfa.evaluate(() => { const k = window.__oyun.sahne.kareSureleri.slice(-10); return k.reduce((a, b) => a + b, 0) / Math.max(1, k.length); });
       const bilgi = await sayfa.evaluate(() => {

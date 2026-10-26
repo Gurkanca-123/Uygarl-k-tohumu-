@@ -78,6 +78,14 @@ krem duvar / doygun kiremit-saman / kaide = çevre toprağı, kiremit-arduvaz-sa
 + En okunur aday: köy merkezi açık krem + kırmızı vurgu, koyu toprak avluda net; ağaç/su/bina siluetleri temiz; D'nin limon çimi giderildi.
 − Dağ yüzü hâlâ yumuşak/haki (faset değil), kaya kuleleri tekdüze; binalar mevcut 54 model (Bronz düz damlarda iri çatı yok, kaide kare);
   geniş çim alanı yer yer boş; ağaçlar birbirine çok benzer; Performans'ta da kenar ışığı/su parıltısı açık.
+**BD 2. tur** (`docs/ekran/stil-bd2-{genis,orta,yakin}.png`; `STIL_ONEK=bd2 STIL_LISTE=bd node tests/e2e/stil.mjs`, mabet seçili + 1 inşaat alanı):
+köy toprağı/patika/inşaat köşe rengi yerine 8 teksel/karo uzaklık dokusunda (kenar fwidth ile her yakınlıkta keskin, net köşe, koyu kenar
+şeridi + dış koyu dudak), sıcak ışık havuzu + son geçişte köy elipsi dışı doygunluk/parlaklık düşüşü, köy çevresi ağaç açıklığı, iskele/orman/taşa
+çıkan sönen izler, kaide sıcak açık toprak, ışıklı pencere parlaması, zeminde altın seçim çerçevesi + şeritli inşaat alanı. Dağ: sırt gürültüsü + yüksek
+doruk, köşe kaydırma + faset normali (cel'de net yüzler), açık kaya / tepe karı net sınırla, 4 parçalı eğik kaya kulesi (boy/en örnek başına), etekte
+iğne yapraklı geçiş. Çayır: koyu/açık zeytin + mevsimli kuru yama + çiçek tarlası benekleri, su kenarı gür şerit; ağaç: 4 tür (yuvarlak, iğne, geniş taç,
+kavak) düşük frekanslı korularda, yaşlı tek ağaçlar, boy/eğim/koru tonu, güzde kızıl karışım. Ölçüm (Yüksek): geniş 74 çağrı/194 bin, orta 106/215 bin,
+yakın 102/213 bin üçgen; Standart orta 105/201 bin, Performans orta 96/190 bin; bina ekleme ≈ 41 ms (SwiftShader, GPU'lu telefonda ölçülmedi).
 Ölçüm (SwiftShader, r=28 keşif, Yüksek): genis 81 çağrı / 195 bin üçgen, orta 116 / 220 bin, yakın 98 / 200 bin (Standart 186–203 bin,
 Performans 175–191 bin). LOD: zoom ≤1,25'te tek düşük ağ/tür, yakında 16 karoluk öbek merkeze yakınsa yüksek. Bina ekleme: yalnız imzası
 değişen arazi öbeği (2/16) yeniden boyanır ≈ 30–50 ms (tam kurulum ≈ 240–330 ms; D'de her bina değişiminde tam). GPU'lu telefonda ölçülmedi.

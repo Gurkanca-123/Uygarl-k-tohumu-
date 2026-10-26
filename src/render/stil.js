@@ -10,7 +10,7 @@
 // Yakın zoom ayrıntısı (üç stilde): bina malzemesinde doku parlaklığından türetilmiş tümsek (ekran türevli normal sapması)
 // + atlas hücresine göre prosedürel tuğla / kiremit / tahta deseni; `kamera.zoom` büyüdükçe güçlenir.
 import * as THREE from 'three';
-import { binaMat } from './malzeme.js';
+import { binaMat, isilMat } from './malzeme.js';
 import { StilD, kenarIsigi } from './stil_d.js';
 import { StilBD } from './stil_bd.js';
 
@@ -100,8 +100,8 @@ float stG3(vec3 p) {
         float l = dot(diffuseColor.rgb, vec3(0.3, 0.59, 0.11));
         float ust = smoothstep(0.85, 0.95, vDN.y);
         bool kaide = vDP.y < 0.348 && (hn == 5.0 || hn == 6.0 || hn == 11.0);
-        if (kaide) { // kaide: çevre toprağıyla aynı renk → kare platform yerine çiğnenmiş avlu
-          diffuseColor.rgb = mix(vec3(0.13, 0.09, 0.055), vec3(0.19, 0.135, 0.08), ust) * (0.94 + 0.12 * stG3(vDP * 4.0));
+        if (kaide) { // kaide: açık taş çerçeve (avlu toprağından ve duvardan ayrışan ışıklı kenar)
+          diffuseColor.rgb = mix(vec3(0.12, 0.08, 0.05), vec3(0.32, 0.23, 0.13), ust) * (0.94 + 0.12 * stG3(vDP * 4.0));
         } else if (hn == 5.0) { // kerpiç: açık krem duvar, düz dam daha açık (çatı bandı)
           diffuseColor.rgb = mix(diffuseColor.rgb, mix(vec3(0.6, 0.44, 0.27), vec3(0.78, 0.6, 0.4), ust) * (0.8 + 0.4 * l), 0.7);
         } else if (hn == 6.0) { // taş blok: serin bej
@@ -164,7 +164,7 @@ float ao(vec2 uv, float dC, float yar) {
 
 const PARCA = {
   bd: `
-uniform float uAO; uniform float uParla;
+uniform float uAO; uniform float uParla; uniform vec4 uOdak; uniform float uOdakK;
 void main() {
   float zk = clamp((uZoom - 1.0) / 2.4, 0.0, 1.0);
   vec2 px = uPiksel * mix(1.2, 2.4, zk);
@@ -201,6 +201,10 @@ void main() {
   float L = parl(d);
   d = mix(d * vec3(0.92, 0.97, 1.08), d * vec3(1.05, 1.0, 0.92), smoothstep(0.12, 0.6, L)); // serin gölge, sıcak ışık
   d = (d - 0.5) * 1.07 + 0.5;
+  // köy odağı: köy elipsi dışında doygunluk ve parlaklık hafif düşer (arka plan sakin), içi hafif sıcak
+  float od = length((vUv - uOdak.xy) / max(uOdak.zw, vec2(1e-3))), dis = smoothstep(1.0, 2.1, od) * uOdakK;
+  d = mix(d, doygunluk(d, 0.68) * vec3(0.95, 0.97, 1.02) * 0.92, dis);
+  d *= mix(1.0, 1.04, (1.0 - smoothstep(0.6, 1.2, od)) * uOdakK);
   d = mix(d, vec3(0.06, 0.03, 0.015) + d * 0.1, kenar * 0.9);  // koyu sıcak kahve çizgi (siyah değil)
   d *= vinyet(vUv, 0.2);
   gl_FragColor = vec4(srgb(clamp(d, 0.0, 1.0)), 1.0);
@@ -361,6 +365,7 @@ export class Stil {
       STIL_UNIFORM.uKip.value = kip === 'bd' ? 4 : 3;
       this.d = kip === 'bd' ? new StilBD(sahne) : new StilD(sahne);
     }
+    if (kip === 'bd') isilMat().color.setRGB(1.7, 1.45, 1.15); // ışıklı pencere / ocak: parlamaya taşar (sıcak vurgu)
     if (kip === 'bd') celIsik([[0.45, 0.03, 0.09], [0.3, 0.38, 0.46], [0.25, 0.85, 0.91]], 0.3);
     binaDetayYamasi(kip);
     this.hedef = new THREE.WebGLRenderTarget(1, 1, {
@@ -373,6 +378,7 @@ export class Stil {
         tRenk: { value: this.hedef.texture }, tDerin: { value: this.hedef.depthTexture },
         uPiksel: { value: new THREE.Vector2() }, uZoom: { value: 1 }, uPozlama: { value: 1 },
         uAralik: { value: 1 }, uOran: { value: 1 }, uAO: { value: 1 }, uParla: { value: 1 },
+        uOdak: { value: new THREE.Vector4(0.5, 0.5, 1, 1) }, uOdakK: { value: 0 },
       },
       vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
       fragmentShader: ORTAK_GLSL + PARCA[kip],
@@ -414,6 +420,22 @@ export class Stil {
     this.mat.uniforms.uOran.value = g / y;
   }
 
+  // bd: köy merkezinin ekran elipsi (yer düzleminde r yarıçaplı daire → ekran yarı eksenleri)
+  odakGuncelle() {
+    const u = this.mat.uniforms, o = this.d?.koyOdak, k = this.s.kamera;
+    if (!o) { u.uOdakK.value = 0; return; }
+    const v = (this._v ||= [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()]);
+    const y = 0.3;
+    k.updateMatrixWorld();
+    const sag = new THREE.Vector3().setFromMatrixColumn(k.matrixWorld, 0).setY(0).normalize();
+    const ileri = new THREE.Vector3(-sag.z, 0, sag.x);
+    v[0].set(o.x, y, o.z).project(k);
+    v[1].set(o.x, y, o.z).addScaledVector(sag, o.r).project(k);
+    v[2].set(o.x, y, o.z).addScaledVector(ileri, o.r).project(k);
+    u.uOdak.value.set(v[0].x * 0.5 + 0.5, v[0].y * 0.5 + 0.5, Math.abs(v[1].x - v[0].x) * 0.5 + 1e-3, Math.abs(v[2].y - v[0].y) * 0.5 + 1e-3);
+    u.uOdakK.value = 1;
+  }
+
   ciz() {
     const { renderer: r, sahne, kamera } = this.s;
     const u = this.mat.uniforms;
@@ -422,6 +444,7 @@ export class Stil {
     u.uAralik.value = kamera.far - kamera.near;
     STIL_UNIFORM.uDetay.value = Math.min(1, Math.max(0, (kamera.zoom - 1.4) / 1.8));
     this.d?.tik();
+    if (this.kip === 'bd') this.odakGuncelle();
     r.setRenderTarget(this.hedef);
     r.render(sahne, kamera);
     this.bilgi = { cagri: r.info.render.calls, ucgen: r.info.render.triangles };

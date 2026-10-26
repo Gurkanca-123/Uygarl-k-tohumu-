@@ -1,5 +1,8 @@
 # CHANGELOG_DEV (yalnız son kayıtlar; eskiler `docs/CHANGELOG_ARSIV.md`)
 
+## 2026-10-26 — BD turu 2: köy odağı, dağ, çim/ağaç (Opus 5.5)
+- `stil_bd.js`/`stil.js` (yalnız bd dalı): köy avlusu/patika 1/8 karo uzaklık dokusu, sıcak ışık havuzu + köy dışı doygunluk düşüşü, ağaç açıklığı, seçili bina çerçevesi; dağ faset/sırt/kar; çim ton lekeleri; 4 ağaç türü, koru/yaşlı ağaç. Yüksek: 74–106 çağrı, 194–215 bin üçgen. Kalan: ağaç tacı halı gibi, avlu içi malzeme ayrımı yok, uzak çakıl gürültüsü. Bina modelleri bilerek değişmedi (oynanış onayından sonra).
+
 ## 2026-10-26 — Stil BD: B (cel) + D (arazi) birleşimi (Opus 5.5)
 - `src/render/stil_bd.js` (`?stil=bd`, D alt sınıfı), `stil.js` bd geçişi, `sahne.kaliteAyarla(Yüksek|Standart|Performans)` (ilk kez render'a bağlı), ağaç/süs LOD, yalnız etkilenen arazi öbeklerinin yeniden boyanması. Ölçüm (SwiftShader): Yüksek 81–116 çağrı / 195–220 bin üçgen; bina eklerken ~30–50 ms. Kalan: dağ faset, benzersiz çağa özgü bina silüetleri (binalar.js), düz çim alanları. Telefonda ölçülmedi.
 
