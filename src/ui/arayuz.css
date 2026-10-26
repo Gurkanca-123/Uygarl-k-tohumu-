@@ -306,3 +306,19 @@ button.vurgu-yumusak { border-color: var(--vurgu); background: rgba(230, 173, 60
   .chip.nufus .azl, .chip.uyari .azl { display: inline; }
   .chip .sim { font-size: 12px; }
 }
+
+/* ---------- İş sekmesi: Kadro ---------- */
+.is-dagit { display: flex; flex-direction: column; gap: 6px; }
+.is-oncelik { display: flex; flex-wrap: wrap; gap: 4px; } .is-oncelik .kat { flex: 1 1 auto; }
+.is-oto { display: flex; flex-direction: column; align-items: flex-start; text-align: left; padding: 6px 12px; min-height: 48px; }
+.is-oto small { color: var(--soluk); font-size: 11px; }
+.is-oto.acik { border-color: var(--iyi); background: var(--iyi-koyu); } .is-oto.acik small { color: var(--yazi); }
+.is-grup { margin: 12px 0 4px; display: flex; align-items: baseline; gap: 4px; }
+.is-satir.eksik { border-color: var(--uyari); background: rgba(240, 180, 76, 0.08); }
+.is-satir.uretmiyor { border-color: var(--kotu); }
+.is-nokta { margin-left: 6px; letter-spacing: 1px; color: var(--vurgu-ac); font-size: 12px; }
+.is-ad-d { min-height: 32px; min-width: 0; padding: 0; border: 0; background: none; font-weight: 700; font-size: 14px; text-align: left; text-decoration: underline dotted var(--soluk); text-underline-offset: 3px; }
+.is-satir .etiket { margin-left: 6px; color: var(--kotu); font-size: 11px; }
+.is-oncelik { flex-wrap: nowrap; } .is-oncelik .kat { min-height: 36px; padding: 0 6px; font-size: 12px; white-space: nowrap; }
+.is-eylem { display: flex; gap: 6px; } .is-eylem > button { flex: 1 1 0; min-width: 0; }
+.is-eylem .buyuk { font-size: 13px; padding: 0 8px; }

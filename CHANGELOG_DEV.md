@@ -1,5 +1,9 @@
 # CHANGELOG_DEV (yalnız son kayıtlar; eskiler `docs/CHANGELOG_ARSIV.md`)
 
+## 2026-10-26 — İş sekmesi "Kadro" + otomatik iş dağıtımı (Sonnet 5.5)
+- Çekirdek `src/core/isdagit.js`: `dagitimOnerisi` (kaynak ihtiyacı ağırlığı: depo doluluğu, açlıkta yiyecek ×3, öncelik ×3; savunma/bilgi yuvaları), komutlar `isDagit`, `isDagitimAyarla({oto, oncelik})`, tur adımı `b2` (oto açıksa). Durum alanı `isDagitim { oto:false, oncelik:'dengeli' }` (varsayılan KAPALI; eski kayıt eksikse varsayılan). `ISDAGIT_ONCELIKLER` denge.js.
+- UI (`paneller.js isSekmesi`): özet, öncelik çipleri, ⚡ Boştakileri dağıt, Otomatik anahtarı; üretim türüne göre gruplu kartlar (eksik yuvalar önce, ●●○ noktalar, 'üretmiyor' etiketi, ada dokununca haritada odak). `tur.test.js` adım listesi b2'yi içerir. Testler 182 (181+1 todo). Gerçek cihaz/e2e denenmedi.
+
 ## 2026-10-26 — Arayüz sadeleştirme (Sonnet 5.5)
 - İşçi rozeti artık yalnız seçili binada (haritadaki rozet kalabalığı kalktı); boşta işçi varsa 👥 çipine dokunmak İş sekmesini açar. Dar ekranda (≤960px) üst çubuk çipleri sıkıştırıldı (ek ayrıntılar gizli). e2e'deki rozet kontrolleri (seçimsiz rozet bekleyenler) güncellenmedi/yeniden koşulmadı.
 

@@ -69,6 +69,9 @@ export const SERBEST_ISLER = [
   { id: 'bekci',     ad: 'Bekçi',     uretim: {},                           mevsimEtiketi: null, savunma: true },
 ];
 
+// İş dağıtımı önceliği (boştakileri dağıtırken seçilen kaynağın ağırlığı ×3).
+export const ISDAGIT_ONCELIKLER = ['dengeli', 'yiyecek', 'odun', 'tas'];
+
 // --- §4.4 vergi ---
 export const VERGI = [
   { id: 'yok',    ad: 'Yok',    kisiBasi: 0,    huzur: 0 },

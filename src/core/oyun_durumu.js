@@ -50,6 +50,7 @@ export function yeniOyun(tohum = VARSAYILAN_TOHUM, { zorluk = VARSAYILAN_ZORLUK 
     istatistik: {},
     zorluk: ZORLUK[zorluk] ? zorluk : VARSAYILAN_ZORLUK,
     tehdit: tehditVarsayilan(tohum),
+    isDagitim: { oto: false, oncelik: 'dengeli' }, // otomatik iş dağıtımı (varsayılan KAPALI)
   };
   kesifUygula(d, { x: mx + merkez.boyut[0] / 2, y: my + merkez.boyut[1] / 2 }, GORUS_BASLANGIC);
   return d;
