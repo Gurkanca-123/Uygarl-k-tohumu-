@@ -19,3 +19,8 @@ Genel kural: pahalı model yalnız karar ve zor mantıkta; hacimli işte dengeli
 Sürüm 0.1 (MVP): Göçebe → Taş Devri, ~8 bina, 5 kaynak, ~10 olay, kayıt, dokunmatik arayüz.
 
 **Not (2026-10-26):** Fable hesapta kredi gerektiriyor ve şu an kullanılamıyor. Fable'lı aşamalar (0, 1-şema, 7-strateji) kredi açılana kadar Opus ile yapılır.
+
+**Güncelleme (2026-10-26):** Fable kullanılamıyor; yerine Opus + Haiku.
+- **Opus:** tasarım kararları ve belgeleri, çekirdek mantık, zor hata avı, görsel stil/shader işleri.
+- **Sonnet:** arayüz, entegrasyon, testler, veri tabloları.
+- **Haiku:** toplu metin (olay/bina/görev/kahraman açıklamaları, Türkçe cila), basit tutarlılık denetimleri, şema doğrulama listeleri. Tasarım kararı ve çekirdek mantık Haiku'ya verilmez.
