@@ -30,7 +30,7 @@ Sıra tabanlı (tur = gün, mevsim 5 gün, yıl 20 gün), 5 çağ, Önder eylemi
 - Yönelim/tam ekran: `dom.js` (`donusPerdesiKur`, `tamEkranAcKapa`); dikeyde örtü, ⛶ düğmeleri, `ut_tam` öneri bayrağı; `public/manifest.webmanifest` (display fullscreen). Gerçek cihazda denenmedi.
 
 ## Yol haritası (kullanıcı sırası, 2026-10-26)
-1) görsel stil seçimi (3 örnek: `?stil=a|b|c`, kullanıcı seçecek) → zoom kalitesi · 2) dış tehditler (her çağda köy/ülke baskısı, tasarım önce) · 3) kahraman/sefer görevleri (tasarım önce; ayı avı, keşif seferleri) · komşu köy/savaş kararı sonra.
+1) görsel stil seçimi (3 örnek: `?stil=a|b|c`, kullanıcı seçecek) → zoom kalitesi · 2) dış tehditler (her çağda köy/ülke baskısı, tasarım önce) · 3) kahraman/sefer görevleri (tasarım önce; ayı avı, keşif seferleri) · komşu köy/savaş kararı sonra · 4) çağ genişletme (kullanıcı düşünüyor): Sanayi ve Modern çağlar eklenebilir (7 çağ?); veri tabloları + çekirdek varsayımları önce tasarım belgesinde ele alınacak, şimdi uygulanmaz. Stil adayı D = referans konsept sanat (`?stil=d`).
 
 ## Kayıt
 Sürüm 2, alan beyaz listeli (`DURUM_SEMASI`), tipik ~2,5 KB, göç zinciri `GOCLER`.
