@@ -1,6 +1,6 @@
 # Dış Tehdit Sistemi — tasarım (taslak, 2026-10-26)
 
-Durum: **MVP uygulandı (2026-10-26; §10 dilimi + §12 çit/sur).** §11 cevaplandı. Bağlı belgeler: `TASARIM.md` §2.5 nüfus, §4 çağlar, §6 olaylar (§6.3 saldırı), §7.3 ölüm sarmalı.
+Durum: **MVP uygulandı (2026-10-26; §10 dilimi + §12 çit/sur); tüm çağlar dilimi uygulandı (2026-10-26, §14).** §11 cevaplandı. Bağlı belgeler: `TASARIM.md` §2.5 nüfus, §4 çağlar, §6 olaylar (§6.3 saldırı), §7.3 ölüm sarmalı.
 Kapsam dışı (sonraki adım, yalnız kanca): kahraman/sefer sistemi, köy dışı görevler (ayı avı, keşif seferi), tam komşu/diplomasi.
 `ÖNERİ` = kullanıcı kararı bekleyen tasarımcı önerisi; uygulayıcı varsayılan olarak bunu kullanır.
 
@@ -76,10 +76,11 @@ doluluk = ortalama(min(1, stok[k] / depoTavan[k]))   (yalnız o çağda açık k
 | Çağ | gerginlikArtis | Başlangıç / çağ atlayınca | Hedef aralık (doğumlar arası, tur) |
 |---|---|---|---|
 | Göçebe | 5 | 40 (yeni oyun) | ilk tehdit gün 17–22 |
-| Taş Devri | 6 | min(gerginlik, 50) | ~17–20 |
-| Bronz/Demir | 6,5 | min(gerginlik, 50) | ~16–19 |
-| Antik | 6 | min(gerginlik, 50) | ~17–20 |
-| Orta Çağ | 6 | min(gerginlik, 50) | ~17–20 |
+| Taş Devri | 7 (eski 6) | min(gerginlik, 50) | ~19 (ölçüm) |
+| Bronz/Demir | 8 (eski 6,5) | min(gerginlik, 50) | ~17 |
+| Antik | 8,5 (eski 6) | min(gerginlik, 50) | ~16 |
+| Orta Çağ | 9,5 (eski 6) | min(gerginlik, 50) | ~17 (kuşatma evresi dahil) |
+Tüm çağlar dilimi: `doluluk` ağırlığı çağa göre `TEHDIT_CAG_DARBE[çağ].servet` (0,4 · 0,45 · 0,55 · 0,65 · 0,75): `0,8 + servet × doluluk`.
 - Gerginlik `TEHDIT_ILK_GUN = 12`'den önce artmaz; doğum en erken gün 15 (uyarı ≥2 tur → varış ≥ gün 17). Göçebe'de ilk tehdit
   çoğu tohumda ilk kışa (tur 16–20) denk gelir: "kışın kurtlar köye iner" bilinçli tasarımdır; sarmal koruması §5.3.
 - Çağ atlama turunda ve sonraki 8 tur yeni tehdit doğmaz ("yeni çağ nefesi"); aktif uyarı varsa sürer.
@@ -383,6 +384,59 @@ eski oyunda 10 tur tehdit yok). `DURUM_SEMASI`'na alanlar eklenir; mevcut alan s
 - Motor açıkken (`durum.tehdit` var) `tur:'saldiri'` olayları havuz dışı; Keşfet'in kurt zinciri olay yerine gerginlik +15 ekler.
 - `tehdit.rng` = `rngBaslat('tehdit:' + tohum)`; motor `durum.rng`'yi hiç tüketmez (hasar seçimi dahil).
 - Gerginlik negatif olabilir (−20/−30 = barış süresi; alt sınır −50). Engelli doğumda 95'te bekler.
-- Uygulanmayan (MVP+1): Nöbet Tut, Elçi Gönder, Silah Dağıt, Kuşatma'nın durduran penceresi, `hastalik` değiştiricisinde erteleme
+- Uygulanmayan (MVP+1; Nöbet Tut, Elçi Gönder, Silah Dağıt ve kuşatma karar verisi §14'te UYGULANDI — durduran pencere UI'da): `hastalik` değiştiricisinde erteleme
   (çekirdekte hastalık değiştiricisi ayırt edilemiyor; yalnız bekleyen olayda 1 tur erteleme var). Acil Tahkimat UYGULANDI.
 - Varsayım (TODO tasarım): püskürtme `haracSayac`'ı 1 azaltır (belgede düşüş yoktu); kısmi sonuçta gerginlik 0.
+
+## 14. Tüm çağlar dilimi (2026-10-26; kullanıcı: "Bronz/Demir'de tehdit yok, daha çok aksiyon") — UYGULANDI
+
+**Tablo (`src/data/tehditler.js`, 10 satır, §2.2):** çağ başına aday — Göçebe 2 (kurt, ayı) · Taş 4 (+avcı çetesi, komşu) ·
+Bronz 5 (ayı, avcı çetesi, akıncılar, komşu, haydutlar*) · Antik 5 (akıncılar, komşu, haydutlar*, korsanlar*, barbar) ·
+Orta 6 (komşu, yağma seferi, haydutlar*, korsanlar*, barbar, kuşatma). `*` = `ozelKosul`: `ticaret` (Pazar Yeri ya da yolda kervan),
+`kiyi` (yerleşim sınırına ≤ `KIYI_MESAFE` 3 karo su). `cagaGore` artık ad/metin/işaret/hedef/ganimet/ağırlık da geçersiz kılar
+(`tehditCagda(t, cag)`): ör. Komşu Kabile → Komşu Köy (Bronz) → Komşu Kent (Antik) → Komşu Beylik (Orta).
+Varsayımlar (TODO tasarim): Ayı Göçebe'ye de açıldı (çağ başına ≥2 isteği; ölüm yok); Bronz'da haydut hedefi metal/alet (sikke yok).
+
+**Darbe (`TEHDIT_CAG_DARBE`):** kayıp oranı × `kayip` (1 · 1 · 1,15 · 1,3 · 1,45; tavan %25 / Zor %30 KORUNUR → asıl artış kısmi
+sonuçta ve Rahat'ta), anlık huzur `huzur` (0 · −3 · −5 · −7 · −10 yenilgide; kısmide yarısı). Sonuç ek alanları:
+`sonuc.kismi|yenilgi.{hasar, degistirici, kervan, hasarOncelik, huzur}` — istila: kısmide 1 hasar, yenilgide 4 tur üretim ×0,8
+(`istila_yikimi`); kuşatma: kısmi 3 / yenilgi 5 tur `ticaretKapali` (`kusatma_ardi`), hasar önce savunma binası; yağma: yoldaki kervan çalınır.
+Korumalar aynen: `NUFUS_MIN`, kayıp kilidi, kış azığı, konut/merkez hasarsız, açlık/huzur<30'da doğum yok, toparlanma, merhamet.
+
+**Kuşatma evresi:** varışta (Savun) savunma < güç ise `aktif.evre = 'kusatma'`, `kalan = kusatma.sure` (3), `karar = true`,
+değiştirici `kusatma` (ticaret kapalı, üretim ×0,85). Her tur (m2): `karar = false`, ordu `ceil(güç × 0,06 + duvar × 0,25)` aşınır
+(duvar = çit/sur parça + kapalı halka savunması), savunma ≥ güç → püskürtme; süre bitince kısmi/yenilgi. Saklan ve tahkimat yok;
+Fidye (haraç, sikke × 0,8 güç) her an. Varış ve kuşatma turlarında kötü olay çıkmaz. **Çekirdek turu kilitlemez**; durduran pencere
+arayüzün işi (karar verilmezse Dayan).
+
+**Yeni komutlar / eylemler (UI için):**
+- `silahDagit(d, adet)` → Taş: 2 alet, Bronz+: 1 metal / puan → +1 savunma (`aktif.silah`, döküm kalemi `silah`); tehdit başına
+  en çok floor(nüfus/2). Hata: "Silah Dağıt Taş Devri'nde açılır." · "Kaynak yetersiz…" · "En çok N…".
+- Önder eylemi `nobet_tut` (Göçebe+, yorgunluk 1): yalnız yaklaşan tehdit varken; +(1 + çağSırası) savunma 2 tehdit adımı
+  (değiştirici `nobet`, döküm adı "Önder nöbette"). Seçim: `onderEylemiSec(d, 'nobet_tut')`.
+- Önder eylemi `elci_gonder` (Taş+, yorgunluk 2): `secenekler` içinde `elci` olan tehdit (akıncı/baskın/istila), uyarı evresi,
+  tehdit başına 1. Hediye `ceil(2 × güç)` yiyecek (Antik+: `ceil(güç)` sikke); p = clamp(0,35 + ilişki/100 + 0,05 × çağSırası, 0,2, 0,85),
+  `tehdit.rng`. Başarı: tehdit biter, ilişki +10, gerginlik 0, geçmiş `elci`. Başarısız: hediyenin yarısı, ilişki −5, tehdit sürer.
+- `kusatmaKarar(d, 'dayan'|'fidye')` — karar penceresinin düğmeleri ('fidye' = `haracOde`).
+- Haraç: ilişki ≥ 30 olan kaynağa ×0,75 (`HARAC_DOST_CARPAN`; TODO tasarim).
+- Bildirim kodları: + `tehdit_kusatma` (`ek.karar` true = evre başladı, pencere aç; false = süren kuşatma turu). `tehdit_varis.sonuc` + `elci`.
+
+**`tehditGorunumu(d).aktif` ek alanları:** `tur`, `evre` ('uyari'|'kusatma'), `karar` (bool), `kusatma` ({ sure, kalan, asinma,
+kararSecenekleri: ['dayan','fidye'] } | null), `silah` (`silahBilgi`: { birim, verilen, ust, kalan, uygun, hata }), `nobet`
+(`nobetBilgi`: { savunma, sure, eylem:'nobet_tut', uygun, hata }). `secenekler` artık `elci` içerebilir:
+`{ id:'elci', ad, uygun, hata, maliyet, olasilik, eylem:'elci_gonder' }` → **tavır değil**, `onderEylemiSec(d, s.eylem)` ile seçilir
+(mevcut `src/ui/tehdit.js` bunu tavır düğmesi gibi çizer → `tehditTavir` "Geçersiz tavır." döner; UI adımında düzeltilmeli).
+`beklenenSonuc.sonuc` + `'kusatma'` (uyarıda savunma yetmezse).
+
+**Kayıt:** sürüm 3 kaldı; `tehdit.aktif`'e `evre, karar, elciDenendi, silah` eklendi, eksikse şema varsayılanı (göç gerekmez; test).
+
+**Ölçüm (pasif oyun, çağ başlangıç durumu `cagBaslangic`, çağ hedef süresi, Normal, 20 tohum):**
+| Çağ (tur) | Tehdit/çağ | Aralık (tur) | Kayıp/tehdit (toplam stok %) | Not |
+|---|---|---|---|---|
+| Göçebe (25) | 1,0 | — | 15 | ölüm 0 |
+| Taş (40) | 2,0 | 19,5 | 12,5 | |
+| Bronz (60) | 3,0 | 17,1 | 11,5 | |
+| Antik (80) | 4,85 | 16,3 | 9,5 | |
+| Orta (100) | 5,65 | 17,2 | 13,2 | kuşatma ~0,7/çağ |
+Rahat: Göçebe'de ~0 tehdit, sonra 2 · 3 · 4 · 4,75; Zor: 1 · 2 · 3,75 · 5 · 6. Barışçıl'da Antik/Orta'da yırtıcı olmadığından tehdit yok.
+Bot (hazırlıklı, 50 tohum Göçebe): 50/50 hedef aralıkta (20–32).

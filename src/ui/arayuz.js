@@ -501,11 +501,15 @@ export class Arayuz {
   kart(d) {
     let ic = null, anahtar = null;
     if (!this.d.tehdit) this.tehditAcik = false;
-    const aktifId = d.tehdit?.aktif?.id || null;
-    if (aktifId !== this.sonTehditId) { // yeni uyarı: pencere kendiliğinden açılır (oyunu durdurmaz); tehdit bitince kapanır
-      this.sonTehditId = aktifId;
-      if (aktifId && !this.yerlestirme && !d.olay.aktif) { this.tehditAcik = true; this.secim = null; this.tehditKucuk = false; }
-      else if (!aktifId) this.tehditAcik = false;
+    const ta = d.tehdit?.aktif;
+    const aktifId = ta?.id || null;
+    const anahtarT = aktifId ? `${aktifId}:${ta.evre ?? 'uyari'}` : null; // yeni uyarı ya da kuşatma evresi: pencere kendiliğinden açılır (oyunu durdurmaz)
+    if (anahtarT !== this.sonTehditId) {
+      this.sonTehditId = anahtarT; this.tehditBekleyen = !!anahtarT;
+      if (!aktifId) this.tehditAcik = false;
+    }
+    if (this.tehditBekleyen && aktifId && !this.yerlestirme && !d.olay.aktif) {
+      this.tehditBekleyen = false; this.tehditAcik = true; this.secim = null; this.tehditKucuk = false;
     }
     this.kok.classList.toggle('tehdit-acik', !!(this.tehditAcik && d.tehdit && !this.yerlestirme));
     if (!this.yerlestirme && this.tehditAcik && d.tehdit) {

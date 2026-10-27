@@ -42,6 +42,9 @@ export function cevreSavunmasi(d) {
   return { parca, parcaHam: toplam, tavan, kapali: c.kapali, ic: c.ic, toplamBina: c.toplam, halka };
 }
 
+// Savunma değiştiricilerinin döküm adları (arayüz).
+export const DEGISTIRICI_AD = { tahkimat: 'Acil tahkimat', nobet: 'Önder nöbette', turnuva: 'Turnuva' };
+
 export function savunmaDokum(d) {
   const k = [];
   let onder = ONDER_SAVUNMA;
@@ -65,7 +68,11 @@ export function savunmaDokum(d) {
   const c = cevreSavunmasi(d);
   if (c.parca) k.push({ id: 'cevre', ad: 'Çit / sur', deger: c.parca, tavan: c.tavan });
   if (c.halka) k.push({ id: 'halka', ad: 'Kapalı çevre', deger: c.halka, ic: c.ic, toplam: c.toplamBina });
-  for (const m of etkinDegistiriciler(d)) if (m.etki?.savunma) k.push({ id: `degistirici:${m.id}`, ad: m.id, deger: m.etki.savunma });
+  const silah = d.tehdit?.aktif?.silah || 0;
+  if (silah) k.push({ id: 'silah', ad: `Silahlı halk ×${silah}`, deger: silah });
+  for (const m of etkinDegistiriciler(d)) {
+    if (m.etki?.savunma) k.push({ id: `degistirici:${m.id}`, ad: DEGISTIRICI_AD[m.id] || m.id, deger: m.etki.savunma });
+  }
   return k;
 }
 

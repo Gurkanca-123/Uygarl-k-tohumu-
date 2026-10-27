@@ -8,7 +8,7 @@ import { OLAYLAR } from '../data/olaylar.js';
 import { EYLEMLER } from '../data/eylemler.js';
 import { KAROLAR } from '../data/karolar.js';
 import { VERGI, ZORLUK, ISDAGIT_ONCELIKLER } from '../data/denge.js';
-import { TEHDITLER, TEHDIT_KAYNAKLARI, TEHDIT_TAVIRLARI, TEHDIT_SONUCLARI } from '../data/tehditler.js';
+import { TEHDITLER, TEHDIT_KAYNAKLARI, TEHDIT_TAVIRLARI, TEHDIT_SONUCLARI, TEHDIT_EVRELERI } from '../data/tehditler.js';
 import { kesifGecerli } from '../world/kesif.js';
 
 // Sürüm 2 (aşama 3): harita = { tohum, boyut, kesif, degisim } (zemin yeniden üretilir); sürüm 1 göçü save/kayit.js'de.
@@ -81,7 +81,10 @@ export const DURUM_SEMASI = S.nesne({
     aktif: S.nesne({
       id: S.metin({ izinli: idler(TEHDITLER) }), guc: S.sayi(), aralik: S.dizi('sayi'), kalan: S.sayi(),
       tavir: S.metin({ izinli: TEHDIT_TAVIRLARI }), bilinen: 'mantik', erteleme: S.sayi(), tahkimat: 'mantik',
-    }, { bos: true, varsayilan: { tavir: 'savun', bilinen: false, erteleme: 0, tahkimat: false },
+      // Tüm çağlar dilimi (sürüm 3 içinde; eksikse varsayılan — göç gerekmez): kuşatma evresi/kararı, elçi, silah.
+      evre: S.metin({ izinli: TEHDIT_EVRELERI }), karar: 'mantik', elciDenendi: 'mantik', silah: S.sayi(),
+    }, { bos: true, varsayilan: { tavir: 'savun', bilinen: false, erteleme: 0, tahkimat: false, evre: 'uyari', karar: false,
+      elciDenendi: false, silah: 0 },
       kontrol: (a) => a.aralik.length === 2 }),
     bekleme: { tur: 'sozlukSayi', anahtarlar: idler(TEHDITLER) },
     iliski: { tur: 'sozlukSayi', anahtarlar: TEHDIT_KAYNAKLARI },

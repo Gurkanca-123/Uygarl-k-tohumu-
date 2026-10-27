@@ -294,14 +294,32 @@ button.vurgu-yumusak { border-color: var(--vurgu); background: rgba(230, 173, 60
 .chip.tehdit.aktif { animation: tehdit-nabiz 1.6s ease-in-out infinite; }
 @keyframes tehdit-nabiz { 50% { box-shadow: 0 0 0 3px rgba(240, 115, 91, 0.35); } }
 @media (prefers-reduced-motion: reduce) { .chip.tehdit.aktif { animation: none; } }
-.tehdit-metin { margin: 0 0 6px; line-height: 1.35; }
-.tehdit-ozet { display: flex; gap: 8px; margin: 6px 0; } .tehdit-ozet > div { flex: 1; background: var(--yuzey2); border-radius: var(--r-k); padding: 5px 8px; display: flex; flex-direction: column; }
-.tehdit-ozet small { color: var(--soluk); font-size: 10px; } .tehdit-ozet b { font-size: 16px; font-variant-numeric: tabular-nums; }
-.tehdit-bar { height: 10px; border-radius: 6px; background: rgba(255, 255, 255, 0.1); overflow: hidden; margin: 4px 0; }
+.tehdit-metin { margin: 0 0 3px; line-height: 1.25; font-size: 0.78rem; color: var(--soluk); display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.chip.tehdit.kusatma b::before { content: 'Kuşatma '; font-weight: 500; font-size: 0.8em; }
+.chip.tehdit.karar { animation: tehdit-nabiz 0.9s ease-in-out infinite; }
+.t-ozet { display: flex; align-items: baseline; gap: 10px; font-size: 0.85rem; flex-wrap: wrap; }
+.t-ozet b { margin-left: 3px; font-variant-numeric: tabular-nums; } .t-ozet em { font-style: normal; font-size: 0.75rem; margin-left: auto; color: var(--soluk); }
+.t-ozet em.yesil { color: var(--iyi); } .t-ozet em.sari { color: var(--uyari); } .t-ozet em.kirmizi { color: var(--kotu); }
+.t-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 4px; }
+.tehdit-acik .kart-yuva { max-height: min(66vh, calc(100% - 12px)); } .pencere.tehdit-pencere { max-height: 100%; } .tehdit-pencere .govde { padding: 5px 6px; }
+.tehdit-pencere .govde > * { flex: none; }
+.tehdit-pencere .t-grid:last-child, .tehdit-pencere .t-silah:last-child { margin-bottom: 0; } .t-grid.iki { margin-top: 6px; }
+.t-d { display: flex; align-items: center; justify-content: space-between; gap: 4px; min-height: 30px; padding: 0 7px; font-size: 0.82rem; text-align: left; line-height: 1.1; min-width: 0; }
+.t-d.ek span { flex: none; } .t-d span { white-space: nowrap; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.t-d small { font-size: 0.68rem; color: var(--soluk); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.t-d.secili { border-color: var(--vurgu); } .t-d.oner:not(:disabled) { border-color: var(--vurgu); }
+.t-grid.iki .t-d { flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px; min-height: 42px; } .t-grid.iki .t-d span { font-size: 0.9rem; }
+.t-silah { display: flex; align-items: center; gap: 4px; margin-top: 4px; } .t-silah.gri { opacity: 0.75; }
+.t-etk { font-size: 0.85rem; flex: none; } .t-n { min-width: 1.2em; text-align: center; font-variant-numeric: tabular-nums; }
+.t-pm { min-height: 30px; min-width: 30px; width: 30px; padding: 0; font-size: 1rem; }
+.t-dagit { flex: 1; } .t-say { color: var(--soluk); font-size: 0.68rem; flex: none; }
+.t-neden { font-size: 0.7rem; margin-top: 3px; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.t-kus { margin-top: 6px; } .t-kus-ust { display: flex; justify-content: space-between; align-items: baseline; font-weight: 600; font-size: 0.9rem; } .t-kus-ust small { font-weight: 400; color: var(--soluk); }
+.tehdit-bar { height: 7px; border-radius: 5px; background: rgba(255, 255, 255, 0.1); overflow: hidden; margin: 3px 0; }
 .tehdit-bar i { display: block; height: 100%; border-radius: 6px; background: var(--iyi); transition: width var(--sure); }
 .tehdit-bar.sari i { background: var(--uyari); } .tehdit-bar.kirmizi i { background: var(--kotu); }
 .tehdit-sec.secili { border-color: var(--vurgu); }
-.tehdit-blok { margin-top: 10px; } .tehdit-blok h4 { margin: 0 0 4px; }
+.tehdit-blok { margin-top: 8px; } .tehdit-blok h4 { margin: 0 0 4px; }
 .tehdit-blok button.tam-genislik { width: 100%; margin-top: 6px; text-align: left; }
 .tehdit-dokum > div { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; padding: 1px 0; }
 .kucuk-d { min-height: 32px; margin: 4px 4px 0 0; font-size: 12px; padding: 0 10px; }

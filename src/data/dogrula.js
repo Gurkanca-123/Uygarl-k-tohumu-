@@ -217,6 +217,29 @@ export function dogrula(v) {
     kaynakNesne(`${y}.harac`, t.harac?.kaynak);
     for (const c of Object.keys(t.cagaGore || {})) cagRef(`${y}.cagaGore`, c);
     if (t.kosul) kosulGez(`${y}.kosul`, t.kosul);
+    if (t.ozelKosul && !(v.TEHDIT_OZEL_KOSULLAR || []).includes(t.ozelKosul)) hata(`${y}: bilinmeyen özel koşul "${t.ozelKosul}"`);
+    for (const [c, o] of Object.entries(t.cagaGore || {})) {
+      if (o.hedef && Array.isArray(o.hedef)) for (const r of o.hedef) if (!kay.has(r)) hata(`${y}.cagaGore.${c}.hedef: bilinmeyen kaynak "${r}"`);
+      kaynakNesne(`${y}.cagaGore.${c}.ganimet`, o.ganimet);
+      if (o.cagMin || o.cagMax || o.tur || o.secenekler) hata(`${y}.cagaGore.${c}: tür/çağ aralığı/seçenekler geçersiz kılınamaz`);
+    }
+    for (const tur of ['kismi', 'yenilgi']) {
+      const so = t.sonuc?.[tur] || {};
+      if (!(so.oran >= 0 && so.oran <= 0.25)) hata(`${y}.sonuc.${tur}: oran 0–0,25 olmalı (§5.3.2)`);
+      if (so.hasarOncelik && so.hasarOncelik !== 'savunma') hata(`${y}.sonuc.${tur}: geçersiz hasarOncelik`);
+      if (so.degistirici && (!so.degistirici.id || !(so.degistirici.sure > 0))) hata(`${y}.sonuc.${tur}.degistirici: id/sure yok`);
+    }
+    if (t.tur === 'kusatma' && !(t.kusatma?.sure >= 1)) hata(`${y}: kuşatma süresi yok`);
+    if (t.kusatma && t.tur !== 'kusatma') hata(`${y}: kusatma alanı yalnız 'kusatma' türünde`);
+    if (t.secenekler?.includes('elci') && sira(t.cagMax ?? 'ortacag') < 1) hata(`${y}: elçi Taş Devri'nden önce kullanılamaz`);
+  }
+  // her çağda en az 2 aday tehdit (koşulsuz satırlarla en az 1)
+  for (const c of v.CAGLAR || []) {
+    const ic = (v.TEHDITLER || []).filter((t) => sira(t.cagMin) <= c.sira && c.sira <= (t.cagMax === null ? Infinity : sira(t.cagMax)));
+    if (v.TEHDITLER && ic.length < 2) hata(`TEHDITLER: ${c.id} çağında 2'den az tehdit`);
+  }
+  for (const e of v.EYLEMLER || []) {
+    if (e.tehditEylemi && !['nobet', 'elci'].includes(e.tehditEylemi)) hata(`EYLEMLER.${e.id}: bilinmeyen tehditEylemi`);
   }
 
   // --- 6. olaylar ---

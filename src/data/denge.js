@@ -136,6 +136,31 @@ export const TEHDIT_KIS_AZIGI = { yiyecekKisi: 2, odunIsinma: 3 };  // §5.3.2
 export const TOPARLANMA = { id: 'toparlanma', sure: 5, etki: { huzur: 5, onarimBedava: true } };
 export const MERHAMET_YENILGI = 2;          // art arda bu kadar yenilgi → sonraki tehdit Rahat çarpanlarıyla, uyarı +1
 export const BEKCI_DEGER = 0.5;
+// --- Tüm çağlar dilimi (2026-10-26: kullanıcı "Bronz/Demir'de tehdit yok, daha çok aksiyon") ---
+// Çağ darbesi: ileri çağda servet daha çok göz çeker (gerginlik artışında doluluk ağırlığı `servet`: 0,8 + servet × doluluk),
+// başarısız savunma daha ağır vurur (kayıp oranı × `kayip`, zorluk tavanı %25/%30 korunur; `huzur` yenilgide anlık, kısmide yarısı).
+export const TEHDIT_CAG_DARBE = {
+  gocebe: { servet: 0.4, kayip: 1, huzur: 0 },
+  tasdevri: { servet: 0.45, kayip: 1, huzur: -3 },
+  bronz: { servet: 0.55, kayip: 1.15, huzur: -5 },
+  antik: { servet: 0.65, kayip: 1.3, huzur: -7 },
+  ortacag: { servet: 0.75, kayip: 1.45, huzur: -10 },
+};
+// Nöbet Tut (önder eylemi `nobet_tut`, §4.2): +(taban + çağSırası) savunma, `sure` tehdit adımı boyunca.
+export const NOBET = { taban: 1, sure: 2 };
+// Silah Dağıt (komut `silahDagit`, §4.2): puan başı bedel; Taş Devri 2 alet, Bronz+ 1 metal; tehdit başına en çok floor(nüfus/2) puan.
+export const SILAH = { tasdevri: { alet: 2 }, bronz: { metal: 1 }, antik: { metal: 1 }, ortacag: { metal: 1 }, nufusBolen: 2 };
+// Elçi Gönder (önder eylemi `elci_gonder`, §5.1): p = clamp(taban + ilişki/100 + cag × çağSırası, min, max).
+// Hediye: yiyecek × güç (Antik+: sikke × güç). Başarısızlıkta hediyenin `kayip` payı gider, tehdit sürer.
+export const ELCI = { taban: 0.35, cag: 0.05, min: 0.2, max: 0.85, yiyecek: 2, sikke: 1, sikkeCag: 'antik', kayip: 0.5,
+  basariIliski: 10, basarisizIliski: -5, gerginlik: 0 };
+// TODO(tasarim): "haraç indirimi" — ilişki ≥ TEHDIT_KOMSU_DOST.iliski olan kaynağa haraç ×0,75 (belgede yoktu; görev isteği).
+export const HARAC_DOST_CARPAN = 0.75;
+// Kuşatma (§2.1, §11.1): varışta savunma < güç ise `sure` tur kuşatma evresi. Her tur ordunun gücü
+// ceil(güç × asinma + duvar × surAsinma) aşınır (duvar = çit/sur parçası + kapalı halka savunması); savunma ≥ güç → kırılır.
+// Kuşatma boyunca ticaret kapalı, üretim × uretim. Evre başında `karar: true` (arayüz durduran pencere: Dayan / Fidye).
+export const KUSATMA = { surAsinma: 0.25, uretim: 0.85 };
+export const KIYI_MESAFE = 3;              // korsanlar: yerleşim sınırına bu kadar karo yakın su
 // Acil Tahkimat (§4.2; tehdit başına 1): çağa göre maliyet → savunma (değiştirici, kalan + 1 tur).
 export const TAHKIMAT = {
   gocebe: { maliyet: { odun: 4 }, savunma: 2 },

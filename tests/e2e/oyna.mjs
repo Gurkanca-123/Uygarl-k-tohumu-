@@ -230,8 +230,8 @@ async function senaryo(tarayici, ad, secenek, ekranGoruntusu0) {
 }
 
 // Pencere yerleşimi: görünen pencere viewport içinde, alt şeridi/üst çubuğu örtmez, boyut sınırlarına uyar; kart içindeki düğmeler kesilmez.
-async function yerlesimKontrol(sayfa, ad, tur) {
-  await sayfa.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => 0)))); // giriş animasyonu bitsin
+async function yerlesimKontrol(sayfa, ad, tur, sinirH = 0.5, kesKontrol = true) {
+  await sayfa.evaluate(() => Promise.all(document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Infinity).map((a) => a.finished.catch(() => 0)))); // giriş animasyonu bitsin
   const r = await sayfa.evaluate((tur) => {
     const W = innerWidth, H = innerHeight, sor = (q) => document.querySelector(q);
     const el = tur === 'sekme' ? sor('.pencere.sag.acik') : sor('.pencere.kart');
@@ -252,9 +252,9 @@ async function yerlesimKontrol(sayfa, ad, tur) {
   const icinde = r.l >= -1 && r.t >= -1 && r.r <= r.W + 1 && r.b <= r.H + 1;
   const orter = r.b > r.altUst + 1 || r.t < r.ustAlt - 1;
   kontrol(`${ad}: ${tur} penceresi viewport içinde ve alt şeridi/üst çubuğu örtmez`, icinde && !orter && !r.yatayTasma, JSON.stringify({ t: Math.round(r.t), b: Math.round(r.b), altUst: Math.round(r.altUst), ustAlt: Math.round(r.ustAlt) }));
-  const sinir = tur === 'sekme' ? [0.38, 0.62] : [0.32, 0.5];
+  const sinir = tur === 'sekme' ? [0.38, 0.62] : [0.32, sinirH];
   kontrol(`${ad}: ${tur} penceresi boyut sınırında (${Math.round(r.w)}×${Math.round(r.h)} / ${r.W}×${r.H})`, r.w <= r.W * sinir[0] + 1 && r.h <= r.H * sinir[1] + 1);
-  if (tur === 'kart') kontrol(`${ad}: kart düğmeleri kesilmez${r.kes.length ? ` (${r.kes.join(',')})` : ''}`, r.kes.length === 0);
+  if (tur === 'kart' && kesKontrol) kontrol(`${ad}: kart düğmeleri kesilmez${r.kes.length ? ` (${r.kes.join(',')})` : ''}`, r.kes.length === 0);
 }
 
 // Üç ölçüde pencere yerleşimi (İş, İnşa, bina kartı, çimen kartı). EKRAN_YAZ=1 ise docs/ekran/ui2-*.png yazar (görünüm başına İş + bina kartı = en çok 6).
@@ -293,16 +293,124 @@ async function yerlesimSenaryosu(tarayici, ad, vp, dpr, ekranAd) {
   await ctx.close();
 }
 
+// Tehdit penceresi: çağa göre seçenekler (Elçi/Nöbet/Tahkimat/Silah/Haraç), kuşatma karar penceresi, viewport yerleşimi. Durum window.__oyun ile hazırlanır.
+// EKRAN_YAZ=1 ise docs/ekran/tehdit-<ad>.png yazar (en çok 3 görüntü).
+async function tehditSenaryosu(tarayici, ad, vp, dpr, ekranAd) {
+  console.log(`\n== ${ad} ==`);
+  const ctx = await tarayici.newContext({ viewport: vp, deviceScaleFactor: dpr, hasTouch: true, isMobile: true });
+  const sayfa = await ctx.newPage();
+  const hatalar = [];
+  sayfa.on('pageerror', (e) => hatalar.push(String(e)));
+  sayfa.on('console', (m) => { if (m.type() === 'error') hatalar.push(m.text()); });
+  await sayfa.goto(URL);
+  await sayfa.waitForSelector('.menu');
+  await sayfa.evaluate(() => localStorage.clear());
+  await sayfa.locator('button', { hasText: 'Yeni Oyun' }).first().click();
+  await sayfa.waitForSelector('.ust .chip');
+  await sayfa.waitForTimeout(400);
+  const yaz = process.env.EKRAN_YAZ === '1' && ekranAd;
+  const hazirla = (cfg) => sayfa.evaluate((c) => {
+    const o = window.__oyun, d = o.oyun.durum;
+    d.cag = c.cag; d.nufus = 8; d.olay.aktif = null; d.onder = { ...d.onder, eylem: 'dinlen', secim: null };
+    Object.assign(d.kaynaklar, { yiyecek: 200, alet: 20, metal: 20, sikke: 60, odun: 40, tas: 30 });
+    d.tehdit.aktif = { id: c.id, guc: c.guc, aralik: [c.guc, c.guc], kalan: c.kalan, tavir: 'savun', bilinen: true, erteleme: 0, tahkimat: false,
+      evre: c.evre || 'uyari', karar: !!c.karar, elciDenendi: false, silah: 0 };
+    o.arayuz.tehditAcik = false; o.arayuz.sonTehditId = undefined; o.arayuz.secim = null; o.arayuz.pencere = 'kapali';
+    o.arayuz.yenile();
+  }, cfg);
+  const tAktif = () => sayfa.evaluate(() => window.__oyun.oyun.durum.tehdit.aktif);
+  const hataToast = () => sayfa.locator('.toast.hata').count();
+  await sayfa.waitForTimeout(200);
+
+  // 1) Taş Devri: komşu baskını → pencere kendiliğinden açılır, Elçi düğmesi hata vermez
+  await hazirla({ cag: 'tasdevri', id: 'komsu_baskini', guc: 7, kalan: 3 });
+  await sayfa.waitForSelector('.tehdit-pencere .t-grid', { timeout: 20000 });
+  kontrol(`${ad}: yeni tehdit varken pencere kendiliğinden açılır`, await sayfa.locator('.tehdit-pencere').count() === 1);
+  const baslik = await sayfa.locator('.tehdit-pencere h3').innerText();
+  kontrol(`${ad}: pencere başlığı çağa göre tehdit adını gösterir (${baslik})`, /Komşu/.test(baslik));
+  const chip = await sayfa.locator('.chip.tehdit').innerText();
+  kontrol(`${ad}: üst çubuk çipi kalan günü gösterir (${chip.replace(/\s+/g, ' ')})`, /3/.test(chip));
+  await yerlesimKontrol(sayfa, ad, 'kart', 0.67, false); // alttaki savunma/çevre bölümleri kaydırılabilir; eylem düğmeleri ayrıca denetlenir
+  const sigar = await sayfa.evaluate(() => { const g = document.querySelector('.tehdit-pencere .govde'), son = document.querySelector('.tehdit-pencere .t-silah') || document.querySelector('.tehdit-pencere .t-grid'); const a = g.getBoundingClientRect(), b = son.getBoundingClientRect(); return { alt: b.bottom - a.bottom, sol: Math.max(0, g.scrollWidth - g.clientWidth) }; });
+  kontrol(`${ad}: eylem düğmeleri kaydırma gerektirmeden görünür`, sigar.alt <= 1 && sigar.sol === 0, JSON.stringify(sigar));
+  if (yaz) await sayfa.screenshot({ path: `${EKRAN}/tehdit-${ekranAd}-uyari.png` });
+  const elci = sayfa.locator('.tehdit-pencere .t-d', { hasText: 'Elçi' });
+  kontrol(`${ad}: Elçi düğmesi başarı yüzdesini gösterir`, /%\d+/.test(await elci.innerText()));
+  await elci.click();
+  await sayfa.waitForTimeout(150);
+  kontrol(`${ad}: Elçi seçimi "Geçersiz tavır" hatası vermez, önder eylemi elci_gonder olur`, (await hataToast()) === 0 && await sayfa.evaluate(() => window.__oyun.oyun.durum.onder.eylem === 'elci_gonder'));
+  kontrol(`${ad}: seçili Elçi düğmesi işaretlenir`, (await sayfa.locator('.tehdit-pencere .t-d.secili', { hasText: 'Elçi' }).count()) === 1);
+  const nobet = sayfa.locator('.tehdit-pencere .t-d', { hasText: 'Nöbet' });
+  await nobet.click(); await sayfa.waitForTimeout(120);
+  kontrol(`${ad}: Nöbet Tut önder eylemini nobet_tut yapar`, (await hataToast()) === 0 && await sayfa.evaluate(() => window.__oyun.oyun.durum.onder.eylem === 'nobet_tut'));
+  // tavır (Saklan) hâlâ tavır komutu
+  await sayfa.locator('.tehdit-pencere .t-d', { hasText: 'Saklan' }).click(); await sayfa.waitForTimeout(120);
+  kontrol(`${ad}: Saklan tavır olarak seçilir`, (await tAktif()).tavir === 'saklan' && (await hataToast()) === 0);
+  await sayfa.locator('.tehdit-pencere .t-d', { hasText: 'Savun' }).first().click(); await sayfa.waitForTimeout(120);
+  // Silah Dağıt: − / + ve dağıt
+  const alet0 = await sayfa.evaluate(() => window.__oyun.oyun.durum.kaynaklar.alet);
+  await sayfa.locator('.tehdit-pencere .t-pm', { hasText: '+' }).click(); await sayfa.waitForTimeout(100);
+  const onizleme = await sayfa.locator('.tehdit-pencere .t-dagit small').innerText();
+  kontrol(`${ad}: Silah önizlemesi maliyet ve +savunma yazar (${onizleme})`, /4.*\+2/.test(onizleme));
+  await sayfa.locator('.tehdit-pencere .t-dagit').click(); await sayfa.waitForTimeout(150);
+  const sv = await tAktif();
+  const alet1 = await sayfa.evaluate(() => window.__oyun.oyun.durum.kaynaklar.alet);
+  kontrol(`${ad}: Silah Dağıt çalışır (2 silah, ${alet0 - alet1} alet)`, sv.silah === 2 && alet0 - alet1 === 4 && (await hataToast()) === 0);
+  // Bronz: haraç + tahkimat + silah (metal)
+  await hazirla({ cag: 'bronz', id: 'akincilar', guc: 6, kalan: 2 });
+  await sayfa.waitForSelector('.tehdit-pencere .t-grid', { timeout: 20000 });
+  const bronzMetin = await sayfa.locator('.tehdit-pencere').innerText();
+  kontrol(`${ad}: Bronz'da Haraç, Tahkimat, Nöbet ve Silah satırları var`, /Haraç/.test(bronzMetin) && /Tahkimat/.test(bronzMetin) && /Nöbet/.test(bronzMetin) && /Silah/.test(bronzMetin));
+  await sayfa.locator('.tehdit-pencere .t-d', { hasText: 'Tahkimat' }).click(); await sayfa.waitForTimeout(150);
+  kontrol(`${ad}: Acil Tahkimat uygulanır`, (await tAktif()).tahkimat === true && (await hataToast()) === 0);
+  await sayfa.locator('.tehdit-pencere .t-d', { hasText: 'Haraç' }).click(); await sayfa.waitForTimeout(150);
+  kontrol(`${ad}: Haraç ödenince tehdit biter`, (await tAktif()) === null);
+
+  // 2) Orta Çağ: kuşatma evresi, karar penceresi kendiliğinden açılır
+  await hazirla({ cag: 'ortacag', id: 'kusatma', guc: 14, kalan: 3, evre: 'kusatma', karar: true });
+  await sayfa.waitForSelector('.tehdit-pencere .t-kus', { timeout: 20000 });
+  kontrol(`${ad}: kuşatma kararı varken pencere kendiliğinden açılır`, await sayfa.locator('.tehdit-pencere').count() === 1);
+  const kc = await sayfa.locator('.chip.tehdit').innerText();
+  kontrol(`${ad}: çip kuşatma evresini ve kalan turu gösterir (${kc.replace(/\s+/g, ' ')})`, /3 tur/.test(kc) && (await sayfa.locator('.chip.tehdit.kusatma.karar').count()) === 1);
+  kontrol(`${ad}: aşınma çubuğu ve iki karar düğmesi var`, (await sayfa.locator('.tehdit-pencere .asinma').count()) === 1 && (await sayfa.locator('.tehdit-pencere .t-grid .t-d').count()) === 2);
+  await yerlesimKontrol(sayfa, ad, 'kart', 0.67, false); // alttaki savunma/çevre bölümleri kaydırılabilir; eylem düğmeleri ayrıca denetlenir
+  const sig2 = await sayfa.evaluate(() => { const g = document.querySelector('.tehdit-pencere .govde'), son = g.querySelector('.t-grid'); return son.getBoundingClientRect().bottom - g.getBoundingClientRect().bottom; });
+  kontrol(`${ad}: kuşatma düğmeleri kaydırma gerektirmez`, sig2 <= 1, String(Math.round(sig2)));
+  // bildirim: toast + günlük
+  await sayfa.evaluate(() => { const o = window.__oyun; const b = [{ kod: 'tehdit_kusatma', seviye: 'uyari', metin: 'Kuşatma sürüyor: ordu 1 güç yitirdi (⚔ 13); 2 tur kaldı.' }]; o.oyun.bildirimEkle(b, 3); o.oyun.yay('bildirim', b); });
+  await sayfa.waitForTimeout(150);
+  kontrol(`${ad}: tehdit_kusatma bildirimi toast olarak görünür`, (await sayfa.locator('.toast', { hasText: 'Kuşatma sürüyor' }).count()) === 1);
+  kontrol(`${ad}: tehdit_kusatma bildirimi günlükte kayıtlı`, await sayfa.evaluate(() => window.__oyun.oyun.gecmis.some((g) => g.kod === 'tehdit_kusatma')));
+  if (yaz && ekranAd === 'p1000') await sayfa.screenshot({ path: `${EKRAN}/tehdit-${ekranAd}-kusatma.png` }); // toplam 3 görüntü
+  await sayfa.locator('.tehdit-pencere .t-d', { hasText: 'Dayan' }).click(); await sayfa.waitForTimeout(150);
+  const dk = await tAktif();
+  kontrol(`${ad}: Dayan kararı verilir, karar kapanır, kuşatma sürer`, dk && dk.karar === false && dk.evre === 'kusatma' && (await hataToast()) === 0);
+  kontrol(`${ad}: karar sonrası Dayan düğmesi devre dışı, Fidye açık`, await sayfa.locator('.tehdit-pencere .t-d', { hasText: 'Dayan' }).isDisabled() && !(await sayfa.locator('.tehdit-pencere .t-d', { hasText: 'Fidye' }).isDisabled()));
+  await sayfa.locator('.tehdit-pencere .t-d', { hasText: 'Fidye' }).click(); await sayfa.waitForTimeout(150);
+  kontrol(`${ad}: Fidye kuşatmayı bitirir`, (await tAktif()) === null && (await hataToast()) === 0);
+  // kapalı pencere + yeni kuşatma evresi: yeniden açılır
+  await hazirla({ cag: 'ortacag', id: 'kusatma', guc: 14, kalan: 3, evre: 'uyari' });
+  await sayfa.evaluate(() => { const a = window.__oyun.arayuz; a.tehditAcik = false; a.yenile(); });
+  await sayfa.evaluate(() => { const o = window.__oyun, d = o.oyun.durum; d.tehdit.aktif.evre = 'kusatma'; d.tehdit.aktif.karar = true; d.tehdit.aktif.kalan = 3; o.arayuz.yenile(); });
+  await sayfa.waitForTimeout(150);
+  kontrol(`${ad}: kuşatma evresine geçince kapatılmış pencere yeniden açılır`, await sayfa.locator('.tehdit-pencere .t-kus').count() === 1);
+  kontrol(`${ad}: tehdit penceresi konsol hatası vermez`, hatalar.length === 0, hatalar.slice(0, 2).join(' | '));
+  await ctx.close();
+}
+
+const SADECE = process.env.SADECE === 'tehdit'; // yalnız tehdit senaryoları (hızlı yineleme)
 let cikis = 0;
 try {
   await bekle();
   const tarayici = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
-  await senaryo(tarayici, 'telefon 844×390', { viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true, deviceScaleFactor: 1 }, 'telefon');
-  await senaryo(tarayici, 'masaüstü 1280×720', { viewport: { width: 1280, height: 720 } }, 'masaustu');
-  await yerlesimSenaryosu(tarayici, 'yerleşim 1000×450 dpr2', { width: 1000, height: 450 }, 2, 'p1000');
-  await yerlesimSenaryosu(tarayici, 'yerleşim 844×390', { width: 844, height: 390 }, 1, 'p844');
-  await yerlesimSenaryosu(tarayici, 'yerleşim 720×360', { width: 720, height: 360 }, 1, 'p720');
-  { // ?stil=eski: eski düz görünüm (son işleme yok)
+  if (!SADECE) await senaryo(tarayici, 'telefon 844×390', { viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true, deviceScaleFactor: 1 }, 'telefon');
+  if (!SADECE) await senaryo(tarayici, 'masaüstü 1280×720', { viewport: { width: 1280, height: 720 } }, 'masaustu');
+  if (!SADECE) await yerlesimSenaryosu(tarayici, 'yerleşim 1000×450 dpr2', { width: 1000, height: 450 }, 2, 'p1000');
+  if (!SADECE) await yerlesimSenaryosu(tarayici, 'yerleşim 844×390', { width: 844, height: 390 }, 1, 'p844');
+  if (!SADECE) await yerlesimSenaryosu(tarayici, 'yerleşim 720×360', { width: 720, height: 360 }, 1, 'p720');
+  await tehditSenaryosu(tarayici, 'tehdit 1000×450 dpr2', { width: 1000, height: 450 }, 2, 'p1000');
+  await tehditSenaryosu(tarayici, 'tehdit 844×390', { width: 844, height: 390 }, 1, 'p844');
+  if (!SADECE) { // ?stil=eski: eski düz görünüm (son işleme yok)
     const sayfa = await (await tarayici.newContext({ viewport: { width: 844, height: 390 } })).newPage();
     await sayfa.goto(`${URL}?stil=eski`);
     await sayfa.waitForSelector('.menu');

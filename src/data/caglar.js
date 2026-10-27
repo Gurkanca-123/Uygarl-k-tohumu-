@@ -13,7 +13,7 @@ export const CAGLAR = [
     gecis: { nufus: 8, binalar: { cadir: 3, totem: 1 }, bulus: 'yerlesik_hayat', maliyet: { yiyecek: 30, odun: 25, tas: 15, deri: 10 } },
   },
   {
-    id: 'tasdevri', gerginlikArtis: 6, ad: 'Taş Devri', sira: 1, konut: 'kulube', merkez: 'ocak_meydani',
+    id: 'tasdevri', gerginlikArtis: 7, ad: 'Taş Devri', sira: 1, konut: 'kulube', merkez: 'ocak_meydani',
     depoTavani: 60, bilgiTaban: 1, merkezHuzur: 5, esZamanliInsaat: 2, dogumAraligi: 4, kalabalikEsigi: 22,
     olayOlasiligi: 0.25, saldiriTaban: 6, hedefTur: 40,
     yeniKaynaklar: ['alet'], acilanEylemler: ['alet_yap'],
@@ -21,7 +21,7 @@ export const CAGLAR = [
       maliyet: { yiyecek: 60, odun: 50, tas: 40, alet: 15 } },
   },
   {
-    id: 'bronz', gerginlikArtis: 6.5, ad: 'Bronz/Demir Çağı', sira: 2, konut: 'kerpic_ev', merkez: 'koy_meydani',
+    id: 'bronz', gerginlikArtis: 8, ad: 'Bronz/Demir Çağı', sira: 2, konut: 'kerpic_ev', merkez: 'koy_meydani',
     depoTavani: 120, bilgiTaban: 1.5, merkezHuzur: 6, esZamanliInsaat: 2, dogumAraligi: 3, kalabalikEsigi: 50,
     olayOlasiligi: 0.30, saldiriTaban: 12, hedefTur: 60,
     yeniKaynaklar: ['kil', 'cevher', 'metal'], acilanEylemler: ['kervan_gonder'],
@@ -29,7 +29,7 @@ export const CAGLAR = [
       maliyet: { yiyecek: 120, odun: 80, kil: 80, tas: 60, metal: 30 } },
   },
   {
-    id: 'antik', gerginlikArtis: 6, ad: 'Antik Çağ', sira: 3, konut: 'tas_ev', merkez: 'agora',
+    id: 'antik', gerginlikArtis: 8.5, ad: 'Antik Çağ', sira: 3, konut: 'tas_ev', merkez: 'agora',
     depoTavani: 200, bilgiTaban: 2, merkezHuzur: 8, esZamanliInsaat: 3, dogumAraligi: 3, kalabalikEsigi: 95,
     olayOlasiligi: 0.30, saldiriTaban: 25, hedefTur: 80,
     yeniKaynaklar: ['mermer', 'sikke'], acilanEylemler: ['halka_hitap'],
@@ -37,7 +37,7 @@ export const CAGLAR = [
       maliyet: { yiyecek: 200, tas: 150, mermer: 80, sikke: 100, metal: 50 } },
   },
   {
-    id: 'ortacag', gerginlikArtis: 6, ad: 'Orta Çağ', sira: 4, konut: 'yari_ahsap_ev', merkez: 'sehir_meydani', kimlik: 'Surlu şehir',
+    id: 'ortacag', gerginlikArtis: 9.5, ad: 'Orta Çağ', sira: 4, konut: 'yari_ahsap_ev', merkez: 'sehir_meydani', kimlik: 'Surlu şehir',
     depoTavani: 300, bilgiTaban: 2.5, merkezHuzur: 10, esZamanliInsaat: 3, dogumAraligi: 3, kalabalikEsigi: 160,
     olayOlasiligi: 0.35, saldiriTaban: 50, hedefTur: 100,
     yeniKaynaklar: ['kumas', 'kitap'], acilanEylemler: ['turnuva_duzenle'],

@@ -1,5 +1,10 @@
 # CHANGELOG_DEV (yalnız son kayıtlar; eskiler `docs/CHANGELOG_ARSIV.md`)
 
+## 2026-10-27 — Tehditler 5 çağda + arayüz bağlantısı (Opus 5.5 çekirdek, Sonnet 5.5 UI) + aksiyon tasarımı
+- Çekirdek: 10 tehdit tanımı, çağ başına 2–6 aday, gerginlik/darbe artışı, kuşatma evresi (3 tur, surla aşınma), `silahDagit`, `kusatmaKarar`, Önder eylemleri `nobet_tut`/`elci_gonder`. Pasif oyun ölçümü: çağ başına 1/2/3/4,85/5,65 tehdit, kayıp ~%9–15; nüfus ≥2 korunur. Kayıt sürümü 3 aynı.
+- UI: tehdit penceresi tüm seçenekler (elçi hatası düzeldi), kuşatma karar penceresi, çip. e2e 163/163, testler 196 (195+1 todo). Gerçek cihaz denenmedi.
+- `docs/AKSIYON.md` yazıldı (sefer/kahraman/komşu/savaş/hedefler; onay bekliyor).
+
 ## 2026-10-26 — Pencereleri küçültme (Sonnet 5.5)
 - Kök yazı `clamp(11px,2.6vh,15px)`, rem tabanlı; sekme penceresi ≤%38×%62, bina/karo kartı sol altta ≤%30×%50, −/+ ≤44px; sağ sekmeler etiketsiz ikon; İş sekmesi tek satır durum + daraltılabilir listeler. e2e 103/103 (viewport içinde/örtmeme kontrolleri). Gerçek cihaz denenmedi. Kalan: kartta "Yükseltme:" satırı alt kenarda hafif kesik; kart seçilen yapıya yakın konumlanmıyor.
 

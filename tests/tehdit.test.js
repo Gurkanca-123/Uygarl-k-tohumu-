@@ -59,10 +59,10 @@ test('gerginlik: gün 12 öncesi artmaz; sonra artar ve durum.rng değişmez; ne
   assert.ok(n.tehdit.gerginlik <= 95);
 });
 
-test('doğum: Göçebe yalnız kurt; uyarı 2 tur, varsayılan Savun, güç aralığı; Gözcü +1 tur ve kesin güç', () => {
+test('doğum: Göçebe yalnız yırtıcı (kurt/ayı); uyarı 2 tur, varsayılan Savun, güç aralığı; Gözcü +1 tur ve kesin güç', () => {
   const bl = [];
   const d = adimTehdit(tehditli({}, { gerginlik: 99 }), bl);
-  assert.equal(d.tehdit.aktif.id, 'kurt_surusu');
+  assert.ok(['kurt_surusu', 'ayi'].includes(d.tehdit.aktif.id));
   assert.equal(d.tehdit.aktif.kalan, 2);
   assert.equal(d.tehdit.aktif.tavir, 'savun');
   assert.equal(d.tehdit.aktif.bilinen, false);
@@ -94,10 +94,10 @@ test('ölüm sarmalı: açlıkta / huzur < 30 iken doğum yok (95 bekler); gelen
   assert.equal(son.guc, 4);
 });
 
-test('Barışçıl: yalnız yırtıcı aday; Normal Taş Devri: üç MVP tehdidi', () => {
+test('Barışçıl: yalnız yırtıcı aday; Normal Taş Devri: üç MVP tehdidi + Aç Ayı', () => {
   const t = tehditli({ cag: 'tasdevri', kaynaklar: { yiyecek: 0, odun: 0, tas: 0, deri: 0, alet: 0 } });
-  assert.deepEqual(adayTehditler(t).map((x) => x.id).sort(), ['avci_cetesi', 'komsu_baskini', 'kurt_surusu']);
-  assert.deepEqual(adayTehditler({ ...t, zorluk: 'barisci' }).map((x) => x.id), ['kurt_surusu']);
+  assert.deepEqual(adayTehditler(t).map((x) => x.id).sort(), ['avci_cetesi', 'ayi', 'komsu_baskini', 'kurt_surusu']);
+  assert.deepEqual(adayTehditler({ ...t, zorluk: 'barisci' }).map((x) => x.id).sort(), ['ayi', 'kurt_surusu']);
 });
 
 test('varış: püskürtme (ganimet, gerginlik −20) · kısmi (%10 fazladan) · Göçebe yenilgi: ölüm yok, yaralı + toparlanma', () => {

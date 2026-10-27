@@ -9,6 +9,7 @@ import {
 } from './yardimci.js';
 import { sonucUygula } from './sonuc.js';
 import { haritaKesfiUygula, kesifYaricapi } from '../world/kesif.js';
+import { nobetBilgi, nobetTut, elciBilgi, elciGonder } from './tehdit.js';
 
 export const eylemOlcegi = (d, e) => (e.olcekli ? 1 + EYLEM_OLCEK_ADIM * mevcutCag(d).sira : 1);
 
@@ -32,6 +33,10 @@ export function eylemUygunMu(d, id, secim) {
   if (id !== VARSAYILAN_EYLEM) {
     if (d.onder.yaraliKalan > 0) return `Önder yaralı; ${d.onder.yaraliKalan} tur yalnız dinlenebilir.`;
     if (d.onder.yorgunluk >= YORGUNLUK_MAX) return 'Önder çok yorgun; yalnız dinlenebilir.';
+  }
+  if (e.tehditEylemi) {
+    const b = e.tehditEylemi === 'nobet' ? nobetBilgi(d) : elciBilgi(d);
+    if (b.hata) return b.hata;
   }
   const g = e.gereksinim || {};
   if (g.bina && !calisanBinalar(d).some((b) => b.id === g.bina)) return `${e.ad} için ${BINA[g.bina].ad} gerekir.`;
@@ -86,6 +91,10 @@ export function adimOnder(durum, bildirimler = []) {
     kaynakUygula(d, { [secim.ver]: -k.ver });
     d.kervanlar = [...d.kervanlar, { kaynak: secim.al, miktar: k.al, tur: d.tur + k.gecikme }];
     bildir(bildirimler, 'kervan', `Kervan yola çıktı: ${k.gecikme} tur sonra ${k.al} ${KAYNAK[secim.al].ad} gelecek.`);
+  } else if (e.tehditEylemi === 'nobet') {
+    nobetTut(d, bildirimler);
+  } else if (e.tehditEylemi === 'elci') {
+    elciGonder(d, bildirimler);
   } else {
     sonucUygula(d, e.sonuc, { bildirimler, olcek, iyiBonus: kesifIyiBonusu(d, id) });
   }

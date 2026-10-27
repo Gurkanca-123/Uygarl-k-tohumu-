@@ -18,7 +18,7 @@ test('tablo boyutları belgeyle uyumlu', () => {
   // §4 tabloları: 8 + 9 + 11 + 10 + 11 inşa edilebilir bina
   const say = (c) => VERI.BINALAR.filter((b) => b.cag === c && b.tur !== 'merkez').length;
   assert.deepEqual(['gocebe', 'tasdevri', 'bronz', 'antik', 'ortacag'].map(say), [9, 9, 11, 10, 11]); // +Çit (TEHDIT.md §12)
-  assert.equal(VERI.EYLEMLER.length, 8);
+  assert.equal(VERI.EYLEMLER.length, 10); // +Nöbet Tut, Elçi Gönder (TEHDIT.md §4.2, §5.1)
 });
 
 test('MVP kapsamı (§9): 5 kaynak, 10 bina, 5 buluş, 5 eylem, 10 olay', () => {

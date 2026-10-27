@@ -32,6 +32,11 @@ export const EYLEMLER = [
     sonuc: { kervan: { ver: 20, al: 15, gecikme: 3 } } },
   { id: 'halka_hitap', ad: 'Halka Hitap', cag: 'antik', yorgunluk: 1, gereksinim: {}, olcekli: false,
     sonuc: { huzur: 6, kosullu: [{ kosul: { vergi: 'yuksek' }, sonuc: { huzur: 10 } }] } },
+  // TEHDIT.md §4.2 / §5.1: tehdit eylemleri (`tehditEylemi`: sonucu src/core/tehdit.js uygular; yalnız yaklaşan tehdit varken).
+  { id: 'nobet_tut', ad: 'Nöbet Tut', cag: 'gocebe', yorgunluk: 1, gereksinim: {}, olcekli: false, tehditEylemi: 'nobet',
+    sonuc: { bos: true } },
+  { id: 'elci_gonder', ad: 'Elçi Gönder', cag: 'tasdevri', yorgunluk: 2, gereksinim: {}, olcekli: false, tehditEylemi: 'elci',
+    sonuc: { bos: true } },
   { id: 'turnuva_duzenle', ad: 'Turnuva Düzenle', cag: 'ortacag', yorgunluk: 2, gereksinim: { kaynak: { sikke: 20 } }, olcekli: false,
     sonuc: { kaynak: { sikke: -20 }, huzur: 10, degistirici: { id: 'turnuva', sure: 3, etki: { savunma: 10 } } } },
 ];
