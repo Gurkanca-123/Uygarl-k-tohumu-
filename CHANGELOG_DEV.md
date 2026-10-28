@@ -1,7 +1,7 @@
 # CHANGELOG_DEV (yalnız son kayıtlar; eskiler `docs/CHANGELOG_ARSIV.md`)
 
 ## 2026-10-28 — Doğum ipucu (Sonnet 5.5)
-- Orta Çağ'da nüfus durması: yiyecek şartı (nüfus×2) depo tavanını (300) aşıyordu; ek depo/ambar gerekiyor. `dogumSartlari` yiyecek mesajı tavanı da söyler; İş sekmesi özetine "👶 Doğum yok: …" satırı eklendi. Testler 196 (195+1 todo); derleme/e2e bu ortamda denenmedi (vite yok). Bekleyen: Lonca Sistemi için kitap bekleniyor uyarısı (araştırma paneli).
+- Orta Çağ'da nüfus durması: yiyecek şartı (nüfus×2) depo tavanını (300) aşıyordu; ek depo/ambar gerekiyor. `dogumSartlari` yiyecek mesajı tavanı da söyler; İş sekmesi özetine "👶 Doğum yok: …" satırı eklendi. Testler 196 (195+1 todo); derleme/e2e bu ortamda denenmedi (vite yok).
 
 ## 2026-10-27 — Tehditler 5 çağda + arayüz bağlantısı (Opus 5.5 çekirdek, Sonnet 5.5 UI) + aksiyon tasarımı
 - Çekirdek: 10 tehdit tanımı, çağ başına 2–6 aday, gerginlik/darbe artışı, kuşatma evresi (3 tur, surla aşınma), `silahDagit`, `kusatmaKarar`, Önder eylemleri `nobet_tut`/`elci_gonder`. Pasif oyun ölçümü: çağ başına 1/2/3/4,85/5,65 tehdit, kayıp ~%9–15; nüfus ≥2 korunur. Kayıt sürümü 3 aynı.
