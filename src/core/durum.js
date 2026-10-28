@@ -127,7 +127,7 @@ export const DURUM_SEMASI = S.nesne({
   }),
   hedefIsaretleri: S.dizi(S.nesne({ uid: S.metin(), tur: S.metin({ izinli: ISARET_TURLERI }), x: S.sayi(), y: S.sayi(),
     kalan: S.sayi(), zorluk: S.sayi() })),
-  komsu: S.nesne({ rng: S.sayi() }),
+  komsu: S.nesne({ rng: S.sayi(), sonTalep: S.sayi() }, { varsayilan: { sonTalep: -99 } }),
   komsular: S.dizi(S.nesne({
     id: S.metin({ izinli: idler(KOMSULAR) }), x: S.sayi(), y: S.sayi(), mizac: S.metin({ izinli: Object.keys(MIZACLAR) }),
     cag: S.metin({ izinli: idler(CAGLAR) }), cagTur: S.sayi(), iliski: S.sayi(), durum: S.metin({ izinli: KOMSU_DURUMLARI }),
@@ -140,7 +140,9 @@ export const DURUM_SEMASI = S.nesne({
       baslangic: { tur: 'sozlukSayi', anahtarlar: ['tur', 'sefer', 'hediye'] } }, { bos: true }),
     unvanlar: { tur: 'metinDizi' },
     sayac: { tur: 'sozlukSayi' },
-  }),
+    // Kart zamanlaması (görev sıklığı): çağ başına verilen set sayısı, son verilme turu, kendiliğinden kapanma turu.
+    kart: S.nesne({ cag: S.metin({ bos: true }), adet: S.sayi(), son: S.sayi(), bitis: S.sayi() }),
+  }, { varsayilan: { kart: { cag: '', adet: 0, son: -99, bitis: 0 } } }),
 });
 
 const YOK = Symbol('yok');

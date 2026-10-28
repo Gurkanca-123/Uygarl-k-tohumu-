@@ -8,7 +8,7 @@ import {
 } from '../data/denge.js';
 import { CAGLAR } from '../data/caglar.js';
 import {
-  KARO, KAYNAK, kopya, cagSira, kaynakAcik, kaynakUygula, kaynakYeter, eksikMetni, bildir, olayKilitli, OLAY_KILIDI, hataDon,
+  KARO, KAYNAK, kopya, cagSira, kaynakAcik, kaynakUygula, kaynakYeter, eksikMetni, bildir, siklikProfil, bekleyenKararSayisi, olayKilitli, OLAY_KILIDI, hataDon,
 } from './yardimci.js';
 import { rngBaslat, rngSonraki } from './rng.js';
 import { karoAt, merkezNokta } from '../world/harita.js';
@@ -18,7 +18,7 @@ import { savunmaHesapla } from './savunma.js';
 import { KOMSU, komsuBul, komsuIliski, iliskiDegistir, iliskiEtiketi, komsuGucu } from './komsu_temel.js';
 
 export const komsuRngBaslat = (tohum) => rngBaslat(`komsu:${tohum}`);
-export const komsuDurumVarsayilan = (tohum) => ({ rng: komsuRngBaslat(tohum) });
+export const komsuDurumVarsayilan = (tohum) => ({ rng: komsuRngBaslat(tohum), sonTalep: -99 });
 const MIZAC_IDLER = Object.keys(MIZACLAR);
 
 function kz(d) {
@@ -103,7 +103,7 @@ function niyetKur(d, k, kural) {
 
 // ---------- Adım o4 (takvimden sonra) ----------
 // Her tur: keşif oranıyla bulunma, çağ yetişme. Mevsim başı: süresi biten niyetler (cevapsız haraç = red), ilişki kayması, yeni niyet.
-export function adimKomsu(durum, bildirimler = []) {
+export function adimKomsu(durum, bildirimler = [], sec = {}) {
   if (!durum.komsu) return durum;
   const d = kopya(durum);
   const n = d.harita.boyut;
@@ -130,7 +130,15 @@ export function adimKomsu(durum, bildirimler = []) {
     const il = komsuIliski(d, k);
     if (il) iliskiDegistir(d, k, -Math.sign(il) * Math.min(Math.abs(il), KOMSU_KAYMA));
     const kural = komsuNiyeti(d, k);
+    // Karar isteyen teklif/talepler (takas, haraç, ittifak) nadir: iki talep arası komsuTalepAralik tur ve başka bekleyen karar yokken.
+    // Düşmanca/baskın niyeti karar değil, tehdit ağırlığıdır; süzülmez.
+    const talep = ['ticaret', 'harac', 'ittifak'].includes(kural.id);
+    if (talep && (d.tur - (d.komsu.sonTalep ?? -99) < siklikProfil(sec).komsuTalepAralik || bekleyenKararSayisi(d))) {
+      k.niyet = null;
+      continue;
+    }
     k.niyet = kural.id === 'sessiz' ? null : niyetKur(d, k, kural);
+    if (talep) d.komsu.sonTalep = d.tur;
     if (k.niyet) bildir(bildirimler, 'komsu_niyet', kural.metin.replace('{ad}', ad), ['harac', 'baskin', 'dusmanca'].includes(kural.id) ? 'uyari' : 'bilgi',
       { komsu: k.id, niyet: kural.id });
   }

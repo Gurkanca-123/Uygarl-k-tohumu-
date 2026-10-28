@@ -6,11 +6,11 @@ import { dogrula } from '../src/data/dogrula.js';
 
 const bozuk = (fn) => { const v = structuredClone({ ...VERI, DENGE: undefined }); fn(v); return dogrula({ ...v, DENGE: VERI.DENGE }); };
 
-test('aksiyon tabloları geçerli; MVP: Keşif, Ayı Avı, Harabe açık; Avcı + Kaşif; 1 komşu; 1 destan + 4 görev', () => {
+test('aksiyon tabloları geçerli; MVP: Keşif, Ayı Avı, Harabe açık; Avcı + Kaşif; 1 komşu; 1 destan + 5 görev', () => {
   assert.deepEqual(dogrula(VERI), []);
   assert.deepEqual(VERI.SEFERLER.filter((s) => s.mvp).map((s) => s.id), ['kesif', 'ayi_avi', 'harabe']);
   assert.deepEqual(VERI.SINIFLAR.filter((s) => s.acik).map((s) => s.id), ['avci', 'kasif']);
-  assert.equal(VERI.MEVSIM_GOREVLERI.length, 4);
+  assert.equal(VERI.MEVSIM_GOREVLERI.length, 5);
   assert.equal(VERI.DESTANLAR[0].id, 'ayinin_izinde');
 });
 

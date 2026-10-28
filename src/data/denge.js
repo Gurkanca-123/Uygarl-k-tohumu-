@@ -312,3 +312,24 @@ export const BASKIN = { tavan: 3, bekleme: 15, gerginlik: -40 };
 export const GOREV_SURE = 5;
 export const GOREV_KART_SAYI = 3;
 export const GOREV_MEVSIM = ['bahar', 'yaz', 'guz'];
+
+// --- Görev sıklığı (kullanıcı geri bildirimi 2026-10-28: "çok sık görev çıkıyor, şehir gelişiminin önüne geçiyor") ---
+// Oyuncudan karar/ilgi isteyen her şeyin sıklığı buradan ayarlanır; Ayarlar'daki "Görev sıklığı" seçeneği (ut_ayar.siklik)
+// `turIlerlet(durum, { siklik })` ile çekirdeğe parametre olarak geçer (kayıt alanı değil; çekirdek saf kalır).
+//   kartCagAdet  bir çağda çıkacak en çok mevsim görev kartı seti · kartAralik iki set arası en az tur · kartIlkTur ilk sete en erken tur
+//   kartPencere  mevsim başından sonraki kaç gün içinde (bekleyen karar yüzünden ertelenen) kart yine verilebilir
+//   kartOmur     kart setinin seçilmezse kendiliğinden kapanma süresi (tur; Kış başında her halükarda düşer)
+//   isaretMax    haritada aynı anda en çok işaret (null = ISARET_MAX çağ tablosu) · isaretMevsimP Bahar/Güz doğuş olasılığı
+//   isaretKesfet Keşfet eylemi / keşif seferinin ek işaret olasılığı çarpanı
+//   seferOlay    yolda sefer olayı olasılığı · komsuTalepAralik komşu teklif/talebi (takas, haraç, ittifak) arası en az tur
+export const SIKLIK_SECENEKLERI = ['az', 'normal', 'cok'];
+export const SIKLIK_VARSAYILAN = 'az';
+export const SIKLIK_AD = { az: 'Az', normal: 'Normal', cok: 'Çok' };
+export const SIKLIK = {
+  az: { kartCagAdet: 2, kartAralik: 10, kartIlkTur: 10, kartOmur: 4, kartPencere: 2, isaretMax: 2, isaretMevsimP: 0.85, isaretKesfet: 0.5,
+    seferOlay: 0.1, komsuTalepAralik: 12 },
+  normal: { kartCagAdet: 3, kartAralik: 7, kartIlkTur: 8, kartOmur: 5, kartPencere: 2, isaretMax: 3, isaretMevsimP: 0.85, isaretKesfet: 0.7,
+    seferOlay: 0.18, komsuTalepAralik: 8 },
+  cok: { kartCagAdet: 99, kartAralik: 0, kartIlkTur: 0, kartOmur: 15, kartPencere: 0, isaretMax: null, isaretMevsimP: 1, isaretKesfet: 1,
+    seferOlay: SEFER_OLAY, komsuTalepAralik: 0 },
+};

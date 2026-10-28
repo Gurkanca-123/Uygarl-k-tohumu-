@@ -54,18 +54,18 @@ export const ADIMLAR = [
   ['o4', 'Komşular', adimKomsu],
 ];
 
-export function turIlerlet(durum) {
+export function turIlerlet(durum, sec = {}) {
   if (durum.olay?.aktif) return { durum, bildirimler: [], hata: OLAY_KILIDI };
   let d = kopya(durum);
   d.istatistik = { ...(d.istatistik || {}), sonTur: yeniSonTur(d.tur) };
   const bildirimler = [];
-  for (const [, , adim] of ADIMLAR) d = adim(d, bildirimler);
+  for (const [, , adim] of ADIMLAR) d = adim(d, bildirimler, sec);
   return { durum: d, bildirimler };
 }
 
 // Komut: "Mevsim sonuna ilerlet" (§8). En çok MEVSIM_SONU_MAX_TUR tur, önder Dinlen; olay çıkınca, açlık başlayınca,
 // inşaat bitince ya da mevsim bitince durur. Dönüş: { durum, hata?, bildirimler, turSayisi, neden }.
-export function mevsimSonunaIlerlet(durum) {
+export function mevsimSonunaIlerlet(durum, sec = {}) {
   if (durum.olay?.aktif) return { durum, hata: OLAY_KILIDI, bildirimler: [], turSayisi: 0, neden: 'olay' };
   let d = durum;
   const bildirimler = [];
@@ -73,7 +73,7 @@ export function mevsimSonunaIlerlet(durum) {
   let i = 0;
   while (i < MEVSIM_SONU_MAX_TUR) {
     const hazir = { ...d, onder: { ...d.onder, eylem: VARSAYILAN_EYLEM, secim: null } };
-    const r = turIlerlet(hazir);
+    const r = turIlerlet(hazir, sec);
     const onceAc = d.acTur;
     d = r.durum;
     bildirimler.push(...r.bildirimler);

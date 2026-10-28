@@ -49,8 +49,8 @@ test('(d) bütünleşik: sefer kullanan bot Ayı destanını bitirir (10 tohumda
   assert.ok(r.filter((x) => x.destanTur !== null).length >= 8, JSON.stringify(r.map((x) => x.destanTur)));
 });
 
-test('mevsim görev kartları: Bahar/Yaz/Güz başında ≤ 3 kart (deterministik), seçim, tamam/başarısız', () => {
-  let d = durum({ tur: MEVSIM_TUR, kaynaklar: { yiyecek: 10, odun: 0, tas: 0, deri: 0 } });
+test('mevsim görev kartları: Güz başında 2–3 kart (deterministik, isteğe bağlı), seçim, tamam/başarısız', () => {
+  let d = durum({ tur: 2 * MEVSIM_TUR, kaynaklar: { yiyecek: 10, odun: 0, tas: 0, deri: 0 }, kahramanDurum: { teklif: null, ilk: true, yemin: {}, sayac: 0 } });
   const bl = [];
   d = adimHedef(d, bl);
   assert.ok(d.hedef.kartlar.length >= 2 && d.hedef.kartlar.length <= 3);
@@ -63,10 +63,11 @@ test('mevsim görev kartları: Bahar/Yaz/Güz başında ≤ 3 kart (deterministi
   assert.ok(!r.hata);
   assert.match(gorevKartiSec(r.durum, 'basarili_sefer').hata, /Zaten/);
   assert.equal(gorevDurumu(r.durum, r.durum.hedef.gorev), null);
-  const dolu = { ...r.durum, kaynaklar: { ...r.durum.kaynaklar, yiyecek: 25 } };
+  const dolu = { ...r.durum, kaynaklar: { ...r.durum.kaynaklar, yiyecek: 18 } };
   const t = adimHedef(dolu, []);
   assert.equal(t.hedef.gorev, null);
-  assert.equal(t.kaynaklar.deri, 4);
+  assert.equal(t.kaynaklar.deri, 5);
+  assert.equal(t.kaynaklar.odun, 8);
   let f = r.durum;
   const fb = [];
   for (let i = 0; i < GOREV_SURE; i++) f = adimHedef({ ...f, tur: f.tur + 1 }, fb);

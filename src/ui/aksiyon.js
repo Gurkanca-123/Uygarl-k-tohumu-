@@ -357,11 +357,12 @@ function hedefPaneli(a, d) {
     bloklar.push(h('h4', {}, 'Mevsim görevi'));
     bloklar.push(h('div', { class: 'sf-gorev-k etkin' }, h('b', {}, hg.gorev.ad), h('span', {}, hg.gorev.metin), h('small', {}, `⏳ ${hg.gorev.kalan} gün · ${odulMetni(hg.gorev.odul)}`)));
   } else if (hg.kartlar.length) {
-    bloklar.push(h('h4', {}, 'Mevsim görevi seç'));
+    bloklar.push(h('h4', {}, 'Mevsim görevi (isteğe bağlı)'));
+    if (hg.kartKalan != null) bloklar.push(h('div', { class: 'soluk sf-not' }, `Görmezden gelebilirsin; ${hg.kartKalan} gün sonra kendiliğinden kapanır.`));
     bloklar.push(h('div', { class: 'sf-kartlar' }, hg.kartlar.map((k) =>
       h('button', { class: 'sf-gorev-k', 'data-kart': k.id, onclick: () => a.oyun.komut(gorevKartiSec, k.id) },
         h('b', {}, k.ad), h('span', {}, k.metin), h('small', {}, `${k.sure} gün · ${odulMetni(k.odul)}`)))));
-  } else bloklar.push(h('div', { class: 'soluk sf-not' }, 'Her Bahar, Yaz ve Güz başında 3 görev kartı gelir; birini seçersin.'));
+  } else bloklar.push(h('div', { class: 'soluk sf-not' }, 'Zaman zaman isteğe bağlı bir mevsim görevi çıkar; istersen birini seçersin, istemezsen kendiliğinden kapanır.'));
   if (hg.unvanlar.length) bloklar.push(h('div', { class: 'soluk sf-not' }, `Unvanlar: ${hg.unvanlar.join(', ')}`));
   bloklar.push(h('div', { class: 'sf-ritim' }, '🌱 Bahar: keşif · ☀️ Yaz: sefer · 🍂 Güz: hazırlık · ❄️ Kış: tehdit'));
   return bloklar;

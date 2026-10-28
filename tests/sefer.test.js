@@ -14,7 +14,7 @@ import { yiyecekIhtiyaci } from '../src/core/tuketim.js';
 import { savunmaHesapla, savunmaDokum } from '../src/core/savunma.js';
 import { rngBaslat, rngSonraki } from '../src/core/rng.js';
 import { AKTIF_VARSAYILAN } from '../src/core/tehdit.js';
-import { SEFER_SANS, ISARET_SURE, ILK_AYI_GUN, SEFER_ISCI_YARALI_SURE, KAHRAMAN_YARALI } from '../src/data/denge.js';
+import { SIKLIK, SEFER_SANS, ISARET_SURE, ILK_AYI_GUN, SEFER_ISCI_YARALI_SURE, KAHRAMAN_YARALI } from '../src/data/denge.js';
 
 const kalabalik = (n = 6, ek = {}) => durum({ nufus: n, atama: { 'serbest:toplayici': n }, kaynaklar: { yiyecek: 28, odun: 20, tas: 5, deri: 5 }, ...ek });
 const toplam = (o) => Object.values(o).reduce((a, x) => a + x, 0);
@@ -157,8 +157,9 @@ test('işaretler: ISARET_SURE tur sonra kaybolur; kaybolan ayı ayı tehdidini a
   assert.ok(x.sefer.ayiKacti > 0);
   assert.ok(x.tehdit.gerginlik > g0);
   // İşaret yalnız keşifli, geçilebilir karoda
-  for (let i = 0; i < 3; i++) x = isaretli(x, 'harabe').d;
-  assert.ok(x.hedefIsaretleri.length <= 3);
+  x = structuredClone(x);
+  for (let i = 0; i < 3; i++) isaretDogur(x, [], { zorla: 'harabe' });
+  assert.ok(x.hedefIsaretleri.length <= SIKLIK.az.isaretMax, 'varsayılan (Az) profilde aynı anda en çok 2 işaret');
 });
 
 test(`ilk ayı işareti ${ILK_AYI_GUN[0]}–${ILK_AYI_GUN[1]}. günler arasında garanti (20 tohum)`, () => {

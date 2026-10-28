@@ -1,5 +1,9 @@
 # CHANGELOG_DEV (yalnız son kayıtlar; eskiler `docs/CHANGELOG_ARSIV.md`)
 
+## 2026-10-28 — Görev sıklığı azaltma (Sonnet 5.5) + savaş tasarımı `docs/SAVAS.md` (Opus 5.5)
+- Karar isteyen öğe oyun başına 7,2→3,6 (≈ her 8 turda bir); mevsim kartı çağda en çok 2 set, isteğe bağlı, 4 tur sonra kapanır; aynı anda 1 bekleyen karar; işaret ≤2; toast birleştirme (`src/ui/toast.js`); destan ara adımları sessiz; Ayarlar'da Görev sıklığı Az/Normal/Çok (`ut_ayar.siklik` → `turIlerlet(durum,{siklik})`, çekirdek saf). Göçebe 40/50 hedefte, ortanca ~26, ayı destanı %90. Testler 242 (241+1 todo), e2e 292/292.
+- Yedek: `yedek/savas-oncesi` dalı (savaş fazı öncesi sağlam sürüm).
+
 ## 2026-10-28 — Aksiyon MVP: sefer, kahraman, komşu, hedef (Opus 5.5 çekirdek, Sonnet 5.5 UI+denge)
 - Çekirdek: `seferler|kahramanlar|komsular|hedefler.js`, `core/sefer|kahraman|komsu|hedef.js`, kayıt v4 (`goc3to4`), ayrı RNG akışları. Avcı/Kaşif, Keşif/Ayı Avı/Harabe, 1 komşu, Ayı destanı + 4 görev kartı. Seferde ölüm yok.
 - UI: `src/ui/aksiyon.js` (Seferler penceresi: Sefer/Yolda/Kahraman/Komşu/Hedef), harita işaretleri, 6. gün kahraman teklifi, 🎯 hedef rozeti.

@@ -118,8 +118,8 @@ export function oku(depo, anahtar, yeniTohum) {
 }
 
 // §1.2 p: otomatik kayıt çekirdeğin dışında, çağıran katmanda yapılır. Tur ilerler, hata yoksa otomatik yuvaya yazılır.
-export function turIlerletVeKaydet(depo, durum) {
-  const sonuc = turIlerlet(durum);
+export function turIlerletVeKaydet(depo, durum, sec = {}) {
+  const sonuc = turIlerlet(durum, sec);
   if (!sonuc.hata) kaydet(depo, ANAHTARLAR.otomatik, sonuc.durum);
   return sonuc;
 }

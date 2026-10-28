@@ -12,6 +12,7 @@ import { MEVSIMLER } from '../data/mevsimler.js';
 import {
   SEVIYE_CARPAN, SEVIYE_ETKI, SEVIYE_ISCI_EK, SEVIYE_KAPASITE_EK, SERBEST_ISLER, YENI_KISI_ISI,
 } from '../data/denge.js';
+import { SIKLIK, SIKLIK_VARSAYILAN } from '../data/denge.js';
 import { takvim } from './takvim.js';
 import { rngSonraki } from './rng.js';
 
@@ -113,6 +114,17 @@ export function yaraliSayisi(d) {
 // Seferdeki işçi, kahraman ve önder köyde üretmez, yemek yemez, savunmaya sayılmaz. Kahramanlar nüfusa sayılır ama işçi yuvasına
 // girmez (görev yeri ayrı). Eski kayıt / test durumlarında alanlar yoksa boş sayılır.
 export const aktifSeferler = (d) => d.sefer?.aktif || [];
+
+// Görev sıklığı profili (denge.js SIKLIK). sec = { siklik: 'az'|'normal'|'cok' } (Ayarlar → turIlerlet parametresi); yoksa varsayılan.
+export const siklikProfil = (sec) => SIKLIK[sec?.siklik] || SIKLIK[SIKLIK_VARSAYILAN];
+// Oyuncudan karar bekleyen teklif/kart/olay sayısı: ilk kahraman teklifi, seçilmemiş mevsim görev kartı, yanıt bekleyen komşu
+// teklifi, seçim bekleyen sefer olayı. Yeni karar öğeleri yalnız 0 iken çıkar ("aynı anda en çok 1 bekleyen karar").
+export function bekleyenKararSayisi(d) {
+  return (d.kahramanDurum?.teklif ? 1 : 0)
+    + (d.hedef?.kartlar?.length > 0 && !d.hedef?.gorev ? 1 : 0)
+    + (d.komsular || []).filter((k) => k.niyet && !k.niyet.kullanildi && ['harac', 'ittifak', 'ticaret'].includes(k.niyet.tur)).length
+    + aktifSeferler(d).filter((s) => s.olay).length;
+}
 export const seferdekiIsci = (d) => aktifSeferler(d).reduce((a, s) => a + (s.ekip?.isci || 0), 0);
 export const seferdekiKahramanUid = (d) => new Set(aktifSeferler(d).flatMap((s) => s.ekip?.kahraman || []));
 export const seferdekiKisi = (d) => seferdekiIsci(d) + seferdekiKahramanUid(d).size;

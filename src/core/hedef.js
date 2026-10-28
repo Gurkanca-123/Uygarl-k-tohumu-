@@ -4,7 +4,7 @@ import { DESTANLAR, MEVSIM_GOREVLERI } from '../data/hedefler.js';
 import { GOREV_SURE, GOREV_KART_SAYI, GOREV_MEVSIM, MEVSIM_TUR, SEFER_OLCEK } from '../data/denge.js';
 import {
   kopya, cagSira, mevcutCag, calisanBinalar, kaynakUygula, degistiriciEkle, bildir, olayKilitli, OLAY_KILIDI, hataDon, BINA,
-  aktifSeferler,
+  aktifSeferler, siklikProfil, bekleyenKararSayisi,
 } from './yardimci.js';
 import { takvim } from './takvim.js';
 import { rngBaslat, rngSonraki } from './rng.js';
@@ -16,7 +16,7 @@ import { huzurEkle } from './huzur.js';
 export const DESTAN = Object.fromEntries(DESTANLAR.map((x) => [x.id, x]));
 export const GOREV = Object.fromEntries(MEVSIM_GOREVLERI.map((x) => [x.id, x]));
 export const hedefVarsayilan = () => ({ destan: { id: DESTANLAR[0].id, adim: 0, bitti: false }, kartlar: [], gorev: null,
-  unvanlar: [], sayac: { hediye: 0 } });
+  unvanlar: [], sayac: { hediye: 0 }, kart: { cag: '', adet: 0, son: -99, bitis: 0 } });
 
 const seferBasariSayisi = (d) => (d.sefer?.istatistik?.basari || 0) + (d.sefer?.istatistik?.buyuk || 0);
 
@@ -39,8 +39,9 @@ export function destanIlerlet(d, olay, bildirimler) {
     h.bitti = true;
     destanOdulu(d, ds, bildirimler);
   } else {
+    // Ara adımlar arka planda ilerler (Günlük'e yazılır, açılır bildirim çıkmaz); yalnız oyuncudan eylem isteyen adım duyurulur.
     bildir(bildirimler, 'hedef_destan', `${ds.ad}: ${adim.metin.replace(/\.$/, '')} — tamam. Sıradaki: ${ds.adimlar[h.adim].metin}`, 'iyi',
-      { destan: ds.id, adim: h.adim });
+      { destan: ds.id, adim: h.adim, sessiz: !ds.adimlar[h.adim].onemli });
   }
   return true;
 }
@@ -83,6 +84,7 @@ function kartUygun(d, g) {
   if (cagSira(d.cag) < cagSira(g.cagMin)) return false;
   if (g.uygun?.tehditAktif && !d.tehdit?.aktif) return false;
   if (g.uygun?.komsu && !(d.komsular || []).length) return false;
+  if (g.uygun?.isaret && !(d.hedefIsaretleri || []).length) return false;
   return true;
 }
 export function kartCek(d) {
@@ -135,7 +137,7 @@ export function gorevKartiSec(durum, kartId) {
 }
 
 // ---------- Adım o3 (takvimden sonra; d.tur yeni günün turu) ----------
-export function adimHedef(durum, bildirimler = []) {
+export function adimHedef(durum, bildirimler = [], sec = {}) {
   if (!durum.hedef) return durum;
   const d = kopya(durum);
   ilkKahramanTeklifi(d, bildirimler);
@@ -148,7 +150,7 @@ export function adimHedef(durum, bildirimler = []) {
     if (g && h.adim === g.adim && !(d.hedefIsaretleri || []).some((i) => i.tur === g.isaret)
       && !aktifSeferler(d).some((s) => s.tur === 'ayi_avi')) {
       h.adim = g.hedef;
-      bildir(bildirimler, 'hedef_destan', `${ds.ad}: ayının izi kayboldu; yeni bir iz bulmalısın.`, 'uyari', { destan: ds.id, adim: h.adim });
+      bildir(bildirimler, 'hedef_destan', `${ds.ad}: ayının izi kayboldu; yeni bir iz bulmalısın.`, 'bilgi', { destan: ds.id, adim: h.adim, sessiz: true });
     }
   }
   // Etkin görev
@@ -160,18 +162,29 @@ export function adimHedef(durum, bildirimler = []) {
     else {
       gv.kalan -= 1;
       if (s === 'basarisiz' || gv.kalan <= 0) {
-        bildir(bildirimler, 'hedef_gorev_basarisiz', `Görev tamamlanamadı: ${g.ad}.`, 'uyari', { gorev: g.id });
+        bildir(bildirimler, 'hedef_gorev_basarisiz', `Görev tamamlanamadı: ${g.ad}.`, 'bilgi', { gorev: g.id, sessiz: true });
         d.hedef.gorev = null;
       }
     }
   }
-  // Mevsim başı kartlar (Bahar/Yaz/Güz); Kış başında seçilmemiş kartlar düşer.
-  if (d.tur % MEVSIM_TUR === 0 && d.tur > 0) {
-    const m = takvim(d.tur).mevsim;
-    d.hedef.kartlar = GOREV_MEVSIM.includes(m) && !d.hedef.gorev ? kartCek(d) : [];
-    if (d.hedef.kartlar.length) {
-      bildir(bildirimler, 'hedef_kartlar', `Yeni mevsim görevleri: ${d.hedef.kartlar.map((id) => GOREV[id].ad).join(', ')}.`, 'bilgi',
-        { kartlar: [...d.hedef.kartlar] });
+  // Mevsim görev kartları: her mevsim DEĞİL, çağ başına SIKLIK.kartCagAdet kez, iki set arası kartAralik tur, bekleyen başka karar
+  // yokken; isteğe bağlıdır, seçilmezse kartOmur tur sonra (ya da Kış başında) kendiliğinden kapanır.
+  const pr = siklikProfil(sec);
+  const kd = d.hedef.kart;
+  if (d.hedef.kartlar.length && !d.hedef.gorev && (d.tur >= kd.bitis || (d.tur % MEVSIM_TUR === 0 && !GOREV_MEVSIM.includes(takvim(d.tur).mevsim)))) {
+    d.hedef.kartlar = [];
+  }
+  // Mevsimin ilk 3 günü içinde (bekleyen karar yüzünden ertelenirse sonraki güne kayar).
+  if (d.tur % MEVSIM_TUR <= pr.kartPencere && d.tur > 0 && GOREV_MEVSIM.includes(takvim(d.tur).mevsim) && !d.hedef.gorev) {
+    if (kd.cag !== d.cag) { kd.cag = d.cag; kd.adet = 0; }
+    const baskaKarar = bekleyenKararSayisi(d) - (d.hedef.kartlar.length ? 1 : 0);  // seçilmemiş eski kartlar yenisiyle değişir
+    if (kd.adet < pr.kartCagAdet && d.tur >= pr.kartIlkTur && d.tur - kd.son >= pr.kartAralik && !baskaKarar) {
+      d.hedef.kartlar = kartCek(d);
+      if (d.hedef.kartlar.length) {
+        kd.adet += 1; kd.son = d.tur; kd.bitis = d.tur + pr.kartOmur;
+        bildir(bildirimler, 'hedef_kartlar', `Yeni mevsim görevleri: ${d.hedef.kartlar.map((id) => GOREV[id].ad).join(', ')}. (İsteğe bağlı)`, 'bilgi',
+          { kartlar: [...d.hedef.kartlar] });
+      }
     }
   }
   return d;
@@ -187,6 +200,7 @@ export function hedefGorunumu(d) {
       adimlar: ds.adimlar.map((a, i) => ({ id: a.id, metin: a.metin, tamam: h.destan.bitti || i < h.destan.adim, etkin: !h.destan.bitti && i === h.destan.adim })),
       komut: destanAdimBilgi(d), odul: { ...ds.odul, esyaAd: ds.odul.esya ? ESYA[ds.odul.esya].ad : null } } : null,
     kartlar: h.kartlar.map(kart),
+    kartKalan: h.kartlar.length ? Math.max(0, h.kart.bitis - d.tur) : null,
     gorev: h.gorev ? { ...kart(h.gorev.id), kalan: h.gorev.kalan } : null,
     unvanlar: [...h.unvanlar],
   };

@@ -6,13 +6,13 @@
 import { SEFERLER, SEFER_OLAYLARI, ISARET_AGIRLIK, ISARET_AD } from '../data/seferler.js';
 import {
   SEFER_SANS, SEFER_ESIK, SEFER_SONUC, SEFER_ERZAK, SEFER_ISCI_GUC, SEFER_ALET, SEFER_ONDER_GUC, SEFER_MAX, SEFER_MESAFE,
-  SEFER_SURE_MIN, SEFER_KESIF_SURE, SEFER_ISCI_YARALI_SURE, SEFER_OLAY, SEFER_OLCEK, SEFER_MEVSIM, ISARET_MAX, ISARET_SURE,
+  SEFER_SURE_MIN, SEFER_KESIF_SURE, SEFER_ISCI_YARALI_SURE, SEFER_OLCEK, SEFER_MEVSIM, ISARET_MAX, ISARET_SURE,
   ISARET_MESAFE, ISARET_MEVSIM, ISARET_KESFET, ILK_AYI_GUN, AYI_KACTI, NUFUS_MIN, YORGUNLUK_MAX, ILK_OLAY_TUR, MEVSIM_TUR,
   TEHDIT_DOGUM_ESIK, TEHDIT_SARMAL_HUZUR, BASKIN, KOMSU_ILISKI,
 } from '../data/denge.js';
 import {
   KARO, KAYNAK, kopya, cagSira, mevcutCag, kaynakAcik, kaynakUygula, degistiriciEkle, bildir, olayKilitli, OLAY_KILIDI, hataDon,
-  sonTur, yaraliSayisi, aktifSeferler, seferdekiIsci, seferdekiKahramanUid, seferdekiKisi, onderSeferde, kahramanSayisi,
+  sonTur, yaraliSayisi, aktifSeferler, siklikProfil, bekleyenKararSayisi, seferdekiIsci, seferdekiKahramanUid, seferdekiKisi, onderSeferde, kahramanSayisi,
   bulusEtkileri, sinirla, kisiEkle,
 } from './yardimci.js';
 import { takvim } from './takvim.js';
@@ -253,9 +253,10 @@ function olayEtkisiUygula(sf, etki = {}) {
 }
 
 // ---------- Adım m3 (tehditten sonra, olaydan önce) ----------
-export function adimSefer(durum, bildirimler = []) {
+export function adimSefer(durum, bildirimler = [], sec = {}) {
   if (!durum.sefer) return durum;
   const d = kopya(durum);
+  const pr = siklikProfil(sec);
   adimKahraman(d, bildirimler);
   if (onderSeferde(d)) d.onder.yorgunluk = Math.min(YORGUNLUK_MAX, d.onder.yorgunluk + 1);
   const st = sonTur(d);
@@ -263,8 +264,8 @@ export function adimSefer(durum, bildirimler = []) {
   for (const sf of [...d.sefer.aktif]) {
     sf.kalan -= 1;
     if (sf.kalan <= 0 && sf.olay) olayEtkisiUygula(sf, SEFER_OLAY_TANIM[sf.olay.id].secenekler[0].seferEtki);
-    if (sf.kalan <= 0) { seferSonuclandir(d, sf, bildirimler); continue; }
-    if (olayOlabilir && !st.seferOlayi && !sf.olayOldu && sz(d) < SEFER_OLAY) {
+    if (sf.kalan <= 0) { seferSonuclandir(d, sf, bildirimler, pr); continue; }
+    if (olayOlabilir && !st.seferOlayi && !sf.olayOldu && !bekleyenKararSayisi(d) && sz(d) < pr.seferOlay) {
       const o = SEFER_OLAYLARI[Math.floor(sz(d) * SEFER_OLAYLARI.length)];
       sf.olay = { id: o.id };
       sf.olayOldu = true;
@@ -276,7 +277,7 @@ export function adimSefer(durum, bildirimler = []) {
   // Keşfet eylemi: ek işaret şansı (Kaşif ile daha yüksek).
   if (st.eylem === 'kesfet' && !sarmalda(d)) {
     const p = (d.kahramanlar || []).some((k) => k.sinif === 'kasif') ? ISARET_KESFET.kasif : ISARET_KESFET.taban;
-    if (sz(d) < p) isaretDogur(d, bildirimler);
+    if (sz(d) < p * pr.isaretKesfet) isaretDogur(d, bildirimler, { pr });
   }
   return d;
 }
@@ -290,7 +291,7 @@ function ganimetTabani(d, k) {
 }
 
 // Kopya üstünde: sefer sonucu, ödül, XP, yaralı; sefer listeden çıkar.
-function seferSonuclandir(d, sf, bildirimler) {
+function seferSonuclandir(d, sf, bildirimler, pr = siklikProfil()) {
   const s = SEFER[sf.tur];
   d.sefer.aktif = d.sefer.aktif.filter((x) => x.uid !== sf.uid);
   const ks = sf.ekip.kahraman.map((u) => kahramanBul(d, u)).filter(Boolean);
@@ -318,8 +319,8 @@ function seferSonuclandir(d, sf, bildirimler) {
     const k = haritaKesfiUygula(d, yar);
     notlar.push(`${k.acilan} karo keşfedildi`);
     for (const b of k.bulgular || []) bildir(bildirimler, 'kesif_bulgu', b.metin, 'iyi', { karo: b.karo, x: b.x, y: b.y });
-    const pI = yetenekVar(ks, 'kesifIsaret') ? 1 : oz.isaretOlasilik * (sonuc === 'buyuk' ? 1.5 : 1);
-    if (sz(d) < pI) isaretDogur(d, bildirimler, { kesif: true });
+    const pI = yetenekVar(ks, 'kesifIsaret') ? 1 : oz.isaretOlasilik * (sonuc === 'buyuk' ? 1.5 : 1) * pr.isaretKesfet;
+    if (sz(d) < pI) isaretDogur(d, bildirimler, { kesif: true, pr });
     if (sz(d) < oz.kaynakOlasilik) ekle(Object.fromEntries(Object.entries(oz.kaynak).map(([r2, x]) => [r2, x * carpan * olcek(d)])));
     if (oz.komsuBul && basarili) komsuKesfet(d, bildirimler, { neden: 'sefer' });
   }
@@ -419,9 +420,9 @@ function harabeOdulu(d, s, sonuc, ks, sf, ekle, notlar, bildirimler) {
 
 // ---------- İşaretler ----------
 // Kopya üstünde: bir işaret doğurur (tür ağırlıklı; yalnız açık sefer türlerinin işaretleri). zorla: tür.
-export function isaretDogur(d, bildirimler, { zorla = null } = {}) {
+export function isaretDogur(d, bildirimler, { zorla = null, pr = siklikProfil() } = {}) {
   if (!d.hedefIsaretleri) d.hedefIsaretleri = [];
-  if (d.hedefIsaretleri.length >= (ISARET_MAX[d.cag] ?? 3)) return null;
+  if (d.hedefIsaretleri.length >= Math.min(ISARET_MAX[d.cag] ?? 3, pr.isaretMax ?? Infinity)) return null;
   const turler = [...new Set(SEFERLER.filter((s) => s.isaret && !seferAcikHatasi(d, s)).map((s) => s.isaret))];
   let tur = zorla;
   if (!tur) {
@@ -464,9 +465,10 @@ function isaretYeri(d) {
 }
 
 // Adım o2 (takvimden sonra): işaret süreleri, kaybolan ayı cezası, mevsim başı işaretleri, ilk ayı garantisi.
-export function adimIsaret(durum, bildirimler = []) {
+export function adimIsaret(durum, bildirimler = [], sec = {}) {
   if (!durum.sefer) return durum;
   const d = kopya(durum);
+  const pr = siklikProfil(sec);
   if (d.sefer.ayiKacti > 0) d.sefer.ayiKacti -= 1;
   const kalan = [];
   for (const i of d.hedefIsaretleri || []) {
@@ -481,11 +483,17 @@ export function adimIsaret(durum, bildirimler = []) {
   d.hedefIsaretleri = kalan;
   const gun = d.tur + 1;
   if (!d.sefer.ilkAyi && gun >= ILK_AYI_GUN[0] && gun <= ILK_AYI_GUN[1]) {
-    if (sz(d) < 1 / (ILK_AYI_GUN[1] - gun + 1)) isaretDogur(d, bildirimler, { zorla: 'ayi' });
+    if (sz(d) < 1 / (ILK_AYI_GUN[1] - gun + 1)) isaretDogur(d, bildirimler, { zorla: 'ayi', pr: { ...pr, isaretMax: null } });
   }
   if (d.tur % MEVSIM_TUR === 0 && d.tur > 0 && ISARET_MEVSIM.includes(takvim(d.tur).mevsim) && !sarmalda(d)) {
     const adet = 1 + (yetenekToplam(d.kahramanlar || [], 'isaretEk') > 0 ? 1 : 0);
-    for (let k = 0; k < adet; k++) isaretDogur(d, bildirimler);
+    // Ayı destanı sürüyorsa ve haritada ayı izi yoksa mevsim işareti ayı olur (az işaretle destan yine bitirilebilir).
+    const destanAyi = d.cag === 'gocebe' && d.sefer.ilkAyi && d.hedef?.destan && !d.hedef.destan.bitti
+      && !(d.hedefIsaretleri || []).some((i) => i.tur === 'ayi') && !aktifSeferler(d).some((s2) => s2.tur === 'ayi_avi');
+    for (let k = 0; k < adet; k++) {
+      const ayi = destanAyi && k === 0;
+      if (sz(d) < (ayi ? 1 : pr.isaretMevsimP)) isaretDogur(d, bildirimler, { pr, zorla: ayi ? 'ayi' : null });
+    }
   }
   return d;
 }

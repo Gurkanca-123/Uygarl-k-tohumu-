@@ -18,9 +18,10 @@ import {
   insaSekmesi, isSekmesi, arastirmaSekmesi, onderSekmesi, cagSekmesi, binaKarti, hucreKarti, maliyetChips, gereksinimMetni, binaResmi,
 } from './paneller.js';
 import { Ogretici } from './ogretici.js';
+import { toastSuz } from './toast.js';
 import { aksiyonSekmesi, aksiyonKarti, hedefCipi, dikkatDurumu, IsaretKatmani, kodSimge } from './aksiyon.js';
 import { EYLEMLER } from '../data/eylemler.js';
-import { VARSAYILAN_EYLEM, YORGUNLUK_MAX } from '../data/denge.js';
+import { VARSAYILAN_EYLEM, YORGUNLUK_MAX, SIKLIK_SECENEKLERI, SIKLIK_VARSAYILAN, SIKLIK_AD } from '../data/denge.js';
 
 const BINA = Object.fromEntries(BINALAR.map((b) => [b.id, b]));
 const OLAY = Object.fromEntries(OLAYLAR.map((o) => [o.id, o]));
@@ -38,7 +39,9 @@ export class Arayuz {
     const ui = depoOku('ut_ui', { sekme: 'insa', pencere: 'kapali' });
     this.sekme = SEKMELER.some((x) => x[0] === ui.sekme) ? ui.sekme : 'insa';
     this.pencere = ['kapali', 'acik', 'kucuk'].includes(ui.pencere) ? ui.pencere : 'kapali'; // sekme penceresi: kapali | acik | kucuk
-    this.ayar = depoOku('ut_ayar', { kalite: 'yuksek', ses: false });
+    this.ayar = depoOku('ut_ayar', { kalite: 'yuksek', ses: false, siklik: SIKLIK_VARSAYILAN });
+    if (!SIKLIK_SECENEKLERI.includes(this.ayar.siklik)) this.ayar = { ...this.ayar, siklik: SIKLIK_VARSAYILAN };
+    this.oyun.siklik = this.ayar.siklik;  // Görev sıklığı çekirdeğe turIlerlet parametresi olarak geçer
     this.kartKucuk = false; this.kartAnahtar = null; this.modalAnahtar = null;
     this.insaKat = 'hepsi'; this.insaSadeceAcik = false;
     this.secim = null; this.yerlestirme = null; this.yikOnay = null; this.kervanSecim = null; this.tehditAcik = false; this.tehditKucuk = false; this.sonTehditId = null;
@@ -129,20 +132,23 @@ export class Arayuz {
     else if (tip === 'hata') this.toast([{ metin: veri, seviye: 'hata' }], 'hata');
     else if (tip === 'tur') {
       this.yikOnay = null;
-      if (veri.bildirimler.length) this.toast(veri.bildirimler);
+      const tl = toastSuz(veri.bildirimler, this.toastCtx());
+      if (tl.length) this.toast(tl);
       if (veri.bildirimler.some((b) => b.kod === 'zafer')) this.zaferGoster = true;
       if (this.yerlestirme) this.yerlestirmeBaslat(this.yerlestirme.binaId, true);
       this.yenile();
     } else if (tip === 'bildirim') {
-      this.toast(veri);
+      const tl = toastSuz(veri, this.toastCtx());
+      if (tl.length) this.toast(tl);
       if (veri.some((b) => b.kod === 'zafer')) this.zaferGoster = true;
     }
   }
 
+  toastCtx() { this.toastSon = this.toastSon || {}; return { tur: this.oyun.durum?.tur ?? 0, son: this.toastSon }; }
   hata(m) { this.toast([{ metin: m, seviye: 'hata' }], 'hata'); }
 
   toast(liste, sev = null) {
-    const satirlar = liste.slice(0, 5);
+    const satirlar = liste.slice(0, 3);
     const ek = liste.length - satirlar.length;
     const seviye = sev || (liste.some((b) => b.seviye === 'uyari') ? 'uyari' : liste.some((b) => b.seviye === 'iyi') ? 'iyi' : '');
     const simge = SEVIYE_SIMGE[sev || seviye || 'bilgi'] || 'ℹ';
@@ -150,7 +156,7 @@ export class Arayuz {
       h('span', { class: 'toast-sim' }, simge),
       h('div', { class: 'toast-gov' }, satirlar.map((b) => h('div', {}, kodSimge(b.kod) ? `${kodSimge(b.kod)} ${b.metin}` : b.metin)), ek > 0 ? h('div', { class: 'soluk kucuk' }, `…ve ${ek} bildirim daha (Günlük)`) : null));
     this.toastEl.append(el);
-    while (this.toastEl.querySelectorAll('.toast').length > 3) this.toastEl.querySelector('.toast').remove();
+    while (this.toastEl.querySelectorAll('.toast').length > 2) this.toastEl.querySelector('.toast').remove();
     this.toastTemizlikGuncelle();
     setTimeout(() => { el.remove(); this.toastTemizlikGuncelle(); }, sev === 'hata' ? 4500 : 6500);
   }
@@ -668,6 +674,11 @@ export class Arayuz {
       h('div', { class: 'segment' }, KALITELER.map(([id, ad]) => h('button', {
         class: this.ayar.kalite === id ? 'secili' : '', onclick: () => { this.ayar = { ...this.ayar, kalite: id }; this.ayarYaz(); this.kaliteUygula(); this.yenile(); } }, ad))),
       h('div', { class: 'soluk kucuk' }, 'Performans yavaş telefonlar içindir. Seçim bu cihazda saklanır.'),
+      h('h4', {}, 'Görev sıklığı'),
+      h('div', { class: 'segment' }, SIKLIK_SECENEKLERI.map((id) => h('button', {
+        class: this.ayar.siklik === id ? 'secili' : '', 'data-siklik': id,
+        onclick: () => { this.ayar = { ...this.ayar, siklik: id }; this.oyun.siklik = id; this.ayarYaz(); this.yenile(); } }, SIKLIK_AD[id]))),
+      h('div', { class: 'soluk kucuk' }, 'Mevsim görev kartları, harita işaretleri, yol olayları ve komşu teklifleri ne kadar sık çıksın. Az: şehir kurmaya odaklı, görevler fırsat gibi seyrek gelir.'),
       h('h4', {}, 'Ses'),
       h('div', { class: 'oge ses' }, h('span', {}, '🔊 Ses efektleri ve müzik'), h('span', { class: 'etiket' }, 'Yakında')),
       h('h4', {}, 'Yardım'),
