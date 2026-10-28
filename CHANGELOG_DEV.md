@@ -1,5 +1,8 @@
 # CHANGELOG_DEV (yalnız son kayıtlar; eskiler `docs/CHANGELOG_ARSIV.md`)
 
+## 2026-10-28 — Çağ merkezleri yeniden tasarlandı (Sonnet 5.5)
+- `binalar.js`: ortak `kutukOturak/kazan/kurutma`; `kamp_atesi` (büyük ateş, iki boyalı çadır, totem, kazan, kurutma), `ocak_meydani` (saman ev, kemik kapı, ayakta taş halkası, mağara resmi levhası), `koy_meydani` (boyalı frisli yönetim evi, merlon, kuyu, bronz başlıklı dikili taş), `agora` (sütun başlıklı tapınak cephesi, alınlık/akroter, heykel, defne, çeşme), `sehir_meydani` (sivri kemerli galeri, çıkmalı iskelet kat, çatı pencereleri, saat kulesi, çeşme, tezgâh, kandiller). Önizleme ile kontrol edildi; oyun içi/telefon denenmedi.
+
 ## 2026-10-28 — Ev grubu yeniden tasarlandı (Sonnet 5.5)
 - `binalar.js`: `M.kerpic_ev` (kirişli düz dam, kemerli kapı, biber şeritleri, tente, Sv2 üst oda, Sv3 çatı bahçesi), `M.tas_ev` (tek katman saçaklı kırma çatı, sütunlu sundurma+alınlık, zeytin ağacı; eski çift çatı katmanı kaldırıldı), `M.yari_ahsap_ev` (çıkmalı ahşap iskelet üst kat, çapraz payandalar, çatı penceresi, fener, fıçı). Önizlemeyle kontrol edildi; oyun içi/telefon denenmedi.
 
