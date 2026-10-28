@@ -306,6 +306,8 @@ export function dogrula(v) {
 
   // --- 8. aksiyon (docs/AKSIYON.md §8.1): seferler, kahramanlar, eşyalar, komşular, hedefler ---
   if (v.SEFERLER) aksiyonDenetle(v, { hata, cag, kay, bina, sira, cagRef, binaRef, bulusRef, kaynakNesne });
+  // --- 9. görsel savaş (docs/SAVAS.md §10): birimler, düşmanlar, rütbeler, sefer başvuruları ---
+  if (v.BIRIMLER) savasDenetle(v, { hata, sira, cagRef, binaRef, kaynakNesne });
 
   return h;
 }
@@ -412,6 +414,76 @@ function aksiyonDenetle(v, { hata, cag, kay, bina, sira, cagRef, binaRef, bulusR
     kaynakNesne(`${y}.odul.kaynak`, g.odul?.kaynak);
   }
   for (const o of v.SEFER_OLAYLARI || []) if (!(o.secenekler || []).length) hata(`SEFER_OLAYLARI.${o.id}: seçenek yok`);
+}
+
+// Savaş tablolarının çapraz denetimi.
+function savasDenetle(v, { hata, sira, cagRef, kaynakNesne }) {
+  const g = new Set();
+  const SIN = v.BIRIM_SINIFLARI || [];
+  const PRO = v.DUSMAN_PROFILLERI || [];
+  for (const b of v.BIRIMLER) {
+    const y = `BIRIMLER.${b.id}`;
+    if (g.has(b.id)) hata(`${y}: tekrarlanan id`);
+    g.add(b.id);
+    if (typeof b.ad !== 'string' || !b.ad) hata(`${y}: ad yok`);
+    cagRef(y, b.cagMin);
+    if (!SIN.includes(b.sinif)) hata(`${y}: geçersiz sınıf "${b.sinif}"`);
+    for (const a of ['can', 'saldiri', 'zirh', 'menzil', 'aralik', 'seferGuc']) if (!(b[a] > 0)) hata(`${y}: ${a} pozitif olmalı`);
+    if (!v.KONUM_C?.[b.id] || v.KONUM_C[b.id].length !== 3) hata(`${y}: KONUM_C satırı (3 sıra) yok`);
+    for (const c of v.KONUM_C?.[b.id] || []) if (!(c >= 0.5 && c <= 1.5)) hata(`${y}: konum çarpanı 0,5–1,5 dışında`);
+    if (b.acik && !b.egitim) hata(`${y}: açık birimin eğitim maliyeti yok`);
+    if (b.egitim) kaynakNesne(`${y}.egitim.maliyet`, b.egitim.maliyet);
+    for (const [t, m] of Object.entries(b.talim || {})) { if (!(Number(t) >= 2 && Number(t) <= 7)) hata(`${y}.talim: geçersiz kademe ${t}`); kaynakNesne(`${y}.talim.${t}`, m); }
+  }
+  for (const s of Object.keys(v.KARSITLIK || {})) {
+    if (!SIN.includes(s)) hata(`KARSITLIK: bilinmeyen sınıf "${s}"`);
+    for (const [p, k] of Object.entries(v.KARSITLIK[s])) {
+      if (!PRO.includes(p)) hata(`KARSITLIK.${s}: bilinmeyen profil "${p}"`);
+      if (!(k > 0 && k <= 3)) hata(`KARSITLIK.${s}.${p}: çarpan 0–3 dışında`);
+    }
+  }
+  for (const s of SIN) if (!v.KARSITLIK?.[s]) hata(`KARSITLIK: "${s}" satırı yok`);
+  const dus = new Set();
+  for (const d of v.DUSMANLAR || []) {
+    const y = `DUSMANLAR.${d.id}`;
+    dus.add(d.id);
+    if (!PRO.includes(d.profil)) hata(`${y}: geçersiz profil "${d.profil}"`);
+    for (const a of ['can', 'saldiri', 'aralik']) if (!(d[a] > 0)) hata(`${y}: ${a} pozitif olmalı`);
+  }
+  for (const c of Object.keys(v.KADEME_TAVAN || {})) cagRef('KADEME_TAVAN', c);
+  let onceki = -1;
+  for (const r of v.RUTBELER || []) {
+    const y = `RUTBELER.${r.id}`;
+    if (r.cag !== null) { cagRef(y, r.cag); if (sira(r.cag) <= onceki) hata(`${y}: çağ sırası artmıyor`); onceki = sira(r.cag); }
+    if (!Array.isArray(r.zp) || r.zp.length !== 3 || r.zp[0] > r.zp[1] || r.zp[1] > r.zp[2]) hata(`${y}: zp eşikleri [★1 ≤ ★2 ≤ ★3] olmalı`);
+    const [ns, nc] = r.izgara || [];
+    const key = (h) => `${h[0]},${h[1]}`;
+    const kh = key(r.kahramanHucre || []);
+    const seen = new Set();
+    for (const h of r.acikHucre || []) {
+      if (!(h[0] >= 0 && h[0] < ns && h[1] >= 0 && h[1] < nc)) hata(`${y}: ızgara dışı hücre ${key(h)}`);
+      if (key(h) === kh) hata(`${y}: kahraman hücresi açık hücre listesinde`);
+      if (seen.has(key(h))) hata(`${y}: tekrarlanan hücre ${key(h)}`);
+      seen.add(key(h));
+    }
+    if (r.acik && (r.acikHucre || []).length !== r.kapasite) hata(`${y}: açık hücre sayısı kapasiteye eşit olmalı`);
+  }
+  if (!(v.RUTBELER || [])[0]?.acik) hata('RUTBELER: ilk rütbe (Lider) açık olmalı');
+  for (const s of v.SEFERLER || []) {
+    if (s.savas && !s.dusman) hata(`SEFERLER.${s.id}: savaşlı seferde düşman yok`);
+    if (s.dusman?.id && !dus.has(s.dusman.id)) hata(`SEFERLER.${s.id}: bilinmeyen düşman "${s.dusman.id}"`);
+    if (s.savas && s.dusman?.id && !(v.DUSMANLAR.find((d) => d.id === s.dusman.id)?.acik)) hata(`SEFERLER.${s.id}: düşman kapalı`);
+  }
+  for (const k of v.SINIFLAR || []) {
+    if (k.acik && !k.savas) hata(`SINIFLAR.${k.id}: açık sınıfın savaş yeteneği yok`);
+    if (k.savas && (!k.savas.aktif?.id || !k.savas.pasif?.id || !(k.savas.menzil >= 1))) hata(`SINIFLAR.${k.id}.savas: menzil/pasif/aktif eksik`);
+  }
+  for (const [s, z] of Object.entries(v.SAVAS?.SAVAS_ZORLUK || {})) {
+    if (!(v.SEFERLER || []).some((x) => x.id === s && x.savas)) hata(`SAVAS_ZORLUK: "${s}" savaşlı sefer değil`);
+    if (!(z >= 0.8 && z <= 1.5)) hata(`SAVAS_ZORLUK.${s}: 0,8–1,5 dışında`);
+  }
+  const [fa, fb] = v.SAVAS?.FORM_SINIR || [0.85, 1.15];
+  if (!(fa < 1 && fb > 1)) hata('FORM_SINIR: 1\'i kapsamalı');
 }
 
 // Döngüleri bulur; her döngü bir id yolu olarak döner. Bilinmeyen gereksinimleri yok sayar (başvuru denetimi ayrıca yakalar).

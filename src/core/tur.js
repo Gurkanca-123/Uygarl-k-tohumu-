@@ -64,7 +64,7 @@ export function turIlerlet(durum, sec = {}) {
 }
 
 // Komut: "Mevsim sonuna ilerlet" (§8). En çok MEVSIM_SONU_MAX_TUR tur, önder Dinlen; olay çıkınca, açlık başlayınca,
-// inşaat bitince ya da mevsim bitince durur. Dönüş: { durum, hata?, bildirimler, turSayisi, neden }.
+// inşaat bitince, savaş hazır olunca (yalnız savaş sahnesi açıkken; yerleşim atlanmasın) ya da mevsim bitince durur. Dönüş: { durum, hata?, bildirimler, turSayisi, neden }.
 export function mevsimSonunaIlerlet(durum, sec = {}) {
   if (durum.olay?.aktif) return { durum, hata: OLAY_KILIDI, bildirimler: [], turSayisi: 0, neden: 'olay' };
   let d = durum;
@@ -81,6 +81,7 @@ export function mevsimSonunaIlerlet(durum, sec = {}) {
     if (d.olay.aktif) { neden = 'olay'; break; }
     if (onceAc === 0 && d.acTur > 0) { neden = 'aclik'; break; }
     if (r.bildirimler.some((b) => b.kod === 'insaat_bitti')) { neden = 'insaat'; break; }
+    if (r.bildirimler.some((b) => b.kod === 'savas_hazir')) { neden = 'savas'; break; }
     if (d.tur % MEVSIM_TUR === 0) { neden = 'mevsim_sonu'; break; }
   }
   return { durum: d, bildirimler, turSayisi: i, neden };

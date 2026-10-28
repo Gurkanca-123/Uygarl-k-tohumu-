@@ -20,7 +20,7 @@ export function depoAl() {
 const rastgeleTohum = () => Math.floor(Math.random() * 1e9) + 1;
 const NEDEN = {
   olay: 'Bir olay çıktığı için duruldu.', aclik: 'Açlık başladığı için duruldu.',
-  insaat: 'Bir inşaat bittiği için duruldu.', mevsim_sonu: 'Mevsim sonuna gelindi.', en_cok: 'En çok tur sayısına ulaşıldı.',
+  insaat: 'Bir inşaat bittiği için duruldu.', savas: 'Savaş hazır: önce birliklerini yerleştir.', mevsim_sonu: 'Mevsim sonuna gelindi.', en_cok: 'En çok tur sayısına ulaşıldı.',
 };
 
 export class Oyun {
@@ -32,7 +32,13 @@ export class Oyun {
     this.sonBildirimler = [];
     this.dinleyiciler = [];
     this.siklik = SIKLIK_VARSAYILAN;  // Ayarlar → Görev sıklığı; turIlerlet'e parametre olarak geçer (kayıt alanı değil)
+    this.savasSahnesi = true;         // Ayarlar → Savaş sahnesi (varsayılan açık); kapalıyken çekirdeğe parametre verilmez (eski hesaplamalı yol)
   }
+
+  // Çekirdek seçenekleri: turIlerlet / mevsimSonunaIlerlet için.
+  secenek() { return this.savasSahnesi ? { siklik: this.siklik, savasSahnesi: true } : { siklik: this.siklik }; }
+  // seferOnizleme / seferGorunumu / savasGorunumu için `sec` (kapalıyken undefined → varsayılan {}).
+  get savasSec() { return this.savasSahnesi ? { savasSahnesi: true } : undefined; }
 
   dinle(fn) { this.dinleyiciler.push(fn); }
   yay(tip, veri) { for (const f of this.dinleyiciler) f(tip, veri); }
@@ -108,7 +114,7 @@ export class Oyun {
 
   gunuBitir() {
     const onceki = this.durum;
-    const r = turIlerletVeKaydet(this.depo, this.durum, { siklik: this.siklik });
+    const r = turIlerletVeKaydet(this.depo, this.durum, this.secenek());
     if (r.hata) { this.yay('hata', r.hata); return r; }
     this.turSonrasi(onceki, r, 1);
     return r;
@@ -116,7 +122,7 @@ export class Oyun {
 
   mevsimSonu() {
     const onceki = this.durum;
-    const r = mevsimSonunaIlerlet(this.durum, { siklik: this.siklik });
+    const r = mevsimSonunaIlerlet(this.durum, this.secenek());
     if (r.hata) { this.yay('hata', r.hata); return r; }
     this.kaydetSessiz();
     const bildirimler = [...r.bildirimler, { kod: 'ilerleme', seviye: 'bilgi', metin: `${r.turSayisi} gün ilerledi. ${NEDEN[r.neden] || ''}`.trim() }];

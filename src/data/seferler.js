@@ -3,10 +3,11 @@
 //   hedef: 'isaret' | 'yok' | 'komsu', zorluk: { cagId: n } | 'komsu', sure: 'mesafe' | n, ekipMin, ekipMax,
 //   gerekir: { bulus?, bina?, komsu? }, kisKapali, etiket ('av' | 'kesif' | 'define' | 'komsu' | 'kamp'), sinifCarpan: { sinif: ×},
 //   odul: { kaynak?, bp?, ozel? }, basarisizYarali (false = başarısızlıkta da yaralı yok), tehditBag (başarı bu tehdidi iptal eder),
-//   iliski (komşu ilişkisi değişimi), gerginlik, bekleme (aynı hedefe tekrar gönderme beklemesi, tur), acik (MVP'de oynanabilir), mvp.
+//   iliski (komşu ilişkisi değişimi), gerginlik, bekleme (aynı hedefe tekrar gönderme beklemesi, tur), acik (MVP'de oynanabilir), mvp,
+//   savas (görsel otomatik savaş; docs/SAVAS.md §9 — F1 yalnız ayi_avi), dusman: { id (birimler.js DUSMANLAR), adet }.
 // MVP (§9.3): kesif, ayi_avi, harabe açık; baskin_seferi kullanıcı kararıyla (savaş modeli (b)) Bronz'dan açık. Diğerleri yalnız şema.
 function sefer(s) {
-  return { cagMax: null, isaret: null, hedef: 'isaret', sure: 'mesafe', ekipMin: 1, ekipMax: 4, gerekir: {}, kisKapali: false,
+  return { savas: false, dusman: null, cagMax: null, isaret: null, hedef: 'isaret', sure: 'mesafe', ekipMin: 1, ekipMax: 4, gerekir: {}, kisKapali: false,
     sinifCarpan: {}, odul: {}, basarisizYarali: true, tehditBag: null, iliski: 0, gerginlik: 0, bekleme: 0, acik: false, mvp: false, ...s };
 }
 
@@ -24,7 +25,7 @@ export const SEFERLER = [
     odul: { bp: 3, ozel: { kesifYaricap: 8, isaretOlasilik: 0.4, kaynakOlasilik: 0.2, kaynak: { odun: 6, tas: 4 }, komsuBul: true } } }),
   sefer({ id: 'ayi_avi', ad: 'Ayı Avı', cagMin: 'gocebe', cagMax: 'bronz', isaret: 'ayi', etiket: 'av', acik: true, mvp: true,
     metin: 'İri bir ayının izleri bulundu. Postu ve eti bütün kışa yeter; ama ayı da avcısını tanır.',
-    zorluk: { gocebe: 5, tasdevri: 10, bronz: 13 }, sinifCarpan: { avci: 1.5 }, tehditBag: 'ayi',
+    zorluk: { gocebe: 5, tasdevri: 10, bronz: 13 }, sinifCarpan: { avci: 1.5 }, tehditBag: 'ayi', savas: true, dusman: { id: 'ayi', adet: 1 },
     odul: { kaynak: { yiyecek: 12, deri: 4 }, bp: 0, ozel: { buyukEsya: 'ayi_postu' } } }),
   sefer({ id: 'harabe', ad: 'Eski Harabe', cagMin: 'gocebe', isaret: 'harabe', etiket: 'define', acik: true, mvp: true,
     metin: 'Atalardan kalma yıkık bir yer. Altında ne var, kimse bilmiyor.',

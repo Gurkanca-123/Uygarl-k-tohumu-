@@ -10,16 +10,16 @@ import { seferGonder } from '../src/core/sefer.js';
 import { komsuKesfet } from '../src/core/komsu.js';
 import { seferVarsayilan } from '../src/core/sefer.js';
 
-const V4 = ['kahramanlar', 'kahramanDurum', 'sandik', 'sefer', 'hedefIsaretleri', 'komsu', 'komsular', 'hedef'];
+const V4 = ['kahramanlar', 'kahramanDurum', 'sandik', 'sefer', 'hedefIsaretleri', 'komsu', 'komsular', 'hedef', 'ordu', 'rutbe', 'savas'];
 
 test('(f) v3 kaydı v4\'e göçer: alan varsayılanları, ayrı RNG akışları tohumdan; yükleme sonrası aynı sonraki tur', () => {
-  assert.equal(KAYIT_SURUM, 4);
+  assert.equal(KAYIT_SURUM, 5);
   const oyun = botOyna(6, { maxTur: 14 }).son;
   const v3 = JSON.parse(serialize(oyun));
   v3.surum = 3;
   for (const k of V4) delete v3[k];
   const y = yukle(JSON.stringify(v3));
-  assert.equal(y.surum, 4);
+  assert.equal(y.surum, 5);
   assert.deepEqual([y.kahramanlar, y.sandik, y.hedefIsaretleri, y.komsular], [[], [], [], []]);
   assert.deepEqual(y.sefer, seferVarsayilan(6));
   assert.equal(y.rng, oyun.rng);

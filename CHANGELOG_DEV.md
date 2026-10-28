@@ -1,5 +1,10 @@
 # CHANGELOG_DEV (yalnız son kayıtlar; eskiler `docs/CHANGELOG_ARSIV.md`)
 
+## 2026-10-28 — Savaş F1: Ayı Avı görsel otomatik savaş (Opus 5.5 çekirdek+sahne, Sonnet 5.5 UI+düzeltme)
+- Çekirdek `core/savas.js`, veri `birimler|rutbeler|savas.js`, kayıt v5; savaş sonucu tek `sefer.rng` çekimiyle tutarlı (1000 girdide sahne=çekirdek %100), ölüm yok, nüfus ≥2. Savaş Kapalı = eski hesaplamalı yol (Göçebe 40/50 birebir). `turIlerlet(d,{siklik,savasSahnesi})`.
+- Sahne `render/savas.js` (~38 çağrı, 9,7 bin üçgen, 7,5–22 sn, atla/1×/2×). UI `ui/savas.js`: Ayarlar'da Savaş sahnesi, 'Savaş hazır' kartı, 3×3 yerleşim (öneri/otomatik/sürükle, canlı yüzdeler), sonuç kartı, ordu −/+, Lider rütbesi. `mevsimSonunaIlerlet` savaş hazırken durur (`neden:'savas'`). Shader hatası (objectNormal) düzeltildi.
+- Testler 252 (251+1 todo); e2e 292 + savas_ui 129. Gerçek cihaz denenmedi. Kalan: ayı/figür ayrıntısı, ufuk, F2–F5.
+
 ## 2026-10-28 — Görev sıklığı azaltma (Sonnet 5.5) + savaş tasarımı `docs/SAVAS.md` (Opus 5.5)
 - Karar isteyen öğe oyun başına 7,2→3,6 (≈ her 8 turda bir); mevsim kartı çağda en çok 2 set, isteğe bağlı, 4 tur sonra kapanır; aynı anda 1 bekleyen karar; işaret ≤2; toast birleştirme (`src/ui/toast.js`); destan ara adımları sessiz; Ayarlar'da Görev sıklığı Az/Normal/Çok (`ut_ayar.siklik` → `turIlerlet(durum,{siklik})`, çekirdek saf). Göçebe 40/50 hedefte, ortanca ~26, ayı destanı %90. Testler 242 (241+1 todo), e2e 292/292.
 - Yedek: `yedek/savas-oncesi` dalı (savaş fazı öncesi sağlam sürüm).

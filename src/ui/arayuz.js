@@ -20,6 +20,7 @@ import {
 import { Ogretici } from './ogretici.js';
 import { toastSuz } from './toast.js';
 import { aksiyonSekmesi, aksiyonKarti, hedefCipi, dikkatDurumu, IsaretKatmani, kodSimge } from './aksiyon.js';
+import { savasPenceresi, savasBildirimleriIsle } from './savas.js';
 import { EYLEMLER } from '../data/eylemler.js';
 import { VARSAYILAN_EYLEM, YORGUNLUK_MAX, SIKLIK_SECENEKLERI, SIKLIK_VARSAYILAN, SIKLIK_AD } from '../data/denge.js';
 
@@ -39,9 +40,11 @@ export class Arayuz {
     const ui = depoOku('ut_ui', { sekme: 'insa', pencere: 'kapali' });
     this.sekme = SEKMELER.some((x) => x[0] === ui.sekme) ? ui.sekme : 'insa';
     this.pencere = ['kapali', 'acik', 'kucuk'].includes(ui.pencere) ? ui.pencere : 'kapali'; // sekme penceresi: kapali | acik | kucuk
-    this.ayar = depoOku('ut_ayar', { kalite: 'yuksek', ses: false, siklik: SIKLIK_VARSAYILAN });
+    this.ayar = depoOku('ut_ayar', { kalite: 'yuksek', ses: false, siklik: SIKLIK_VARSAYILAN, savasSahnesi: true });
     if (!SIKLIK_SECENEKLERI.includes(this.ayar.siklik)) this.ayar = { ...this.ayar, siklik: SIKLIK_VARSAYILAN };
     this.oyun.siklik = this.ayar.siklik;  // Görev sıklığı çekirdeğe turIlerlet parametresi olarak geçer
+    this.oyun.savasSahnesi = this.ayar.savasSahnesi !== false;  // Savaş sahnesi: kapalıyken savaş arayüzü yok, çekirdeğe parametre verilmez
+    this.sv = null; this.izleBekleyen = []; this.savasBilgi = null;  // savas.js durumu (yerleşim penceresi, İzle kartı, oynayan savaş)
     this.kartKucuk = false; this.kartAnahtar = null; this.modalAnahtar = null;
     this.insaKat = 'hepsi'; this.insaSadeceAcik = false;
     this.secim = null; this.yerlestirme = null; this.yikOnay = null; this.kervanSecim = null; this.tehditAcik = false; this.tehditKucuk = false; this.sonTehditId = null;
@@ -62,6 +65,7 @@ export class Arayuz {
   }
 
   get d() { return this.oyun.durum; }
+  get sec() { return this.oyun.savasSec; }
 
   kaydetUi() { depoYaz('ut_ui', { sekme: this.sekme, pencere: this.pencere }); }
   kaliteUygula() { try { this.sahne?.kaliteAyarla?.(this.ayar.kalite); } catch { /* sahne bu ayarı bilmiyor olabilir */ } }
@@ -93,7 +97,8 @@ export class Arayuz {
     this.rozetEl = h('div', { class: 'rozet-katman' });
     this.rozetler = new Map(); this.rozetAnahtar = null; this.rozetKamera = '';
     this.isaretler = new IsaretKatmani(this);
-    this.ortaEl.append(this.rozetEl, this.isaretler.el, this.toastEl, this.ipucuEl, this.kartEl, this.cubukEl, this.pencereEl, this.rayEl);
+    this.savasEl = h('div', { class: 'savas-yuva' });
+    this.ortaEl.append(this.rozetEl, this.isaretler.el, this.toastEl, this.ipucuEl, this.kartEl, this.savasEl, this.cubukEl, this.pencereEl, this.rayEl);
     this.modalEl = h('div');
     this.kok.append(this.ustEl, this.ortaEl, this.altEl, this.modalEl);
   }
@@ -134,12 +139,14 @@ export class Arayuz {
       this.yikOnay = null;
       const tl = toastSuz(veri.bildirimler, this.toastCtx());
       if (tl.length) this.toast(tl);
+      savasBildirimleriIsle(this, veri.bildirimler);
       if (veri.bildirimler.some((b) => b.kod === 'zafer')) this.zaferGoster = true;
       if (this.yerlestirme) this.yerlestirmeBaslat(this.yerlestirme.binaId, true);
       this.yenile();
     } else if (tip === 'bildirim') {
       const tl = toastSuz(veri, this.toastCtx());
       if (tl.length) this.toast(tl);
+      savasBildirimleriIsle(this, veri);
       if (veri.some((b) => b.kod === 'zafer')) this.zaferGoster = true;
     }
   }
@@ -425,7 +432,7 @@ export class Arayuz {
     if (this.yerlestirme) this.yerlestirmeGostermeden();
 
     this.kok.classList.toggle('yerlesme', !!this.yerlestirme);
-    this.ust(d); this.panel(d); this.alt(d); this.kart(d); this.cubuk(d); this.modal(d); this.rozetKur(d); this.isaretler.guncelle(d);
+    this.ust(d); this.panel(d); this.alt(d); this.kart(d); this.savasCiz(); this.cubuk(d); this.modal(d); this.rozetKur(d); this.isaretler.guncelle(d);
     this.ogretici.guncelle(d, this.ipucuEl);
   }
 
@@ -470,7 +477,7 @@ export class Arayuz {
   }
 
   panel(d) {
-    const gizli = !!this.yerlestirme;
+    const gizli = !!this.yerlestirme || !!this.sv;
     const acik = !gizli && this.pencere !== 'kapali';
     this.rayEl.classList.toggle('gizli', gizli);
     for (const [id, dg] of Object.entries(this.rayDugme)) dg.classList.toggle('secili', acik && this.sekme === id);
@@ -524,6 +531,7 @@ export class Arayuz {
 
   kart(d) {
     let ic = null, anahtar = null;
+    if (this.sv) { this.kartEl.replaceChildren(); this.kartAnahtar = null; this.kok.classList.remove('tehdit-acik'); return; } // yerleşim penceresi açıkken sol kart yok
     if (!this.d.tehdit) this.tehditAcik = false;
     const ta = d.tehdit?.aktif;
     const aktifId = ta?.id || null;
@@ -564,6 +572,22 @@ export class Arayuz {
       kucult: ak ? null : () => { this.kartKucuk = !this.kartKucuk; this.yenile(); }, kapat: ak ? ak.kapat : () => this.secimiKaldir(),
     });
     this.kartEl.replaceChildren(el);
+    const g = el.querySelector('.govde'); if (g && !gir) g.scrollTop = eski;
+  }
+
+  // Savaş yerleşim penceresi (savas.js): sol üstte, haritayı kısmen açık bırakır. Yalnız yerel değişimlerde de çağrılır (sürüklerken yeniden çizmez).
+  savasCiz() {
+    const d = this.d;
+    if (!d || !this.sv || !this.oyun.savasSahnesi || this.yerlestirme) { if (this.sv && !this.oyun.savasSahnesi) this.sv = null; this.savasEl.replaceChildren(); this.kok.classList.remove('savas-acik'); return; }
+    if (this.sv.suruk) return;
+    const p = savasPenceresi(this, d);
+    this.kok.classList.toggle('savas-acik', !!p);
+    if (!p) { this.savasEl.replaceChildren(); return; }
+    const gir = !this.savasEl.firstChild;
+    const eski = this.savasEl.querySelector('.govde')?.scrollTop ?? 0;
+    const el = this.pencereKabuk({ ...p, kucuk: this.sv.kucuk, sinif: `sv-pencere${gir ? ' gir' : ''}`,
+      kucult: () => { this.sv.kucuk = !this.sv.kucuk; this.savasCiz(); }, kapat: () => { this.sv = null; this.yenile(); } });
+    this.savasEl.replaceChildren(el);
     const g = el.querySelector('.govde'); if (g && !gir) g.scrollTop = eski;
   }
 
@@ -640,9 +664,9 @@ export class Arayuz {
     const ozet = this.oyun.kayitOzeti();
     const oyunda = !!this.d;
     const kapat = () => { this.menuAcik = false; this.menuSayfa = 'ana'; this.yeniOnay = false; this.yenile(); };
-    const devam = () => { const m = this.oyun.devam(); this.menuAcik = false; this.menuSayfa = 'ana'; if (m) this.hata(m); this.sahneOdak(); this.yenile(); this.tamEkranOner(); };
+    const devam = () => { this.sv = null; this.izleBekleyen = []; const m = this.oyun.devam(); this.menuAcik = false; this.menuSayfa = 'ana'; if (m) this.hata(m); this.sahneOdak(); this.yenile(); this.tamEkranOner(); };
     const yeniBaslat = () => {
-      this.oyun.yeni(); this.menuAcik = false; this.menuSayfa = 'ana'; this.yeniOnay = false; this.secim = null; this.yerlestirme = null; this.sahne.yerlestirme(null);
+      this.sv = null; this.izleBekleyen = []; this.oyun.yeni(); this.menuAcik = false; this.menuSayfa = 'ana'; this.yeniOnay = false; this.secim = null; this.yerlestirme = null; this.sahne.yerlestirme(null);
       this.pencere = 'kapali'; this.kaydetUi(); this.sahneOdak(); this.ogretici.sifirla(); this.yenile(); this.tamEkranOner();
     };
     let baslik = 'Uygarlık Tohumu', ikon = '🌱', govde;
@@ -679,10 +703,20 @@ export class Arayuz {
         class: this.ayar.siklik === id ? 'secili' : '', 'data-siklik': id,
         onclick: () => { this.ayar = { ...this.ayar, siklik: id }; this.oyun.siklik = id; this.ayarYaz(); this.yenile(); } }, SIKLIK_AD[id]))),
       h('div', { class: 'soluk kucuk' }, 'Mevsim görev kartları, harita işaretleri, yol olayları ve komşu teklifleri ne kadar sık çıksın. Az: şehir kurmaya odaklı, görevler fırsat gibi seyrek gelir.'),
+      h('h4', {}, 'Savaş sahnesi'),
+      h('div', { class: 'segment' }, [[true, 'Açık', 'acik'], [false, 'Kapalı', 'kapali']].map(([v, ad, id]) => h('button', {
+        class: (this.ayar.savasSahnesi !== false) === v ? 'secili' : '', 'data-savas-sahnesi': id, onclick: () => this.savasSahnesiAyarla(v) }, ad))),
+      h('div', { class: 'soluk kucuk' }, 'Açıkken ayı avı gibi savaşlı seferlerde ekibi savaş öncesi dizer, savaşı sahnede izlersin. Kapalıyken sonuç eskisi gibi hesapla belirlenir.'),
       h('h4', {}, 'Ses'),
       h('div', { class: 'oge ses' }, h('span', {}, '🔊 Ses efektleri ve müzik'), h('span', { class: 'etiket' }, 'Yakında')),
       h('h4', {}, 'Yardım'),
       h('button', { class: 'tam-genislik', onclick: () => { this.ogretici.yenidenGoster(); this.menuAcik = false; this.menuSayfa = 'ana'; this.yenile(); } }, '🎓 Öğreticiyi yeniden göster')];
+  }
+
+  savasSahnesiAyarla(v) {
+    this.ayar = { ...this.ayar, savasSahnesi: v }; this.oyun.savasSahnesi = v; this.ayarYaz();
+    if (!v) { this.sv = null; this.izleBekleyen = []; if (this.aksiyonAlt === 'savas') this.aksiyonAlt = 'sefer'; }
+    this.yenile();
   }
 
   hakkindaSayfasi() {

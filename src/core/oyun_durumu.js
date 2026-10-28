@@ -6,6 +6,7 @@ import {
 } from '../data/denge.js';
 import { tehditVarsayilan } from './tehdit.js';
 import { seferVarsayilan } from './sefer.js';
+import { orduVarsayilan, rutbeVarsayilan, savasVarsayilan } from './savas.js';
 import { kahramanDurumVarsayilan } from './kahraman.js';
 import { komsuDurumVarsayilan } from './komsu.js';
 import { hedefVarsayilan } from './hedef.js';
@@ -64,6 +65,10 @@ export function yeniOyun(tohum = VARSAYILAN_TOHUM, { zorluk = VARSAYILAN_ZORLUK 
     komsu: komsuDurumVarsayilan(tohum),
     komsular: [],
     hedef: hedefVarsayilan(),
+    // Sürüm 5: görsel savaş (docs/SAVAS.md §10).
+    ordu: orduVarsayilan(),
+    rutbe: rutbeVarsayilan(),
+    savas: savasVarsayilan(),
   };
   kesifUygula(d, { x: mx + merkez.boyut[0] / 2, y: my + merkez.boyut[1] / 2 }, GORUS_BASLANGIC);
   return d;

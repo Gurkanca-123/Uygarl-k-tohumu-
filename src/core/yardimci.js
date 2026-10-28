@@ -127,12 +127,16 @@ export function bekleyenKararSayisi(d) {
 }
 export const seferdekiIsci = (d) => aktifSeferler(d).reduce((a, s) => a + (s.ekip?.isci || 0), 0);
 export const seferdekiKahramanUid = (d) => new Set(aktifSeferler(d).flatMap((s) => s.ekip?.kahraman || []));
-export const seferdekiKisi = (d) => seferdekiIsci(d) + seferdekiKahramanUid(d).size;
+// Görsel savaş F1 (docs/SAVAS.md §2.4): kalıcı asker = nüfustan terfi (yer, üretmez, işçi yuvasına girmez). Seferdeki asker ekipte.
+const toplamDeger = (o) => Object.values(o || {}).reduce((a, n) => a + (Number(n) || 0), 0);
+export const askerToplam = (d) => toplamDeger(d.ordu?.asker);
+export const seferdekiAsker = (d) => aktifSeferler(d).reduce((a, s) => a + toplamDeger(s.ekip?.asker), 0);
+export const seferdekiKisi = (d) => seferdekiIsci(d) + seferdekiKahramanUid(d).size + seferdekiAsker(d);
 export const onderSeferde = (d) => aktifSeferler(d).some((s) => s.ekip?.onder);
 export const kahramanSayisi = (d) => (d.kahramanlar || []).length;
 export const koydekiKahramanlar = (d) => { const s = seferdekiKahramanUid(d); return (d.kahramanlar || []).filter((k) => !s.has(k.uid)); };
-// İşçi yuvasına girmeyen kişi: kahramanlar (köyde ya da seferde) + seferdeki işçiler.
-export const calisamayanSayisi = (d) => kahramanSayisi(d) + seferdekiIsci(d);
+// İşçi yuvasına girmeyen kişi: kahramanlar (köyde ya da seferde) + seferdeki işçiler + askerler (köyde ya da seferde).
+export const calisamayanSayisi = (d) => kahramanSayisi(d) + seferdekiIsci(d) + askerToplam(d);
 
 // Yuva sırası: binalar (inşa sırası), sonra serbest işler (tablo sırası). Fazlalık sondan kırpılır.
 function yuvaSirasi(d) {

@@ -29,6 +29,10 @@ import {
 import { destanIlerlet } from './hedef.js';
 import { KOMSU, komsuBul, komsuGucu, iliskiDegistir } from './komsu_temel.js';
 import { komsuKesfet } from './komsu.js';
+import {
+  savasAcik, savasliSefer, seferSavasCarpani, savasVarisDenetle, savasCoz, savasKademesi, savasZorlukCarpani, koydekiAsker, BIRIM, kademe,
+} from './savas.js';
+import { askerToplam } from './yardimci.js';
 
 export const SEFER = Object.fromEntries(SEFERLER.map((s) => [s.id, s]));
 const SEFER_OLAY_TANIM = Object.fromEntries(SEFER_OLAYLARI.map((o) => [o.id, o]));
@@ -82,11 +86,15 @@ function hedefCoz(d, s, hedefId) {
 
 // ---------- Ekip ----------
 // ekip: { kahraman: [uid], isci: n, onder: bool }. Dönüş: normalleştirilmiş ekip.
+// Görsel savaş F1: ekip.asker = { [birlik]: n } (Taş+ kalıcı askerler; boşsa {}).
+const askerNormal = (a) => Object.fromEntries(Object.entries(a && typeof a === 'object' ? a : {})
+  .map(([k, n]) => [k, Math.floor(Number(n) || 0)]).filter(([k, n]) => n > 0 && BIRIM[k]));
 export const ekipNormal = (e = {}) => ({ kahraman: [...new Set(Array.isArray(e.kahraman) ? e.kahraman : [])], isci: Math.floor(Number(e.isci) || 0),
-  onder: !!e.onder });
-export const ekipKisi = (e) => e.kahraman.length + e.isci;
+  onder: !!e.onder, asker: askerNormal(e.asker) });
+const ekipAsker = (e) => Object.values(e.asker || {}).reduce((a, n) => a + n, 0);
+export const ekipKisi = (e) => e.kahraman.length + e.isci + ekipAsker(e);
 // Gönderilebilir sağlıklı işçi: nüfus − yaralı − kahramanlar − seferdeki işçi.
-export const bosIsci = (d) => Math.max(0, d.nufus - yaraliSayisi(d) - kahramanSayisi(d) - seferdekiIsci(d));
+export const bosIsci = (d) => Math.max(0, d.nufus - yaraliSayisi(d) - kahramanSayisi(d) - seferdekiIsci(d) - askerToplam(d));
 const ekipKahramanlari = (d, e) => e.kahraman.map((u) => kahramanBul(d, u)).filter(Boolean);
 
 function ekipHatasi(d, s, e) {
@@ -101,6 +109,7 @@ function ekipHatasi(d, s, e) {
     if (k.yarali > 0) return `${k.ad} yaralı (${k.yarali} gün).`;
   }
   if (e.isci > bosIsci(d)) return `Gönderilebilecek sağlıklı işçi: ${bosIsci(d)}.`;
+  for (const [t, n] of Object.entries(e.asker || {})) if (n > koydekiAsker(d, t)) return `Köyde ${koydekiAsker(d, t)} ${BIRIM[t].ad} var.`;
   if (e.onder) {
     if (onderSeferde(d)) return 'Önder zaten seferde.';
     if (d.onder.yaraliKalan > 0) return 'Önder yaralı.';
@@ -122,6 +131,9 @@ export function ekipGucu(d, s, ekip) {
     let g = SEFER_ONDER_GUC;
     for (const x of bulusEtkileri(d, 'savunma')) if (x.hedef === 'onder') g += x.deger;
     kalemler.push({ id: 'onder', ad: 'Önder', deger: g });
+  }
+  for (const [t, n] of Object.entries(e.asker || {})) {
+    kalemler.push({ id: `asker:${t}`, ad: `${BIRIM[t].ad} ×${n}`, deger: n * BIRIM[t].seferGuc * (1 + 0.15 * (kademe(d, t) - 1)) });
   }
   for (const k of ekipKahramanlari(d, e)) kalemler.push({ id: `kahraman:${k.uid}`, ad: `${k.ad} (${SINIF[k.sinif].ad} Sv${k.seviye})`, deger: kahramanGucu(k, s) });
   return { toplam: Math.round(kalemler.reduce((a, x) => a + x.deger, 0) * 100) / 100, kalemler };
@@ -160,7 +172,9 @@ function kisZorluk(d, kahramanlar) {
 
 // Önizleme (arayüz; saf). Dönüş: { uygun, hata, guc, kalemler, zorluk, oran, olasiliklar, sure, erzak, odul, xp,
 //   savunmaOnce, savunmaSonra, uyari }.
-export function seferOnizleme(d, seferId, hedefId = null, ekip = {}) {
+// sec.savasSahnesi (oyuncu ayarı) açık ve sefer savaşlıysa: zorluk × SAVAS_ZORLUK, güç × Öneri düzeninin formC × karsC × komutaC
+// (docs/SAVAS.md §9: çubuk her zaman gönderilecek düzenin kesin olasılığı). Kapalıyken eski hesap aynen.
+export function seferOnizleme(d, seferId, hedefId = null, ekip = {}, sec = {}) {
   const s = SEFER[seferId];
   const e = ekipNormal(ekip);
   let hata = seferAcikHatasi(d, s);
@@ -171,7 +185,8 @@ export function seferOnizleme(d, seferId, hedefId = null, ekip = {}) {
   const ks = ekipKahramanlari(d, e);
   const g = ekipGucu(d, s, e);
   const zorluk = h.zorluk + kisZorluk(d, ks);
-  const oran = zorluk > 0 ? g.toplam / zorluk : 0;
+  const savas = savasAcik(sec) && savasliSefer(s) ? seferSavasCarpani(d, s, e, g.toplam) : null;
+  const oran = zorluk > 0 ? (g.toplam * (savas?.carpan ?? 1)) / (zorluk * (savas?.zorlukCarpan ?? 1)) : 0;
   const sure = seferSuresi(d, s, h.x, h.y, ks);
   const kisi = ekipKisi(e) + (e.onder ? 1 : 0);
   const erzak = Math.ceil(kisi * sure * SEFER_ERZAK * mevsimSefer(d).erzak - 1e-9);
@@ -185,7 +200,7 @@ export function seferOnizleme(d, seferId, hedefId = null, ekip = {}) {
   return {
     uygun: !hata, hata, sefer: s.id, ad: s.ad, guc: g.toplam, kalemler: g.kalemler, zorluk, oran: Math.round(oran * 100) / 100,
     olasiliklar: seferOlasiliklari(oran), sure, erzak, odul: odulTahmini(d, s, h), xp: zorluk * 2,
-    savunmaOnce, savunmaSonra: savunmaHesapla(sonra), uyari,
+    savunmaOnce, savunmaSonra: savunmaHesapla(sonra), uyari, savas,
   };
 }
 function odulTahmini(d, s, h) {
@@ -201,8 +216,8 @@ function seferBaslat(d, s, h, e, { sure, erzak, guc, zorluk }) {
   d.sefer.sayac += 1;
   const uid = `s${d.sefer.sayac}`;
   d.sefer.aktif = [...d.sefer.aktif, { uid, tur: s.id, hedef: h.isaret?.uid ?? h.komsu?.id ?? null, x: h.x, y: h.y, kalan: sure, sure,
-    ekip: { kahraman: [...e.kahraman], isci: e.isci, onder: e.onder }, guc, zorluk, erzak, gonderimTuru: d.tur, olay: null,
-    olayEtki: {}, olayOldu: false }];
+    ekip: { kahraman: [...e.kahraman], isci: e.isci, onder: e.onder, asker: { ...(e.asker || {}) } }, guc, zorluk, erzak, gonderimTuru: d.tur,
+    olay: null, olayEtki: {}, olayOldu: false, savas: null }];
   return d;
 }
 
@@ -264,6 +279,9 @@ export function adimSefer(durum, bildirimler = [], sec = {}) {
   for (const sf of [...d.sefer.aktif]) {
     sf.kalan -= 1;
     if (sf.kalan <= 0 && sf.olay) olayEtkisiUygula(sf, SEFER_OLAY_TANIM[sf.olay.id].secenekler[0].seferEtki);
+    // Görsel savaş (docs/SAVAS.md §5.1, §6.6): varış turunda saldırtılmayan savaş bu adımda kendiliğinden yapılır (Öneri/hatırlanan düzen).
+    if (sf.savas?.durum === 'bekliyor' && savasAcik(sec)) savasCoz(d, sf, bildirimler, { oto: true });
+    else if (savasAcik(sec) && sf.kalan > 0) savasVarisDenetle(d, sf, bildirimler);
     if (sf.kalan <= 0) { seferSonuclandir(d, sf, bildirimler, pr); continue; }
     if (olayOlabilir && !st.seferOlayi && !sf.olayOldu && !bekleyenKararSayisi(d) && sz(d) < pr.seferOlay) {
       const o = SEFER_OLAYLARI[Math.floor(sz(d) * SEFER_OLAYLARI.length)];
@@ -295,10 +313,13 @@ function seferSonuclandir(d, sf, bildirimler, pr = siklikProfil()) {
   const s = SEFER[sf.tur];
   d.sefer.aktif = d.sefer.aktif.filter((x) => x.uid !== sf.uid);
   const ks = sf.ekip.kahraman.map((u) => kahramanBul(d, u)).filter(Boolean);
-  const r = sf.zorluk > 0 ? sf.guc / sf.zorluk : 0;
-  const u = sz(d);
-  const rs = r * (SEFER_SANS[0] + SEFER_SANS[1] * u);
-  const sonuc = sonucBelirle(rs);
+  // Savaş yapıldıysa kademe savaştan (tek sefer.rng çekimi orada yapıldı); değilse eski hesap (tek çekim burada).
+  let sonuc = savasKademesi(sf);
+  if (!sonuc) {
+    const r = sf.zorluk > 0 ? sf.guc / sf.zorluk : 0;
+    const u = sz(d);
+    sonuc = sonucBelirle(r * (SEFER_SANS[0] + SEFER_SANS[1] * u));
+  }
   const SC = SEFER_SONUC[sonuc];
   const basarili = sonuc === 'buyuk' || sonuc === 'basari';
   d.sefer.istatistik[sonuc] += 1;
@@ -366,12 +387,14 @@ function seferSonuclandir(d, sf, bildirimler, pr = siklikProfil()) {
     koruyan.esya[yuva] = null;
   }
   const isciYarali = Math.min(yarali, sf.ekip.isci);
+  // Askerler yarayı üstlenir (F1: asker yaralanması ayrıca izlenmez — TODO(tasarim) F2), kahramana düşmez.
+  const askerYarali = Math.min(yarali - isciYarali, Object.values(sf.ekip.asker || {}).reduce((a, n) => a + n, 0));
   if (isciYarali > 0) {
     degistiriciEkle(d, { id: 'yarali', sure: SEFER_ISCI_YARALI_SURE, etki: { yaraliIsci: isciYarali } });
     d.sefer.istatistik.yaraliIsci += isciYarali;
   }
   // İşçisi olmayan ekipte yaralanma kahramana düşer.
-  const kahramanaDusen = yarali > isciYarali ? SEFER_ISCI_YARALI_SURE : 0;
+  const kahramanaDusen = yarali > isciYarali + askerYarali ? SEFER_ISCI_YARALI_SURE : 0;
   for (const k of ks) if (kahramanYarali || kahramanaDusen) kahramanYarala(d, k, Math.max(kahramanYarali, kahramanaDusen), bildirimler);
   // XP: zorluk × 2 × sonuç çarpanı (+ Kurt Dişi).
   const xp = sf.zorluk * 2 * SC.xp;
@@ -499,12 +522,14 @@ export function adimIsaret(durum, bildirimler = [], sec = {}) {
 }
 
 // ---------- Arayüz okuması ----------
-export function seferGorunumu(d) {
+export function seferGorunumu(d, sec = {}) {
   const st = d.sefer || seferVarsayilan(d.tohum);
   return {
     aktif: st.aktif.map((sf) => ({ uid: sf.uid, tur: sf.tur, ad: SEFER[sf.tur].ad, kalan: sf.kalan, sure: sf.sure, hedef: sf.hedef,
       x: sf.x, y: sf.y, ekip: { ...sf.ekip, kahraman: sf.ekip.kahraman.map((u) => ({ uid: u, ad: kahramanBul(d, u)?.ad })) },
-      olasiliklar: seferOlasiliklari(sf.zorluk > 0 ? sf.guc / sf.zorluk : 0), geriCagrilir: sf.gonderimTuru === d.tur,
+      olasiliklar: seferOlasiliklari(sf.zorluk > 0 ? (sf.guc * (sf.savas ? seferSavasCarpani(d, SEFER[sf.tur], sf.ekip, sf.guc).carpan : 1))
+        / (sf.zorluk * (sf.savas ? savasZorlukCarpani(sf.tur) : 1)) : 0), geriCagrilir: sf.gonderimTuru === d.tur,
+      savas: sf.savas ? { durum: sf.savas.durum, kademe: sf.savas.kademe ?? null, no: sf.savas.no ?? null } : null,
       olay: sf.olay ? { id: sf.olay.id, ad: SEFER_OLAY_TANIM[sf.olay.id].ad, metin: SEFER_OLAY_TANIM[sf.olay.id].metin,
         secenekler: SEFER_OLAY_TANIM[sf.olay.id].secenekler.map((x) => x.metin) } : null })),
     isaretler: (d.hedefIsaretleri || []).map((i) => ({ ...i, ad: ISARET_AD[i.tur], rezerve: isaretRezerve(d, i.uid),
@@ -513,6 +538,6 @@ export function seferGorunumu(d) {
       acik: !seferAcikHatasi(d, s), hata: seferAcikHatasi(d, s) })),
     enCok: SEFER_MAX[d.cag] ?? 1, bosIsci: bosIsci(d), onderUygun: !onderSeferde(d) && !(d.onder.yaraliKalan > 0),
     kahramanlar: (d.kahramanlar || []).map((k) => ({ uid: k.uid, ad: k.ad, uygun: !k.yarali && !kahramanSeferde(d, k) })),
-    son: [...(st.son || [])], istatistik: { ...st.istatistik },
+    son: [...(st.son || [])], istatistik: { ...st.istatistik }, savasSahnesi: savasAcik(sec),
   };
 }

@@ -1,7 +1,7 @@
 # PROJECT_STATE (kısa; ayrıntı: `docs/MIMARI.md`, tasarım: `docs/TASARIM.md`)
 
 **Durum:** Aşama 0–5 bitti + görsel/arayüz yenilemesi (pencere sistemi, ayrıntılı köy ve bina modelleri) = **oynanabilir**. Sıradaki: ilk dakika düzeltmesi, aşama 6 (içerik/olay metinleri), 7 (denge).
-Testler: 233 (232 geçer + 1 `todo`). Tarayıcı testi: `npm run build && npm run e2e` (292 kontrol, `npm test`'e dahil değil). Varsayılan görünüm = stil BD (`?stil=eski` eski render; `?stil=a|b|c|d`).
+Testler: 252 (251 geçer + 1 `todo`). Tarayıcı testi: `npm run build && npm run e2e` (292 kontrol) + `node tests/e2e/savas.mjs`, `savas_ui.mjs` (129 kontrol; `npm test`'e dahil değil). Varsayılan görünüm = stil BD (`?stil=eski` eski render; `?stil=a|b|c|d`).
 
 ## Oyun (özet)
 Sıra tabanlı (tur = gün, mevsim 5 gün, yıl 20 gün), 5 çağ, Önder eylemi/tur, yenilgi yok, zafer sonrası serbest kip. 64×64 harita, keşif sisi.
@@ -30,15 +30,15 @@ Sıra tabanlı (tur = gün, mevsim 5 gün, yıl 20 gün), 5 çağ, Önder eylemi
 - Yönelim/tam ekran: `dom.js` (`donusPerdesiKur`, `tamEkranAcKapa`); dikeyde örtü, ⛶ düğmeleri, `ut_tam` öneri bayrağı; `public/manifest.webmanifest` (display fullscreen). Gerçek cihazda denenmedi.
 
 ## Yol haritası (kullanıcı sırası, 2026-10-26)
-1) görsel stil: BD seçildi ve varsayılan (bina modelleri oynanış onayından sonra) · 2) dış tehditler: 5 çağın hepsinde çalışıyor + arayüz bağlı (`docs/TEHDIT.md` §12–14) · 3) aksiyon: `docs/AKSIYON.md` MVP uygulandı (sefer/kahraman/komşu/hedef; kararlar onaylı, §10–11) · 4) çağ genişletme (kullanıcı düşünüyor): Sanayi ve Modern çağlar eklenebilir (7 çağ?); veri tabloları + çekirdek varsayımları önce tasarım belgesinde ele alınacak, şimdi uygulanmaz. Stil adayı D = referans konsept sanat (`?stil=d`).
+1) görsel stil: BD seçildi ve varsayılan (bina modelleri oynanış onayından sonra) · 2) dış tehditler: 5 çağın hepsinde çalışıyor + arayüz bağlı (`docs/TEHDIT.md` §12–14) · 3) aksiyon: `docs/AKSIYON.md` MVP uygulandı; savaş F1 uygulandı (`docs/SAVAS.md` §12–13: Ayı Avı görsel otomatik savaş, 3×3 yerleşim, Lider rütbesi, Ayarlar'da Savaş sahnesi Açık/Kapalı, kayıt v5) · 4) çağ genişletme (kullanıcı düşünüyor): Sanayi ve Modern çağlar eklenebilir (7 çağ?); veri tabloları + çekirdek varsayımları önce tasarım belgesinde ele alınacak, şimdi uygulanmaz. Stil adayı D = referans konsept sanat (`?stil=d`).
 
 ## DEVAM NOTU (yeni oturum için, 2026-10-28)
 - KULLANICI GERİ BİLDİRİMİ (yeni oyunla): (1) görevler çok sık, şehir gelişimini bölüyor → sıklık azaltma işi çalışıyordu (bak `git status`/CHANGELOG); (2) ayı avı Whiteout tarzı görsel savaş istiyor (okçular arkada, mızrakçılar önde, kahraman ortada, yerleşim + animasyon), komuta kademesi (lider→komutan→şövalye→general), kahraman kartları/eşya; sonra köy savaşları. Tasarım: `docs/SAVAS.md` (taslak, 6 açık soru §12; öneriler: savaş yalnız düşmanlı seferlerde, rütbe adları Lider→Yiğitbaşı→Komutan→Serdar→Şövalye→General→Mareşal, canlı müdahale yok, saldırtılmazsa otomatik, asker nüfustan terfiyle, köy savaşı köy sahnesinde). Onay sonrası F1 (Ayı Avı, mızrakçı+okçu, 3×3 yerleşim, kayıt v5) → Opus çekirdek+render, Sonnet UI.
 - Kullanıcı kararları: BD stil varsayılan; tehdit belgesi `docs/TEHDIT.md` §11 önerileriyle ONAYLANDI (karar penceresi durdurmaz, 3 kademeli çip, Göçebe'de can kaybı yok, varsayılan Normal+Barışçıl, komşu=soyut kaynak, karşı saldırı yok).
 - BİTTİ: tehdit sistemi 5 çağda (Silah Dağıt, Nöbet Tut, Elçi Gönder, Kuşatma kararı), çit/sur + çizim arayüzü, tehdit penceresi/çipi, iş atama kartı + Kadro paneli, kompakt pencereler. Ölçüm (pasif oyun): çağ başına 1/2/3/~5/~5,7 tehdit.
 - Tehdit API (UI için): `tehditGorunumu(d)`, `beklenenSonuc`, `savunmaDokum`, `cevreDurumu`; komutlar `tehditTavir(d,'savun'|'saklan')`, `haracOde`, `tahkimatYap`, `bekciAta`, `zorlukAyarla`, `insaEtCok(d,binaId,[[x,y]..])`; yeni oyun `yeniOyun(tohum,{zorluk})`; bildirim kodları `tehdit_uyari|varis|bilgi|iz`. Detay: `docs/TEHDIT.md` §12–13.
-- Sıradaki: aksiyon fazları F2–F5 (AKSIYON.md §9: ek sefer türleri, Bronz+ komşu/baskın seferi, kahraman sınıfları, gelenek/zafer yolları), sefer dengesi gerçek oyunla ayarı, çağ genişletme (Sanayi/Modern) kararı, aşama 6 içerik (Haiku metin), aşama 7 denge, bina modelleri (oynanış onayından sonra; Tripo hesabı var, PC'den `TRIPO_API_KEY` ortam sırrı + `api.tripo3d.ai` izni gerekir).
+- Sıradaki: SAVAS.md F2 (Kışla/asker eğitimi, rütbe yükselmesi, asker yaralanması, kahraman kartları), F3 köy savunma savaşı, F4 komşu baskını/çağa göre birimler; sahne cilası (ayı bacakları, figür ayrıntısı, ufuk/gökyüzü); sefer dengesi gerçek oyunla ayarı; çağ genişletme (Sanayi/Modern) kararı; aşama 6 içerik (Haiku metin); bina modelleri (Tripo: PC'den `TRIPO_API_KEY` + `api.tripo3d.ai` izni). Yedek dal: `yedek/savas-oncesi`.
 - Rol kuralı: tasarım/görsel ajanlarına "kıdemli oyun tasarımcısı/sanat yönetmeni" rolü ver. Fable yok → Opus tasarım/çekirdek, Sonnet UI/test, Haiku metin.
 
 ## Kayıt
-Sürüm 4 (sefer/kahraman/komşu/hedef; v3 `GOCLER[3]`, v2 `GOCLER[2]` ile açılır), alan beyaz listeli (`DURUM_SEMASI`), tipik ~2,5 KB, göç zinciri `GOCLER`.
+Sürüm 5 (savaş/ordu/rütbe; v4 `GOCLER[4]`, v3 `GOCLER[3]`, v2 `GOCLER[2]` ile açılır), alan beyaz listeli (`DURUM_SEMASI`), tipik ~2,5 KB, göç zinciri `GOCLER`.

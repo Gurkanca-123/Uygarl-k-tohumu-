@@ -355,17 +355,37 @@ Rütbe rozeti (üst çubukta, dokununca ZP ilerlemesi); kahraman kartında ★ v
 | **F4 Komşu baskını + çağ birlikleri** | `baskin_seferi` sahnesi, komşu köy dekoru, süvari (Ahır), kuşatma (Atölye), Serdar/Şövalye, T4–T5 görünümleri | baskın ganimet tavanı korunur; Barışçıl'da kapalı; karsC komşu profiline göre beklenen yönde (test) | Opus (sanat), Sonnet (UI) |
 | **F5 Kart/eşya derinliği** | kahraman yıldızı, kartla işe alma, eşya geliştirme/parça, diğer sınıfların savaş yetenekleri, harabe tuzağı sahnesi, "Düzen Ustası" görevi | kahraman tavanı korunur; sandık 8; kart birikimi oyun başına ★3'e Antik'te ulaşır (bot) | Opus çekirdek; Haiku metin (yetenek/eşya adları) |
 
-## 12. Açık sorular (kullanıcıya)
+## 12. Açık sorular — CEVAPLANDI (2026-10-28, kullanıcı: "önerileri kabul ediyorum")
 
-1. **Savaş kaç seferde?** ÖNERİ: yalnız düşmanlı seferler (Ayı, Kurt, Baskın; ileride tuzaklı harabe); keşif/ticaret/elçi savaşsız kalsın
-   (tempo bozulmasın).
-2. **Rütbe adları:** ÖNERİ: Lider (Göçebe) → Yiğitbaşı (Taş) → Komutan (Bronz) → Serdar (Antik) → Şövalye (Orta) → General (Sanayi) →
-   Mareşal (Modern); çakışmayı önlemek için Orta Çağ kahraman sınıfı "Komutan" → "Sancaktar".
-3. **Savaş sırasında canlı müdahale** (kahraman yeteneğine dokunma) sonucu değiştirsin mi? ÖNERİ: hayır (F1–F3 yetenek otomatik,
-   sonuç olasılık çubuğuyla kesin); istenirse F4'te yalnız "yetenek zamanlaması" (±%5 etki) olarak.
-4. **Oyuncu savaşı izlemezse?** ÖNERİ: varış turunda yerleşim yapılmazsa sonraki turda Öneri düzeniyle otomatik savaş + "İzle" bildirimi;
-   ayarla "Yalnız önemli savaşları göster" (ilk ayı, baskın, kuşatma).
-5. **Ordu nüfustan mı?** ÖNERİ: evet, asker = nüfustan terfi (yer, üretmez), tavan nüfusun %30'u ve `nüfus − asker − sefer ≥ 2`;
-   ayrı "asker" kaynağı yok. Göçebe'de ordu yapısı yok, seferdeki işçiye rol verilir.
-6. **Köy savaşı sahnesi nerede?** ÖNERİ: köy sahnesinin kendisinde (kamera sınıra uçar, gerçek çit/sur/kule); baskın seferleri ayrı arenada
-   (komşu köy dekoru).
+1. **Savaş kaç seferde?** → Yalnız düşmanlı seferler (Ayı, Kurt, Baskın; ileride tuzaklı harabe). Keşif/ticaret/elçi savaşsız.
+2. **Rütbe adları** → Lider → Yiğitbaşı → Komutan → Serdar → Şövalye → General → Mareşal; Orta Çağ kahraman sınıfı "Komutan" → **"Sancaktar"** (`sancaktar`).
+3. **Canlı müdahale** → Yok (F1–F3 yetenekler otomatik, sonuç olasılık çubuğuyla kesin).
+4. **Oyuncu saldırtmazsa** → Sonraki turda önerilen/hatırlanan düzenle otomatik savaş + "İzle" bildirimi (`savas_izle`).
+5. **Ordu nüfustan mı?** → Evet: asker = nüfustan terfi, tavan nüfusun %30'u, `nüfus − asker − seferdeki ≥ 2`; Göçebe'de ordu yok, seferdeki işçiye rol.
+6. **Köy savaşı sahnesi** → Köy sahnesinin kendisinde (F3, şimdi değil); baskın seferleri ayrı arenada.
+Ek kullanıcı şartı: **"Savaş sahnesi: Açık/Kapalı"** ayarı; kapalıyken seferler eski hesaplamalı yolla çözülür (aynı sonuç dağılımı).
+
+## 13. Uygulama notları (F1, 2026-10-28)
+
+**Dosyalar:** veri `src/data/birimler.js` (mızrakçı/okçu açık; kalkanlı/süvari/kuşatma şema; `KARSITLIK`, `KONUM_C`, `DUSMANLAR` ayı açık),
+`rutbeler.js` (7 satır, yalnız Lider açık; `KOMUTA_C`, `ZP_KAYNAK`), `savas.js` (sabitler), `kahramanlar.js` (Avcı/Kaşif `savas` alanı,
+`sancaktar`), `seferler.js` (`savas`, `dusman`), `dogrula.js` §9. Çekirdek `src/core/savas.js` (sim + API + ordu/rütbe), `sefer.js` entegrasyonu,
+`savunma.js` "Ordu" kalemi. Render `src/render/savas.js` (+ `sahne.js` kancaları). Test `tests/savas.test.js`, bot ölçümü `tests/bot.test.js`,
+ekran `tests/e2e/savas.mjs` → `docs/ekran/savas-{yerlesim,carpisma,sonuc}.png`.
+
+**Ayar:** çekirdeğe parametre `turIlerlet(d, { siklik, savasSahnesi: true })` (kayıt alanı değil). Kapalı (varsayılan çekirdekte) = eski yol,
+bit düzeyinde aynı (mevcut bot ölçümleri değişmedi). `seferOnizleme(d, id, hedef, ekip, sec)` / `seferGorunumu(d, sec)` aynı `sec`'i alır.
+
+**Akış:** varış = yolun yarısı (`ceil(süre/2)`) → `sf.savas = {durum:'bekliyor'}` + `savas_hazir`; oyuncu `savasBaslat` (ya da sonraki tur
+otomatik, `savas_izle`) → TEK `sefer.rng` çekimi, kademe `sf.savas.kademe`; dönüşte `seferSonuclandir` çekmeden bu kademeyi kullanır.
+Ödül/yaralı/destan mevcut kodla. ZP yalnız savaştan (F1). Okçu erzak eki (§2.4) ve kahraman kartları uygulanmadı (F2/F5).
+
+**Sapmalar (TODO tasarim):** `ayi_avi` savaş zorluk çarpanı ×1,10 yerine **×1,05** (ölçüm: ×1,10 büyük başarıyı %50 → %41'e indirdi; tipik
+Göçebe ekibi Öneri'de yalnız ×1,0–1,07 kazanır; ×1,05 ile %51). Sim tabanı ekibe göre ölçeklenir (`SIM_OLCEK`), m bunun üstünde ayar;
+ayı normal pençesi menzildeki en az canlıya vurur. Kısmi ölçütünde tek birimli ekipte çöken şartı aranmaz. Asker terfisi F1'de anında
+(eğitim kuyruğu F2); askerin yarası izlenmez; Kışla askeri v5 göçünde dönüştürülmez (F2). Göçebe'de ekip en çok kahraman + 3 işçi olduğundan
+Öneri genellikle üç mızrakçıyı öne koyar (okçu arka çarpanı 1,10 < mızrakçı ön 1,10 × karşıtlık 1,25).
+
+**Ölçüm:** sim 1000 girdi: kademe tutarlılığı %100, zorunlu bitiş 0/1000, en uzun 4,4 ms, süre 7,5–22 sn (+2,5 sn giriş). Bot 50 tohum
+Göçebe: kapalı 40/50 (değişmedi), açık 41/50; ayı avı kapalı büyük %50 / açık %51; destan 45/50. Sahne (SwiftShader, 1000×450 dpr 2):
+37–38 çizim çağrısı (gölge geçişi dahil), ≈ 9,7 bin üçgen, kare aralığı ortanca ≈ 120–130 ms (köy sahnesi 220–300 ms); GPU'lu telefonda denenmedi.

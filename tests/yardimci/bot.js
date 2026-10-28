@@ -28,6 +28,7 @@ import { seferOnizleme, seferGonder, kahramanTerfi, kahramanGorev, kahramanEsyaG
 import { calisamayanSayisi } from '../../src/core/yardimci.js';
 import { ESYA } from '../../src/core/kahraman.js';
 import { destanAdimBilgi } from '../../src/core/hedef.js';
+import { savasBaslat } from '../../src/core/savas.js';
 
 const KAYNAKLAR = ['yiyecek', 'odun', 'tas', 'deri'];
 const BULUS_YOLU = ['tas_yontma', 'mizrak_ucu', 'deri_isleme', 'yerlesik_hayat', 'hayvan_izleri'];
@@ -213,9 +214,12 @@ const SEFER_SIRA = { ayi: 'ayi_avi', harabe: 'harabe' };
 const GOREV = process.env.BOT_GOREV || 'danisman';
 const BOT_ESIK = Number(process.env.BOT_ESIK) || 0.6;  // büyük+başarı olasılığı bu değerin altındaysa gitmez
 const KESIF = process.env.BOT_KESIF !== '0';
-function seferHazirla(d) {
+const BOT_SALDIR = process.env.BOT_SALDIR !== '0';  // 0: savaşı bekletir → sonraki turda otomatik savaş
+function seferHazirla(d, sec = {}) {
   let x = d;
   const dene = (r) => { if (!r.hata) x = r.durum; return !r.hata; };
+  // Görsel savaş açıkken: hedefe varan ekip için "Saldır!" (Öneri/hatırlanan düzen) — oyuncu gibi varış turunda.
+  if (sec.savasSahnesi) for (const sf of x.sefer?.aktif || []) if (sf.savas?.durum === 'bekliyor' && BOT_SALDIR) dene(savasBaslat(x, sf.uid));
   if (x.kahramanDurum?.teklif) dene(kahramanTerfi(x, 'avci'));
   for (const k of x.kahramanlar || []) {
     for (const id of [...(x.sandik || [])]) {
@@ -232,7 +236,7 @@ function seferHazirla(d) {
     if (!id) continue;
     for (let isci = 0; isci <= 2; isci++) {
       const ekip = { kahraman, isci };
-      const o = seferOnizleme(x, id, i.uid, ekip);
+      const o = seferOnizleme(x, id, i.uid, ekip, sec);
       if (!o.uygun) { if (/işçi|kişi/.test(o.hata || '')) break; continue; }
       if (o.uyari || (x.kaynaklar.yiyecek || 0) - o.erzak < x.nufus * 2) break;
       if (o.olasiliklar.buyuk + o.olasiliklar.basari >= BOT_ESIK) { dene(seferGonder(x, id, i.uid, ekip)); break; }
@@ -241,7 +245,7 @@ function seferHazirla(d) {
   // Boştaki kahraman keşif seferine (yalnız kahramanlar, işçisiz).
   const bos = (x.kahramanlar || []).filter((k) => !k.yarali && !(x.sefer?.aktif || []).some((s) => s.ekip.kahraman.includes(k.uid)));
   if (KESIF && bos.length && !(x.sefer?.aktif || []).length) {
-    const o = seferOnizleme(x, 'kesif', null, { kahraman: bos.map((k) => k.uid) });
+    const o = seferOnizleme(x, 'kesif', null, { kahraman: bos.map((k) => k.uid) }, sec);
     if (o.uygun && !o.uyari && o.olasiliklar.buyuk + o.olasiliklar.basari >= BOT_ESIK && (x.kaynaklar.yiyecek || 0) - o.erzak >= x.nufus * 2) {
       dene(seferGonder(x, 'kesif', null, { kahraman: bos.map((k) => k.uid) }));
     }
@@ -250,7 +254,8 @@ function seferHazirla(d) {
 }
 
 // ---------- Ana döngü ----------
-export function botTuru(d, { tehditStrateji = 'hazirlikli', sefer = false } = {}) {
+export function botTuru(d, { tehditStrateji = 'hazirlikli', sefer = false, savasSahnesi = false } = {}) {
+  const sec = savasSahnesi ? { savasSahnesi: true } : {};
   let x = d;
   while (x.olay.aktif) x = olaySec(x);
   const s = cagSartlari(x);
@@ -262,22 +267,23 @@ export function botTuru(d, { tehditStrateji = 'hazirlikli', sefer = false } = {}
     const id = BULUS_YOLU.find((b) => !arastirilabilirMi(x, b));
     if (id) x = arastirmaSec(x, id).durum;
   }
-  if (sefer) x = seferHazirla(x);
+  if (sefer) x = seferHazirla(x, sec);
   x = insaDene(x);
   x = isleriAta(x);
   x = tehditHazirla(x, tehditStrateji);
   x = onderSec(x);
-  const r = turIlerlet(x);
+  const r = turIlerlet(x, sec);
   return { durum: r.durum, bildirimler: r.bildirimler };
 }
 
 // Göçebe'yi bitirmeyi dener. Dönüş: { tohum, tamam, tur (çağ atlandığı tur), minNufus, son (durum), eksikler }
-export function botOyna(tohum, { maxTur = 80, hedefCag = 'tasdevri', zorluk = 'normal', tehditStrateji = 'hazirlikli', sefer = false } = {}) {
+export function botOyna(tohum, { maxTur = 80, hedefCag = 'tasdevri', zorluk = 'normal', tehditStrateji = 'hazirlikli', sefer = false,
+  savasSahnesi = false } = {}) {
   let d = yeniOyun(tohum, { zorluk });
   let minNufus = d.nufus;
   let destanTur = null;
   for (let i = 0; i < maxTur; i++) {
-    const r = botTuru(d, { tehditStrateji, sefer });
+    const r = botTuru(d, { tehditStrateji, sefer, savasSahnesi });
     d = r.durum;
     minNufus = Math.min(minNufus, d.nufus);
     if (destanTur === null && d.hedef?.destan?.bitti) destanTur = d.tur;
@@ -297,6 +303,8 @@ export function botOzeti(tohumlar, secenek = {}) {
     minNufus: Math.min(...sonuclar.map((s) => s.minNufus)),
     tehdit: sonuclar.flatMap((s) => s.son.tehdit?.gecmis || []).reduce((a, g) => ({ ...a, [g.sonuc]: (a[g.sonuc] || 0) + 1 }), {}),
     sefer: sonuclar.reduce((a, s) => { for (const [k, v] of Object.entries(s.son.sefer?.istatistik || {})) a[k] = (a[k] || 0) + v; return a; }, {}),
+    savas: sonuclar.reduce((a, s) => { for (const g of s.son.savas?.son || []) a[g.kademe] = (a[g.kademe] || 0) + 1; a.toplam = (a.toplam || 0) + (s.son.savas?.sayac || 0); return a; }, {}),
+    ayi: sonuclar.reduce((a, s) => { a.zp += s.son.rutbe?.zp || 0; return a; }, { zp: 0 }),
     destan: sonuclar.filter((s) => s.destanTur !== null).map((s) => s.destanTur).sort((a, b) => a - b),
   };
 }
@@ -305,9 +313,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const n = Number(process.argv[2]) || 50;
   const strateji = process.argv[3] || 'hazirlikli';
   const oz = botOzeti(Array.from({ length: n }, (_, i) => i + 1), { tehditStrateji: strateji, zorluk: process.argv[4] || 'normal',
-    sefer: process.argv[5] === 'sefer' });
+    sefer: process.argv[5] === 'sefer' || process.argv[5] === 'savas', savasSahnesi: process.argv[5] === 'savas' });
   console.log(`Tohum: ${n} · bitiren: ${oz.tamamSayisi} · tur min/ortanca/max: ${oz.min}/${oz.ortanca}/${oz.max}`
     + ` · 20–32 aralığında: ${oz.aralikta} · en düşük nüfus: ${oz.minNufus} · tehdit (${strateji}): ${JSON.stringify(oz.tehdit)}`
-    + ` · sefer: ${JSON.stringify(oz.sefer)} · destan bitiren ${oz.destan.length} (ortanca tur ${oz.destan[Math.floor(oz.destan.length / 2)] ?? '—'})`);
+    + ` · sefer: ${JSON.stringify(oz.sefer)} · savaş ${JSON.stringify(oz.savas)} · destan bitiren ${oz.destan.length} (ortanca tur ${oz.destan[Math.floor(oz.destan.length / 2)] ?? '—'})`);
   for (const s of oz.sonuclar.filter((x) => !x.tamam).slice(0, 5)) console.log(`  tohum ${s.tohum}: bitiremedi —`, s.eksikler.join('; '));
 }

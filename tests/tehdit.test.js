@@ -262,7 +262,7 @@ test('(d) kayıt v2 → v3 göçü; v3 gidiş-dönüş sonrası aynı sonraki tu
   delete v2.zorluk;
   delete v2.tehdit;
   const y = yukle(JSON.stringify(v2));
-  assert.equal(y.surum, 4); // v2 → v3 → v4 (AKSIYON göçü)
+  assert.equal(y.surum, 5); // v2 → v3 → v4 (AKSIYON) → v5 (SAVAŞ göçü)
   assert.equal(y.zorluk, 'normal');
   assert.deepEqual(y.tehdit, tehditVarsayilan(9, { gerginlik: 0, nefesKalan: 10 }));
   // Aktif uyarılı bir oyun ortası

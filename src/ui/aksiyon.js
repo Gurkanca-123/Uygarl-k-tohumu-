@@ -13,9 +13,11 @@ import { XP_ESIK } from '../data/kahramanlar.js';
 import { CAGLAR } from '../data/caglar.js';
 import { kesifli } from '../world/kesif.js';
 import { h, yuvarla } from './dom.js';
+import { savasSekmesi, savasKarti, savasDikkat, askerSatiri, savasAc } from './savas.js';
 
 const BINA = Object.fromEntries(BINALAR.map((b) => [b.id, b]));
 export const ALTLAR = [['sefer', '🗺', 'Sefer'], ['yolda', '⏳', 'Yolda'], ['kahraman', '🛡', 'Kahraman'], ['komsu', '🏕', 'Komşu'], ['hedef', '🎯', 'Hedef']];
+const SAVAS_ALT = ['savas', '⚔', 'Savaş'];
 const GIZLI_SEFER = ['baskin_seferi']; // MVP: baskın / haraç / ittifak başlatma gizli (talep yanıtı panelde kalır)
 const TUR_SIMGE = { kesif: '🧭', ayi_avi: '🐻', harabe: '🗿', kurt_avi: '🐺', koyun: '🐑', uzak_kamp: '⛺' };
 const TUR_KISA = { kesif: 'Keşif', ayi_avi: 'Ayı Avı', harabe: 'Harabe', kurt_avi: 'Kurt Avı', koyun: 'Sürü', uzak_kamp: 'Kamp' };
@@ -63,6 +65,7 @@ export function dikkatDurumu(a, d) {
     kahraman: !!d.kahramanDurum?.teklif,
     komsu: (d.komsular || []).some((k) => k.niyet && !k.niyet.kullanildi && ['harac', 'ittifak', 'ticaret'].includes(k.niyet.tur)),
     hedef: !!hg && ((hg.kartlar.length > 0 && !hg.gorev) || !!hg.destan?.komut?.uygun),
+    savas: savasDikkat(a, d),
   };
   o.hepsi = Object.values(o).some(Boolean);
   return o;
@@ -93,10 +96,12 @@ const alt = (k, ek) => h('small', {}, k, ek);
 export function aksiyonSekmesi(a) {
   const d = a.d;
   const dk = dikkatDurumu(a, d);
-  const g = seferGorunumu(d);
+  const g = seferGorunumu(d, a.oyun.savasSec);
   const yoldaN = g.aktif.length;
   const sade = (id) => (id === 'yolda' && yoldaN ? ` ${yoldaN}` : '');
-  const serit = h('div', { class: 'sf-serit' }, ALTLAR.map(([id, ik, ad]) =>
+  const altlar = a.oyun.savasSahnesi ? [...ALTLAR, SAVAS_ALT] : ALTLAR;
+  if (a.aksiyonAlt === 'savas' && !a.oyun.savasSahnesi) a.aksiyonAlt = 'sefer';
+  const serit = h('div', { class: 'sf-serit' }, altlar.map(([id, ik, ad]) =>
     h('button', { class: `${a.aksiyonAlt === id ? 'secili' : ''}${dk[id] ? ' dikkat' : ''}`, 'data-alt': id, onclick: () => { a.aksiyonAlt = id; a.yenile(); } },
       h('span', {}, ik), h('em', {}, `${ad}${sade(id)}`))));
   let govde;
@@ -104,6 +109,7 @@ export function aksiyonSekmesi(a) {
   else if (a.aksiyonAlt === 'kahraman') govde = kahramanPaneli(a, d);
   else if (a.aksiyonAlt === 'komsu') govde = komsuPaneli(a, d);
   else if (a.aksiyonAlt === 'hedef') govde = hedefPaneli(a, d);
+  else if (a.aksiyonAlt === 'savas') govde = savasSekmesi(a);
   else govde = seferPaneli(a, d, g);
   return h('div', { class: 'sf-kok' }, serit, h('div', { class: `sf-icerik sf-${a.aksiyonAlt}` }, govde));
 }
@@ -118,12 +124,13 @@ function seferPaneli(a, d, g) {
   const hedefler = tur.hedef === 'isaret' ? g.isaretler.filter((i) => i.tur === tur.isaret) : [];
   if (tur.hedef === 'isaret' && !hedefler.some((i) => i.uid === sf.hedef && !i.rezerve)) sf.hedef = (hedefler.find((i) => !i.rezerve) || hedefler[0])?.uid ?? null;
   const hedef = tur.hedef === 'isaret' ? sf.hedef : null;
-  if (!sf.hazir) { sf.kahraman = g.kahramanlar.filter((k) => k.uygun).map((k) => k.uid); sf.isci = Math.min(2, g.bosIsci); sf.onder = false; sf.hazir = true; }
+  if (!sf.hazir) { sf.kahraman = g.kahramanlar.filter((k) => k.uygun).map((k) => k.uid); sf.isci = Math.min(2, g.bosIsci); sf.onder = false; sf.asker = {}; sf.hazir = true; }
   sf.kahraman = sf.kahraman.filter((u) => g.kahramanlar.some((k) => k.uid === u && k.uygun));
   sf.isci = Math.max(0, Math.min(sf.isci, g.bosIsci));
   if (sf.onder && !g.onderUygun) sf.onder = false;
-  const ekip = { kahraman: sf.kahraman, isci: sf.isci, onder: sf.onder };
-  const o = seferOnizleme(d, sf.tur, hedef, ekip);
+  const askerler = askerSatiri(a, d, sf);
+  const ekip = { kahraman: sf.kahraman, isci: sf.isci, onder: sf.onder, asker: a.oyun.savasSahnesi ? Object.fromEntries(Object.entries(sf.asker || {}).filter(([, n]) => n > 0)) : {} };
+  const o = seferOnizleme(d, sf.tur, hedef, ekip, a.oyun.savasSec);
 
   const turSatiri = h('div', { class: 'sf-tur' }, turler.map((t) =>
     h('button', { class: sf.tur === t.id ? 'secili' : '', disabled: !t.acik, title: t.acik ? t.metin : t.hata, 'data-tur': t.id,
@@ -154,7 +161,7 @@ function seferPaneli(a, d, g) {
     h('button', { class: `sf-onder${sf.onder ? ' secili' : ''}`, disabled: !g.onderUygun, title: g.onderUygun ? 'Önder de gider (eylemi o süre seferde)' : 'Önder uygun değil.',
       onclick: () => { sf.onder = !sf.onder; a.yenile(); } }, `${sf.onder ? '✓ ' : ''}🧭 Önder`));
 
-  const sol = h('div', { class: 'sf-sol' }, turSatiri, hedefSatiri, kahSatiri, ekipSatiri);
+  const sol = h('div', { class: 'sf-sol' }, turSatiri, hedefSatiri, kahSatiri, ekipSatiri, askerler);
   const sag = h('div', { class: 'sf-sag' }, onizlemeBlogu(a, d, o, g), gonderDugmesi(a, d, o, sf, hedef, ekip));
   return h('div', { class: 'sf-izgara' }, sol, sag);
 }
@@ -173,6 +180,8 @@ function onizlemeBlogu(a, d, o, g) {
     h('div', { class: `sf-bar guc ${renk}`, 'data-oran': o.oran }, h('i', { style: `width:${Math.round(o.guc / olcek * 100)}%` }), h('u', { style: `left:${Math.round(o.zorluk / olcek * 100)}%` })),
     h('div', { class: 'sf-sonuc', title: 'Sonuç olasılıkları' }, SONUC.map(([id], i) => h('i', { class: `c-${id}`, 'data-yuzde': y[i], style: `flex:${y[i]} 0 0` }))),
     h('div', { class: 'sf-yuzde' }, SONUC.map(([id, ad], i) => h('span', { class: `c-${id}` }, h('em', {}, ad), h('b', {}, `%${y[i]}`)))),
+    o.savas ? h('div', { class: 'sf-savas-ip', 'data-savas-ipucu': '1', title: `Formasyon ×${o.savas.formC?.toFixed?.(2) ?? ''} · karşıtlık ×${o.savas.karsC?.toFixed?.(2) ?? ''} · komuta ×${o.savas.komutaC?.toFixed?.(2) ?? ''}` },
+      '⚔ ', h('b', {}, `Savaş ×${String(yuvarla(o.savas.carpan, 2)).replace('.', ',')}`), ' · Mızrakçılar önde, okçular arkada, kahraman ortada') : null,
     h('div', { class: 'sf-meta' },
       h('span', { title: 'Yolculuk süresi' }, '⏱ ', h('b', {}, `${o.sure} gün`)),
       h('span', { title: 'Peşin yiyecek erzakı' }, '🍖 ', h('b', {}, `${o.erzak} erzak`)),
@@ -204,6 +213,9 @@ function yoldaPaneli(a, d, g) {
         h('span', { class: 'sf-kalan', title: 'Dönüşe kalan gün' }, `⏳ ${s.kalan}/${s.sure} gün`),
         s.geriCagrilir ? h('button', { class: 'kucuk-d sf-geri', title: 'Bu tur geri çağırırsan erzakın yarısı iade edilir.', onclick: () => a.oyun.komut(seferGeriCagir, s.uid) }, '↩ Geri çağır') : null),
       h('div', { class: 'sf-yol-alt soluk' }, ekipMetni || 'ekip', ' · ', `başarı %${y[0] + y[1]}`),
+      a.oyun.savasSahnesi && s.savas ? h('div', { class: `sf-yol-savas ${s.savas.durum}`, 'data-yol-savas': s.savas.durum },
+        s.savas.durum === 'bekliyor' ? [h('span', {}, '⚔ Savaş hazır'), h('button', { class: 'kucuk-d', onclick: () => savasAc(a, s.uid) }, '✎ Düzenle')]
+          : s.savas.durum === 'bitti' ? h('span', {}, `⚔ Savaş bitti: ${SONUC_AD[s.savas.kademe] || ''}`) : null) : null,
       cubuk((s.sure - s.kalan) / Math.max(1, s.sure), 'ilerleme'),
       s.olay ? h('div', { class: 'sf-olay' },
         h('div', { class: 'sf-olay-m' }, h('b', {}, `${s.olay.ad}: `), s.olay.metin),
@@ -393,6 +405,8 @@ export function hedefCipi(a, d) {
 
 // ---------- Sol altta küçük kart: ilk kahraman teklifi ve yol olayı (oyunu durdurmaz) ----------
 export function aksiyonKarti(a, d) {
+  const sk = savasKarti(a, d);
+  if (sk && !a.d.kahramanDurum?.teklif) return sk;
   const teklif = d.kahramanDurum?.teklif;
   if (teklif && !a.gizliKart.has('teklif')) {
     const kg = kahramanGorunumu(d);
@@ -401,7 +415,7 @@ export function aksiyonKarti(a, d) {
       govde: [h('p', { class: 'sf-kart-m' }, 'Kabileden biri öne çıkıyor. Avcı mı olsun, Kaşif mi?'),
         h('div', { class: 'sf-teklif-d' }, kg.teklif.siniflar.map((s) => teklifDugmesi(a, s)))] };
   }
-  for (const s of seferGorunumu(d).aktif) {
+  for (const s of seferGorunumu(d, a.oyun.savasSec).aktif) {
     if (!s.olay || a.gizliKart.has(`olay:${s.uid}:${s.olay.id}`)) continue;
     if (a.pencere === 'acik' && a.sekme === 'aksiyon' && a.aksiyonAlt === 'yolda') continue; // seçenekler zaten Yolda sekmesinde
     return { anahtar: `a-olay${s.uid}`, baslik: s.olay.ad, ikon: '🗺', sinif: 'aksiyon-kart',
@@ -430,7 +444,7 @@ export class IsaretKatmani {
     if (anahtar === this.anahtar) return;
     this.anahtar = anahtar;
     this.el.replaceChildren(); this.ogeler = [];
-    const gv = isaretler.length ? seferGorunumu(d).isaretler : [];
+    const gv = isaretler.length ? seferGorunumu(d, a.oyun?.savasSec).isaretler : [];
     for (const i of isaretler) {
       const g = gv.find((x) => x.uid === i.uid) || { ad: i.tur, seferler: [] };
       const acil = i.kalan <= 2;

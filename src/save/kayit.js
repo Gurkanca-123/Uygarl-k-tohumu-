@@ -18,6 +18,9 @@ import { seferVarsayilan } from '../core/sefer.js';
 import { kahramanDurumVarsayilan } from '../core/kahraman.js';
 import { komsuDurumVarsayilan } from '../core/komsu.js';
 import { hedefVarsayilan } from '../core/hedef.js';
+import { orduVarsayilan, rutbeVarsayilan, savasVarsayilan } from '../core/savas.js';
+import { CAGLAR } from '../data/caglar.js';
+import { RUTBELER } from '../data/rutbeler.js';
 
 export const KAYIT_SURUM = DURUM_SURUM;
 export const ANAHTARLAR = { otomatik: KAYIT_ANAHTAR_OTOMATIK, elle: KAYIT_ANAHTAR_ELLE };
@@ -69,8 +72,22 @@ export function goc3to4(eski) {
     hedefIsaretleri: [], komsu: komsuDurumVarsayilan(tohum), komsular: [], hedef: hedefVarsayilan() };
 }
 
+// Sürüm 4 → 5 (görsel savaş F1, docs/SAVAS.md §10): ordu boş, rütbe Lider (F1'de yalnız Lider açık; ZP = 5 × çağSırası, ★ eşiğe göre),
+// savaş geçmişi boş; aktif seferlere `savas: null`, `ekip.asker: {}` (yolda olan seferler eski yolla döner). durum.rng / tehdit.rng /
+// sefer.rng dokunulmaz. TODO(tasarim) F2: Kışla'daki atanmış askerler → asker.mizrakci T3 (F1'de Kışla aynen işçi yuvası).
+export function goc4to5(eski) {
+  const sira = Math.max(0, CAGLAR.findIndex((c) => c.id === eski.cag));
+  const zp = 5 * sira;
+  const r = RUTBELER[0];
+  const yildiz = zp >= r.zp[2] ? 3 : zp >= r.zp[1] ? 2 : 1;
+  const sefer = eski.sefer && typeof eski.sefer === 'object' ? { ...eski.sefer,
+    aktif: Array.isArray(eski.sefer.aktif) ? eski.sefer.aktif.map((s) => (s && typeof s === 'object'
+      ? { ...s, savas: null, ekip: s.ekip && typeof s.ekip === 'object' ? { ...s.ekip, asker: {} } : s.ekip } : s)) : eski.sefer.aktif } : eski.sefer;
+  return { ...eski, sefer, ordu: orduVarsayilan(), rutbe: { ...rutbeVarsayilan(), zp, yildiz }, savas: savasVarsayilan() };
+}
+
 // GOCLER[n]: sürüm n kaydını sürüm n+1'e çeviren saf fonksiyon.
-export const GOCLER = { 1: goc1to2, 2: goc2to3, 3: goc3to4 };
+export const GOCLER = { 1: goc1to2, 2: goc2to3, 3: goc3to4, 4: goc4to5 };
 
 export class KayitHatasi extends Error {}
 
