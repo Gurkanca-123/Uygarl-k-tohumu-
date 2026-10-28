@@ -1,5 +1,8 @@
 # CHANGELOG_DEV (yalnız son kayıtlar; eskiler `docs/CHANGELOG_ARSIV.md`)
 
+## 2026-10-28 — Ana vitrin yapıları: Totem + Darphane yeniden tasarlandı (Sonnet 5.5)
+- `binalar.js`: `parca()` yardımcısı (yerel çerçeve + yaw), `M.totem` (ayı/kurt/kartal katları, boyalı kanat, tüy tacı, adak çanağı), `M.darphane` (kemerli portal, demir parmaklıklı pencereler, altın sikke madalyonu, ocak ışıklı pencere, örs/sikke/külçe, bayrak). Önizleme ile 2 tur eleştirildi; oyun içi/telefon denenmedi. Sıradaki: aynı yöntemle diğer yapılar.
+
 ## 2026-10-28 — Bina ayrıntı geçişi 1 (Sonnet 5.5)
 - `binalar.js` ortak parçalar: pencere (çıta, denizlik, lento, rastgele renkli panjur), kapı (lento, eşik taşı, kol); `birlestir`: konuma bağlı el boyaması değer değişimi + üst solma/taban kiri. Tüm 54 bina etkilenir. Fark ince; asıl sıçrama için çağ çağ yeniden modelleme gerekir. Denenmedi: telefon.
 

@@ -469,21 +469,89 @@ M.kurutma_rafi = (k, c) => {
   k.sil(0.05, 0.04, 0.08, 8, 0.36, Z, 0.34, 'hasir', 0xc49a5a);
 };
 
+// Yerel çerçevede yerleştirme: geometri önce eğilir (rx/rz), sonra `a` kadar döndürülür, sonra konumlanır.
+// Yerel +z = bakış yönü (a = π/4 → kameraya dönük). Totem, darphane gibi "ana vitrin" yapılarda kullanılır.
+function parca(k, geo, doku, renk, a, lx, ly, lz, rx = 0, rz = 0, o = {}) {
+  if (rx) geo.rotateX(rx);
+  if (rz) geo.rotateZ(rz);
+  geo.rotateY(a);
+  const c = Math.cos(a), sn = Math.sin(a);
+  geo.translate(lx * c + lz * sn, ly, -lx * sn + lz * c);
+  return k.ekle(geo, { doku, renk, ...o });
+}
+const kutuG = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+const koniG = (r, h, seg = 5) => new THREE.ConeGeometry(r, h, seg);
+
 M.totem = (k, c) => {
   const Z = k.kaide(1, 'toprak');
-  const h = 0.95 * c.s;
-  const renk = [0x9a6a3a, P.asi, 0x3f6a8a, 0xd8b04a];
-  for (let i = 0; i < 4; i++) {
-    const hs = h / 4;
-    k.sil(0.085, 0.095, hs * 0.92, 6, 0, Z + i * hs, 0, 'kutuk', renk[i]);
-    k.kutu(0.05, 0.025, 0.02, -0.035, Z + i * hs + hs * 0.55, 0.085, 'duz', 0x1a1410);
-    k.kutu(0.05, 0.025, 0.02, 0.035, Z + i * hs + hs * 0.55, 0.085, 'duz', 0x1a1410);
+  const a = Math.PI / 4, S = c.s;
+  const siyah = 0x1a1410, beyaz = 0xf0e8d4, kirmizi = 0xb6402a, mavi = 0x2f6f9a, sari = 0xe2b23a, yesil = 0x3f8a5a;
+  // zemin: höyük, taş halka, adak çanağı
+  k.sil(0.36, 0.42, 0.05, 10, 0, Z, 0, 'duz', 0x9a7a4c);
+  for (let i = 0; i < 9; i++) { const q = (i / 9) * Math.PI * 2 + 0.2; k.tas(Math.cos(q) * 0.33, Math.sin(q) * 0.33, Z + 0.03, 0.045 + (i % 3) * 0.01, i % 2 ? 0xb4ae9e : 0x9a9486); }
+  // gövde: hafif konik, dikey oluklu
+  const h = 1.0 * S, w0 = 0.115;
+  k.sil(w0 * 0.82, w0, h, 8, 0, Z + 0.04, 0, 'kutuk', 0x6a4426);
+  for (let i = 0; i < 8; i++) { const q = (i / 8) * Math.PI * 2; k.kutu(0.012, h * 0.96, 0.012, Math.cos(q) * w0 * 0.9, Z + 0.06, Math.sin(q) * w0 * 0.9, 'kutuk', 0x4e301a); }
+  const z0 = Z + 0.04;
+  const yuzK = w0 * 0.86; // gövde yarıçapı civarı: yüz özellikleri bu mesafede
+  // ---- 1) AYI (alt): geniş kafa, kulaklar, burun, dişler, patiler ----
+  let y = z0 + 0.19 * S;
+  parca(k, kutuG(0.27, 0.2, 0.17), 'kutuk', 0x8a5a30, a, 0, y, 0.02);
+  parca(k, kutuG(0.15, 0.1, 0.1), 'kutuk', 0xa87040, a, 0, y - 0.04, yuzK + 0.07);        // burun/ağız bloğu
+  parca(k, kutuG(0.06, 0.04, 0.03), 'duz', siyah, a, 0, y - 0.01, yuzK + 0.125);           // burun ucu
+  for (const sx of [-1, 1]) {
+    parca(k, kutuG(0.05, 0.05, 0.03), 'duz', beyaz, a, sx * 0.07, y + 0.05, yuzK + 0.07);   // göz akı
+    parca(k, kutuG(0.025, 0.03, 0.03), 'duz', siyah, a, sx * 0.07, y + 0.05, yuzK + 0.085);
+    parca(k, kutuG(0.07, 0.07, 0.05), 'kutuk', 0x6a4220, a, sx * 0.12, y + 0.12, 0);        // kulak
+    parca(k, kutuG(0.05, 0.12, 0.05), 'kutuk', 0x8a5a30, a, sx * 0.17, y - 0.05, 0.05, 0, sx * 0.25); // pati/kol
+    for (let t = -1; t <= 1; t++) parca(k, koniG(0.012, 0.04, 4), 'duz', beyaz, a, sx * 0.17 + t * 0.014, y - 0.13, 0.07, Math.PI, 0); // pençe
   }
-  k.kutu(0.5, 0.06, 0.06, 0, Z + h * 0.78, 0, 'tahta', P.altin, { rz: 0.04 });
-  k.koni(0.09, 0.14, 4, 0, Z + h, 0.04, 'duz', P.kumasK, { rx: Math.PI / 2 - 0.3, z: 0.06 });
-  k.kure(0.08, 0, Z + h + 0.04, 0, 'kutuk', 0x6a4a2a);
-  for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; k.tas(Math.cos(a) * 0.2, Math.sin(a) * 0.2, Z, 0.04); }
-  k.atesYeri(0.28, 0.28, Z, 0.5);
+  for (let t = -2; t <= 2; t++) parca(k, kutuG(0.016, 0.03, 0.012), 'duz', beyaz, a, t * 0.025, y - 0.1, yuzK + 0.12); // dişler
+  parca(k, kutuG(0.27, 0.02, 0.17), 'duz', kirmizi, a, 0, y + 0.105, 0.02);                  // boyalı şerit
+  // ---- 2) KURT / ruh yüzü (orta): mavi, büyük göz, açık ağız ----
+  y = z0 + 0.47 * S;
+  parca(k, kutuG(0.25, 0.22, 0.16), 'kutuk', mavi, a, 0, y, 0.02);
+  for (const sx of [-1, 1]) {
+    parca(k, kutuG(0.08, 0.06, 0.03), 'duz', beyaz, a, sx * 0.075, y + 0.05, yuzK + 0.065);
+    parca(k, kutuG(0.035, 0.035, 0.03), 'duz', kirmizi, a, sx * 0.075, y + 0.05, yuzK + 0.082);
+    parca(k, koniG(0.045, 0.12, 4), 'kutuk', 0x244f70, a, sx * 0.1, y + 0.15, 0);          // sivri kulak
+  }
+  parca(k, kutuG(0.15, 0.06, 0.04), 'duz', siyah, a, 0, y - 0.06, yuzK + 0.07);               // ağız boşluğu
+  parca(k, kutuG(0.05, 0.05, 0.02), 'duz', kirmizi, a, 0, y - 0.09, yuzK + 0.085);            // dil
+  for (let t = -2; t <= 2; t++) parca(k, kutuG(0.014, 0.025, 0.012), 'duz', beyaz, a, t * 0.028, y - 0.035, yuzK + 0.095);
+  parca(k, kutuG(0.25, 0.02, 0.16), 'duz', sari, a, 0, y - 0.115, 0.02);
+  // ---- 3) KARTAL (üst): gaga, kanatlar (üç kat tüy), kuyruk ----
+  y = z0 + 0.77 * S;
+  parca(k, kutuG(0.2, 0.2, 0.15), 'kutuk', sari, a, 0, y, 0.02);
+  parca(k, koniG(0.07, 0.17, 4), 'duz', 0xe8862a, a, 0, y - 0.02, yuzK + 0.1, Math.PI / 2 + 0.25, 0, { ry: 0 });    // kıvrık gaga
+  for (const sx of [-1, 1]) {
+    parca(k, kutuG(0.05, 0.05, 0.03), 'duz', beyaz, a, sx * 0.06, y + 0.06, yuzK + 0.05);
+    parca(k, kutuG(0.025, 0.03, 0.03), 'duz', siyah, a, sx * 0.06, y + 0.06, yuzK + 0.065);
+    // kanat: üç sıra tüy, dışa doğru uzar ve hafif yukarı kıvrılır
+    const kat = [[0.3, 0.07, kirmizi, 0.0], [0.27, 0.06, mavi, -0.06], [0.22, 0.05, sari, -0.11]];
+    kat.forEach(([L, hh, col, dy], q) => {
+      parca(k, kutuG(L, hh, 0.03), 'kumas', col, a, sx * (0.1 + L / 2), y + 0.0 + dy, -0.02 - q * 0.012, 0, sx * 0.18);
+      for (let t = 0; t < 4; t++) parca(k, kutuG(0.045, 0.02, 0.025), 'kumas', col, a, sx * (0.12 + t * L / 4.2 + 0.03), y + dy - hh / 2 - 0.008 + sx * 0 - t * 0.003, -0.02 - q * 0.012, 0, sx * 0.18);
+    });
+  }
+  // ---- tepe: tüy tacı ----
+  const tepe = z0 + h * 0.98;
+  const tuyr = [kirmizi, sari, mavi, yesil, kirmizi, sari, mavi];
+  for (let i = 0; i < 7; i++) {
+    const q = (i - 3) * 0.32;
+    parca(k, koniG(0.03, 0.2 - Math.abs(i - 3) * 0.02, 4), 'kumas', tuyr[i], a, Math.sin(q) * 0.09, tepe + 0.1, 0, 0, -q * 0.9);
+  }
+  parca(k, kutuG(0.2, 0.04, 0.17), 'kutuk', 0x4e301a, a, 0, tepe - 0.01, 0.02);
+  // yan şeritler / bağlı kuşaklar
+  k.kutu(0.2, 0.025, 0.2, 0, z0 + 0.33 * S, 0, 'kumas', beyaz, { ry: a });
+  k.kutu(0.2, 0.025, 0.2, 0, z0 + 0.62 * S, 0, 'kumas', kirmizi, { ry: a });
+  // adak: çanak + ateş, kafatası, kürk
+  k.sil(0.06, 0.04, 0.04, 8, 0.3, Z + 0.04, 0.3, 'tasBlok', 0x8f8a80);
+  k.atesYeri(0.3, 0.3, Z + 0.07, 0.35);
+  k.kutu(0.2, 0.012, 0.14, -0.3, Z + 0.045, 0.22, 'deri', 0xb59868, { ry: 0.5 });
+  k.kure(0.035, -0.3, Z + 0.07, 0.22, 'duz', beyaz);
+  for (const [x, zz, ry] of [[-0.2, -0.3, 0.4], [0.05, -0.34, 1.2]]) k.kutu(0.1, 0.012, 0.012, x, Z + 0.05, zz, 'kemik', P.kemik, { ry });
 };
 
 M.gozcu_diregi = (k, c) => {
@@ -881,15 +949,43 @@ M.bag_bahce = (k, c) => {
 
 M.darphane = (k, c) => {
   const Z = k.kaide(1, 'tas');
-  const h = 0.42 * c.s;
-  evGovdesi(k, 0.64, h, 0.56, Z, 'tasBlok', P.kirec, { pencere: false });
-  for (const x of [-0.24, 0.24]) k.sil(0.025, 0.03, h, 8, x, Z, 0.3, 'mermer', P.mermer);
-  k.kutu(0.7, 0.05, 0.62, 0, Z + h, 0, 'mermer', P.mermer);
-  k.besik(0.62, 0.72, 0.2, 0, Z + h + 0.05, 0, 'kiremit', P.kiremit, { ry: Math.PI / 2 });
-  k.ekle(ucgenGeo([[[-0.25, 0, 0], [0.25, 0, 0], [0, 0.15, 0]]], [0, 0, -1]), { doku: 'mermer', renk: P.mermer, x: 0, y: Z + h + 0.06, z: 0.36 });
-  k.sil(0.04, 0.04, 0.012, 10, 0, Z + h + 0.09, 0.365, 'duz', P.altin, { rx: Math.PI / 2, y: Z + h + 0.1 });
-  baca(k, -0.2, -0.15, Z + h + 0.1, 0.15, 'tasBlok', P.kirec);
-  for (let i = 0; i < 3; i++) k.sil(0.025, 0.025, 0.012, 8, 0.38, Z + i * 0.013, 0.3, 'duz', P.altin);
+  const h = 0.4 * c.s, W = 0.62, D = 0.54;
+  const taş = 0xd6cdb6, koyuTas = 0x8f8878, altin = 0xe8b84a;
+  // gövde: bindirmeli taş duvar + köşe taşları + alt kaide şeridi
+  k.kutu(W, h, D, 0, Z, 0, 'tasBlok', taş);
+  k.kutu(W + 0.03, 0.05, D + 0.03, 0, Z, 0, 'tasBlok', koyuTas);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) for (let q = 0; q < 4; q++) k.kutu(0.07, h / 4 - 0.012, 0.07, sx * (W / 2), Z + q * h / 4 + 0.05 * (q ? 0 : 0), sz * (D / 2), 'tasBlok', q % 2 ? 0xe8e0cc : 0xc4bba4);
+  // korniş (altın şeritli) ve çatı
+  k.kutu(W + 0.1, 0.035, D + 0.1, 0, Z + h, 0, 'tasBlok', 0xe8e0cc);
+  k.kutu(W + 0.1, 0.012, D + 0.1, 0, Z + h + 0.035, 0, 'duz', altin);
+  k.kirma(W + 0.12, D + 0.12, 0.2, 0, Z + h + 0.047, 0, 'arduvaz', 0x5a6674);
+  k.kutu(0.2, 0.025, 0.02, 0, Z + h + 0.243, 0, 'duz', altin);                 // mahya süsü
+  // ön yüz (+z): kemerli ağır kapı + iki yanda demir parmaklıklı kemerli pencere + madalyon
+  k.kutu(0.2, 0.3 * c.s, 0.05, 0, Z, D / 2, 'tasBlok', 0xe8e0cc);              // portal çerçevesi
+  k.kemer(0, Z + 0.015, D / 2 + 0.03, 0.14, 0.24 * c.s, 0x4a2e1c, false);
+  k.kutu(0.012, 0.2 * c.s, 0.01, 0, Z + 0.02, D / 2 + 0.036, 'duz', 0x2a2420);
+  for (const sx of [-1, 1]) {
+    k.kemer(sx * 0.2, Z + h * 0.42, D / 2 + 0.006, 0.1, 0.16, 0xffcf7a, false, { isil: true });
+    for (let q = -1; q <= 1; q++) k.kutu(0.01, 0.16, 0.012, sx * 0.2 + q * 0.03, Z + h * 0.42, D / 2 + 0.012, 'duz', 0x2a2420);
+    k.kutu(0.14, 0.02, 0.04, sx * 0.2, Z + h * 0.42 - 0.02, D / 2 + 0.014, 'tasBlok', koyuTas);
+  }
+  // alınlık + büyük altın sikke madalyonu
+  k.ekle(ucgenGeo([[[-0.3, 0, 0], [0.3, 0, 0], [0, 0.17, 0]]], [0, 0, -1]), { doku: 'mermer', renk: 0xefeae0, x: 0, y: Z + h + 0.047, z: D / 2 + 0.07 });
+  k.sil(0.065, 0.065, 0.014, 14, 0, Z + h + 0.1, D / 2 + 0.078, 'duz', altin, { rx: Math.PI / 2, y: Z + h + 0.1 });
+  k.sil(0.045, 0.045, 0.016, 14, 0, Z + h + 0.1, D / 2 + 0.08, 'duz', 0xf3cf6a, { rx: Math.PI / 2, y: Z + h + 0.1 });
+  // yan yüz (+x): ocak ışıklı kemer pencere + baca
+  k.kemer(0, Z + h * 0.3, 0, 0.1, 0.17, 0xff9a40, false, { isil: true, x: W / 2 + 0.006, z: -0.05, ry: Math.PI / 2 });
+  k.kemer(0, Z + h * 0.3, 0, 0.1, 0.17, 0xffcf7a, false, { isil: true, x: W / 2 + 0.006, z: 0.16, ry: Math.PI / 2 });
+  baca(k, -0.2, -0.12, Z + h + 0.12, 0.22, 'tasBlok', koyuTas);
+  // ön avlu: örs, sikke yığınları, külçe istifi, fıçı, bayrak
+  k.kutu(0.09, 0.04, 0.06, 0.36, Z, 0.4, 'duz', 0x3a3632);
+  k.kutu(0.05, 0.05, 0.05, 0.36, Z + 0.04, 0.4, 'duz', 0x2f2b28);
+  k.kutu(0.13, 0.028, 0.05, 0.36, Z + 0.09, 0.4, 'duz', 0x3a3632);
+  for (let q = 0; q < 4; q++) k.sil(0.026, 0.026, 0.014, 10, -0.36, Z + q * 0.015, 0.38, 'duz', altin);
+  for (let q = 0; q < 3; q++) k.sil(0.026, 0.026, 0.014, 10, -0.29, Z + q * 0.015, 0.42, 'duz', 0xf3cf6a);
+  for (let q = 0; q < 3; q++) for (let r = 0; r <= 2 - q; r++) k.kutu(0.07, 0.03, 0.04, -0.4 + (r + q * 0.5) * 0.075, Z + q * 0.03, -0.38, 'duz', altin);
+  k.fici(0.44, 0.1, Z, 0.9); k.sandik(0.4, -0.4, Z, 0.8);
+  k.bayrak(-0.42, 0.28, Z, 0.55, 0xb03a2e);
 };
 
 M.liman = (k, c) => {
