@@ -3,7 +3,8 @@ import { KAYNAKLAR } from '../data/kaynaklar.js';
 import { BINALAR } from '../data/binalar.js';
 import { OLAYLAR } from '../data/olaylar.js';
 import { insaEt, insaEtCok, olayCoz, cagAtla } from '../core/komutlar.js';
-import { yik } from '../core/komutlar.js';
+import { yik, tasi } from '../core/komutlar.js';
+import { tasimaZemini, tasimaMaliyeti } from '../core/insa.js';
 import { secenekUygunMu } from '../core/olay.js';
 import { bilgiUretimi } from '../core/arastirma.js';
 import { takvim } from '../core/takvim.js';
@@ -230,10 +231,27 @@ export class Arayuz {
   }
 
   // ---------- yerleştirme ----------
+  // Mevcut binayı taşı: aynı yerleştirme akışı, hedef denetimi bina yokmuş gibi yapılır; onayda `tasi` çağrılır.
+  tasimaBaslat(uid) {
+    const b = this.d.binalar.find((x) => x.uid === uid);
+    if (!b) return;
+    const t = BINA[b.id];
+    const zemin = tasimaZemini(this.d, uid);
+    const yerler = uygunYerler(zemin, b.id);
+    this.sahne.uygunIsaretleri(yerler, t.boyut[0], t.boyut[1]);
+    this.yerlestirme = { binaId: b.id, x: b.x, y: b.y, adet: yerler.length, tasi: uid, ilkX: b.x, ilkY: b.y };
+    this.secim = null; this.sahne.secim(null);
+    this.pencere = 'kapali'; this.kaydetUi();
+    this.sahne.odakla(b.x + t.boyut[0] / 2, b.y + t.boyut[1] / 2);
+    this.yerlestirmeGoster();
+    this.yenile();
+  }
+
   yerlestirmeBaslat(binaId, koru = false) {
     const d = this.d;
     const t = BINA[binaId];
     if (t.cevre) { this.cizimBaslat(binaId, koru); return; }
+    if (koru && this.yerlestirme?.tasi) { this.tasimaBaslat(this.yerlestirme.tasi); return; }
     const yerler = uygunYerler(d, binaId);
     this.sahne.uygunIsaretleri(yerler, t.boyut[0], t.boyut[1]);
     if (!koru || !this.yerlestirme) {
@@ -260,7 +278,8 @@ export class Arayuz {
   yerlestirmeGoster() {
     const y = this.yerlestirme;
     if (y.cizim) { this.cizimGoster(); return; }
-    y.hata = yerUygunMu(this.d, y.binaId, y.x, y.y);
+    y.hata = yerUygunMu(y.tasi ? tasimaZemini(this.d, y.tasi) : this.d, y.binaId, y.x, y.y);
+    if (y.tasi && !y.hata && y.x === y.ilkX && y.y === y.ilkY) y.hata = 'Binayı yeni bir yere sürükle.';
     this.sahne.yerlestirme({ binaId: y.binaId, x: y.x, y: y.y, hata: y.hata });
   }
 
@@ -384,11 +403,11 @@ export class Arayuz {
 
   yerlestirmeOnayla() {
     const y = this.yerlestirme;
-    const r = this.oyun.komut(insaEt, y.binaId, y.x, y.y);
+    const r = y.tasi ? this.oyun.komut(tasi, y.tasi, y.x, y.y) : this.oyun.komut(insaEt, y.binaId, y.x, y.y);
     if (r.hata) return;
     this.yerlestirme = null;
     this.sahne.yerlestirme(null);
-    this.secim = { tip: 'bina', uid: r.uid };
+    this.secim = { tip: 'bina', uid: y.tasi || r.uid };
     this.kartKucuk = false;
     this.yenile();
   }
@@ -477,8 +496,8 @@ export class Arayuz {
       this.altEl.replaceChildren(
         h('button', { class: 'buyuk', onclick: () => this.yerlestirmeIptal() }, '✕ İptal'),
         h('div', { class: 'alt-orta yer-bilgi' },
-          h('div', { class: 'yer-ad' }, binaResmi(y.binaId, 28), h('b', {}, t.ad), maliyetChips(d, maliyetHesapla(d, y.binaId))),
-          h('div', { class: y.hata ? 'neden' : 'ok kucuk' }, y.hata ? `⚠ ${y.hata}` : `✓ Uygun yer · ${y.adet} uygun konum yeşil`)),
+          h('div', { class: 'yer-ad' }, binaResmi(y.binaId, 28), h('b', {}, y.tasi ? `${t.ad} · taşı` : t.ad), maliyetChips(d, y.tasi ? tasimaMaliyeti({ id: y.binaId }) : maliyetHesapla(d, y.binaId))),
+          h('div', { class: y.hata ? 'neden' : 'ok kucuk' }, y.hata ? `⚠ ${y.hata}` : y.tasi ? '✓ Uygun yer · Seviye ve işçiler korunur' : `✓ Uygun yer · ${y.adet} uygun konum yeşil`)),
         h('button', { class: 'buyuk iyi', disabled: !!y.hata, onclick: () => this.yerlestirmeOnayla() }, '✓ Onayla'));
       return;
     }

@@ -382,6 +382,7 @@ export function binaKarti(a, b) {
   if (t.tur !== 'merkez') {
     if (t.maxSeviye > 1) dugmeler.push(h('button', { disabled: !!ykl.hata, onclick: () => a.islem(yukselt, b.uid) }, `⬆ Yükselt (Sv${b.seviye + 1})`));
     if (b.hasarli) dugmeler.push(h('button', { class: 'vurgu', disabled: !!onr.hata, onclick: () => a.islem(onar, b.uid) }, '🔧 Onar'));
+    if (!t.cevre) dugmeler.push(h('button', { disabled: !!isi, onclick: () => a.tasimaBaslat(b.uid) }, '↔ Taşı'));
     const onay = a.yikOnay === b.uid;
     dugmeler.push(h('button', { class: onay ? 'kotu' : '', onclick: () => (onay ? a.yik(b.uid) : a.yikOnayla(b.uid)) }, onay ? 'Emin misin? Yık' : '🗑 Yık'));
   }

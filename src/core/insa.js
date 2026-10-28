@@ -1,7 +1,7 @@
 // İnşaat (TASARIM §3.2, §3.5, §7.2): maliyet, yerleşim denetimi, süre, işçi yuvası, bakım; adımlar b (inşaat) ve c (bakım).
 // Komutlar: insaEt, yukselt, onar, yik → { durum, hata? }. Geçersiz komut durumu değiştirmez.
 import {
-  MALIYET_K, MALIYET_K_KONUT, YUKSELTME_MALIYET, YIKIM_IADE, ONARIM, ONARIM_SURE, YOL_MALIYET, YOL_ZEMIN, YOL_CAG,
+  MALIYET_K, MALIYET_K_KONUT, YUKSELTME_MALIYET, YIKIM_IADE, TASIMA_MALIYET, ONARIM, ONARIM_SURE, YOL_MALIYET, YOL_ZEMIN, YOL_CAG,
 } from '../data/denge.js';
 import {
   BINA, CAG, BULUS, KARO, KAYNAK, kopya, cagSira, mevcutCag, cagAcik, binaBul, binaKurulu, binaIsi, bildir, sonTur,
@@ -169,6 +169,42 @@ export function yik(durum, uid) {
   d.insaatSirasi = d.insaatSirasi.filter((s) => s !== uid && s !== `yukselt:${uid}` && s !== `onar:${uid}`);
   delete d.atama[uid];
   atamaDuzelt(d);
+  return { durum: d };
+}
+
+// Taşıma: bina anında yeni konuma geçer; seviye, hasar ve işçi ataması korunur. Maliyet = taban × TASIMA_MALIYET (en az 1).
+// Merkez, çevre parçaları (çit/sur) ve üzerinde iş süren bina taşınamaz. Yeni yer, bina kendi yerinde yokmuş gibi denetlenir
+// (bitişik/üst üste kaydırma serbest).
+export function tasimaMaliyeti(b) {
+  return Object.fromEntries(Object.entries(BINA[b.id].maliyet).map(([r, m]) => [r, Math.max(1, Math.round(m * TASIMA_MALIYET))]));
+}
+export function tasimaEdilebilirMi(d, uid) {
+  const b = binaBul(d, uid);
+  if (!b) return 'Böyle bir bina yok.';
+  const t = BINA[b.id];
+  if (t.tur === 'merkez') return 'Merkez bina taşınamaz.';
+  if (t.cevre) return `${t.ad} taşınamaz; yıkıp yeniden çiz.`;
+  if (binaIsi(d, b)) return `${t.ad} üzerinde süren bir iş var.`;
+  return null;
+}
+// Taşıma için "bina yokmuş gibi" durum (yerleşim denetimi ve uygun yerler için).
+export function tasimaZemini(d, uid) {
+  return { ...d, binalar: d.binalar.filter((x) => x.uid !== uid) };
+}
+export function tasi(durum, uid, x, y) {
+  if (olayKilitli(durum)) return hataDon(durum, OLAY_KILIDI);
+  const h1 = tasimaEdilebilirMi(durum, uid);
+  if (h1) return hataDon(durum, h1);
+  const b = binaBul(durum, uid);
+  if (b.x === x && b.y === y) return hataDon(durum, 'Bina zaten burada.');
+  const h2 = yerUygunMu(tasimaZemini(durum, uid), b.id, x, y);
+  if (h2) return hataDon(durum, h2);
+  const maliyet = tasimaMaliyeti(b);
+  if (!kaynakYeter(durum, maliyet)) return hataDon(durum, `Kaynak yetersiz: ${eksikMetni(durum, maliyet)} eksik.`);
+  const d = kopya(durum);
+  kaynakUygula(d, Object.fromEntries(Object.entries(maliyet).map(([r, m]) => [r, -m])));
+  const nb = binaBul(d, uid);
+  nb.x = x; nb.y = y;
   return { durum: d };
 }
 

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  maliyetHesapla, insaEt, yukselt, onar, yik, adimInsaat, adimBakim, yukseltmeMaliyeti, enYuksekSeviye,
+  maliyetHesapla, insaEt, yukselt, onar, yik, tasi, adimInsaat, adimBakim, yukseltmeMaliyeti, enYuksekSeviye,
 } from '../src/core/insa.js';
 import { hamUretimHesapla } from '../src/core/uretim.js';
 import { huzurHedefi } from '../src/core/huzur.js';
@@ -104,4 +104,18 @@ test('ilk dakika: yeni oyunda (başlangıç kaynağıyla) ilk Çadır ilk günde
   assert.equal(r.hata, undefined);
   assert.equal(r.durum.kaynaklar.odun, 0);
   assert.equal(r.durum.kaynaklar.deri, 0);
+});
+
+test('taşıma: yeni yere geçer, seviye/işçi korunur, %20 maliyet; merkez/dolu/aynı yer reddedilir', () => {
+  const d = binaEkle(durum({ kaynaklar: { ...bol, odun: 20 }, atama: { k: 2 } }), 'oduncu_kampi', K + 5, K + 5, { uid: 'k', seviye: 2 });
+  const r = tasi(d, 'k', K + 6, K + 5);
+  assert.equal(r.hata, undefined);
+  const b = r.durum.binalar.find((x) => x.uid === 'k');
+  assert.deepEqual([b.x, b.y, b.seviye, r.durum.atama.k], [K + 6, K + 5, 2, 2]);
+  assert.equal(r.durum.kaynaklar.odun, 19); // round(6 × 0,2) = 1
+  assert.equal(d.binalar.find((x) => x.uid === 'k').x, K + 5); // girdi değişmez
+  assert.match(tasi(d, 'k', K + 5, K + 5).hata, /zaten/);
+  assert.match(tasi(d, 'b1', K + 6, K + 5).hata, /Merkez/);
+  assert.ok(tasi(d, 'k', 0, 0).hata);
+  assert.match(tasi({ ...d, kaynaklar: { ...d.kaynaklar, odun: 0 } }, 'k', K + 6, K + 5).hata, /Kaynak/);
 });

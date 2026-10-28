@@ -1,5 +1,8 @@
 # CHANGELOG_DEV (yalnız son kayıtlar; eskiler `docs/CHANGELOG_ARSIV.md`)
 
+## 2026-10-28 — Bina taşıma (Sonnet 5.5)
+- `insa.js` `tasi(durum, uid, x, y)` (+ `tasimaMaliyeti`, `tasimaEdilebilirMi`, `tasimaZemini`), `denge.js` `TASIMA_MALIYET` 0,20. Seviye/hasar/işçi korunur; merkez, çit/sur ve işi süren bina taşınmaz. Bina kartında "↔ Taşı" (yerleştirme akışı yeniden kullanıldı). Test eklendi (197). e2e/telefon denenmedi.
+
 ## 2026-10-27 — Tehditler 5 çağda + arayüz bağlantısı (Opus 5.5 çekirdek, Sonnet 5.5 UI) + aksiyon tasarımı
 - Çekirdek: 10 tehdit tanımı, çağ başına 2–6 aday, gerginlik/darbe artışı, kuşatma evresi (3 tur, surla aşınma), `silahDagit`, `kusatmaKarar`, Önder eylemleri `nobet_tut`/`elci_gonder`. Pasif oyun ölçümü: çağ başına 1/2/3/4,85/5,65 tehdit, kayıp ~%9–15; nüfus ≥2 korunur. Kayıt sürümü 3 aynı.
 - UI: tehdit penceresi tüm seçenekler (elçi hatası düzeldi), kuşatma karar penceresi, çip. e2e 163/163, testler 196 (195+1 todo). Gerçek cihaz denenmedi.
