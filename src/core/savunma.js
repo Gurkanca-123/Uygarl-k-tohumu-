@@ -1,15 +1,12 @@
 // Saldırı ve hastalık riski (TASARIM §6.3, §6.4). Saf.
-import { orduSavunmaKalemi } from './savas.js';
 import {
   ONDER_SAVUNMA, SALDIRI_TUR_BOLEN, SALDIRI_PUSKURTME_HUZUR, SALDIRI_KISMI_KAYIP, SALDIRI_TAM_KAYIP, SALDIRI_TAM_NUFUS,
   SALDIRI_TAM_HASAR, HASTALIK_TABAN, HASTALIK_MIN, HASTALIK_MAX, HASTALIK_ISINMA_EKSIK, BEKCI_DEGER, CEVRE,
 } from '../data/denge.js';
 import {
   BINA, mevcutCag, calisanBinalar, binaKurulu, seviyeEtki, etkinAtama, bulusEtkileri, etkinDegistiriciler, sinirla,
-  bildir, zar, serbestAnahtar, onderSeferde,
+  bildir, zar, serbestAnahtar,
 } from './yardimci.js';
-import { kahramanSavunmaKalemleri } from './kahraman.js';
-import { komsuIttifakKalemleri } from './komsu_temel.js';
 import { huzurEkle } from './huzur.js';
 import { kayipUygula } from './nufus.js';
 import { sinirKenarinda } from '../world/yerlestir.js';
@@ -52,8 +49,7 @@ export function savunmaDokum(d) {
   const k = [];
   let onder = ONDER_SAVUNMA;
   for (const e of bulusEtkileri(d, 'savunma')) if (e.hedef === 'onder') onder += e.deger;
-  // AKSIYON §7: seferdeki önder, işçi (etkinAtama'dan düşer) ve kahraman köy savunmasına sayılmaz.
-  if (!onderSeferde(d)) k.push({ id: 'onder', ad: 'Önder', deger: onder });
+  k.push({ id: 'onder', ad: 'Önder', deger: onder });
   const etkin = etkinAtama(d);
   for (const b of calisanBinalar(d)) {
     const t = BINA[b.id];
@@ -72,9 +68,6 @@ export function savunmaDokum(d) {
   const c = cevreSavunmasi(d);
   if (c.parca) k.push({ id: 'cevre', ad: 'Çit / sur', deger: c.parca, tavan: c.tavan });
   if (c.halka) k.push({ id: 'halka', ad: 'Kapalı çevre', deger: c.halka, ic: c.ic, toplam: c.toplamBina });
-  k.push(...kahramanSavunmaKalemleri(d), ...komsuIttifakKalemleri(d));
-  const ordu = orduSavunmaKalemi(d);
-  if (ordu) k.push(ordu);
   const silah = d.tehdit?.aktif?.silah || 0;
   if (silah) k.push({ id: 'silah', ad: `Silahlı halk ×${silah}`, deger: silah });
   for (const m of etkinDegistiriciler(d)) {

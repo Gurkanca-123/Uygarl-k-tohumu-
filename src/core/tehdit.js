@@ -27,8 +27,6 @@ import { huzurEkle } from './huzur.js';
 import { kayipUygula, isAta } from './nufus.js';
 import { isinmaIhtiyaci } from './tuketim.js';
 import { cevreKapali } from '../world/cevre.js';
-import { komsuTehditEtkisi } from './komsu_temel.js';
-import { AYI_KACTI } from '../data/denge.js';
 
 export const TEHDIT = Object.fromEntries(TEHDITLER.map((t) => [t.id, t]));
 const CAG_SIRA = Object.fromEntries(CAGLAR.map((c) => [c.id, c.sira]));
@@ -66,10 +64,8 @@ export function doluluk(d) {
   return acik.reduce((a, k) => a + Math.min(1, (d.kaynaklar[k.id] || 0) / Math.max(1, depoTavani(d, k.id))), 0) / acik.length;
 }
 // Beklenen artış (rng oynaması hariç; arayüz tahmini için de).
-// AKSIYON §4.3 kural 4–5: komşu düşmancaysa artış ×1,3.
 export function gerginlikArtisTabani(d) {
-  return (mevcutCag(d).gerginlikArtis || 0) * zorlukTanim(d).siklik * (0.8 + cagDarbe(d).servet * doluluk(d))
-    * komsuTehditEtkisi(d).gerginlik;
+  return (mevcutCag(d).gerginlikArtis || 0) * zorlukTanim(d).siklik * (0.8 + cagDarbe(d).servet * doluluk(d));
 }
 export function cekicilik(d) {
   const c = TEHDIT_CEKICILIK;
@@ -121,9 +117,6 @@ function tehditAgirligi(d, t) {
   let w = tehditAlan(t, d.cag, 'agirlik');
   if (son && TEHDIT[son.id]?.tur === t.tur) w *= 0.5;
   if (t.kaynak === 'komsu' && (d.tehdit.iliski[t.kaynak] || 0) >= TEHDIT_KOMSU_DOST.iliski) w *= TEHDIT_KOMSU_DOST.carpan;
-  // AKSIYON §2.3/§7: kaçırılan ayı işareti ayı tehdidini ×3 ağırlaştırır; düşmanca komşu kendi baskınını ×2.
-  if (t.id === 'ayi' && (d.sefer?.ayiKacti || 0) > 0) w *= AYI_KACTI.carpan;
-  if (t.kaynak === 'komsu') w *= komsuTehditEtkisi(d).agirlik;
   return w;
 }
 const sarmalda = (d) => d.acTur > 0 || d.huzur < TEHDIT_SARMAL_HUZUR;
@@ -254,9 +247,6 @@ export function adimTehdit(durum, bildirimler = []) {
   if (T.gerginlik < TEHDIT_DOGUM_ESIK) return d;
   if (gun < TEHDIT_DOGUM_ILK_GUN || sarmalda(d)) { T.gerginlik = TEHDIT_BEKLE_ESIK; return d; }
   const aday = adayTehditler(d);
-  // AKSIYON §4.3 kural 5: baskına hazırlanan komşu varsa sonraki doğum (aday ise) kesin onun baskınıdır.
-  const kesin = komsuTehditEtkisi(d).kesin ? aday.find((t) => t.kaynak === 'komsu') : null;
-  if (kesin) { tehditDogur(d, kesin, bildirimler); return d; }
   const r = rngAgirlikli(T.rng, aday, (t) => tehditAgirligi(d, t));
   T.rng = r.rng;
   if (!r.deger) { T.gerginlik = TEHDIT_BEKLE_ESIK; return d; }

@@ -12,7 +12,6 @@ import { MEVSIMLER } from '../data/mevsimler.js';
 import {
   SEVIYE_CARPAN, SEVIYE_ETKI, SEVIYE_ISCI_EK, SEVIYE_KAPASITE_EK, SERBEST_ISLER, YENI_KISI_ISI,
 } from '../data/denge.js';
-import { SIKLIK, SIKLIK_VARSAYILAN } from '../data/denge.js';
 import { takvim } from './takvim.js';
 import { rngSonraki } from './rng.js';
 
@@ -110,34 +109,6 @@ export function yaraliSayisi(d) {
   return Math.min(d.nufus, n);
 }
 
-// ---------- Sefer / kahraman (docs/AKSIYON.md §2.1, §3.1) ----------
-// Seferdeki işçi, kahraman ve önder köyde üretmez, yemek yemez, savunmaya sayılmaz. Kahramanlar nüfusa sayılır ama işçi yuvasına
-// girmez (görev yeri ayrı). Eski kayıt / test durumlarında alanlar yoksa boş sayılır.
-export const aktifSeferler = (d) => d.sefer?.aktif || [];
-
-// Görev sıklığı profili (denge.js SIKLIK). sec = { siklik: 'az'|'normal'|'cok' } (Ayarlar → turIlerlet parametresi); yoksa varsayılan.
-export const siklikProfil = (sec) => SIKLIK[sec?.siklik] || SIKLIK[SIKLIK_VARSAYILAN];
-// Oyuncudan karar bekleyen teklif/kart/olay sayısı: ilk kahraman teklifi, seçilmemiş mevsim görev kartı, yanıt bekleyen komşu
-// teklifi, seçim bekleyen sefer olayı. Yeni karar öğeleri yalnız 0 iken çıkar ("aynı anda en çok 1 bekleyen karar").
-export function bekleyenKararSayisi(d) {
-  return (d.kahramanDurum?.teklif ? 1 : 0)
-    + (d.hedef?.kartlar?.length > 0 && !d.hedef?.gorev ? 1 : 0)
-    + (d.komsular || []).filter((k) => k.niyet && !k.niyet.kullanildi && ['harac', 'ittifak', 'ticaret'].includes(k.niyet.tur)).length
-    + aktifSeferler(d).filter((s) => s.olay).length;
-}
-export const seferdekiIsci = (d) => aktifSeferler(d).reduce((a, s) => a + (s.ekip?.isci || 0), 0);
-export const seferdekiKahramanUid = (d) => new Set(aktifSeferler(d).flatMap((s) => s.ekip?.kahraman || []));
-// Görsel savaş F1 (docs/SAVAS.md §2.4): kalıcı asker = nüfustan terfi (yer, üretmez, işçi yuvasına girmez). Seferdeki asker ekipte.
-const toplamDeger = (o) => Object.values(o || {}).reduce((a, n) => a + (Number(n) || 0), 0);
-export const askerToplam = (d) => toplamDeger(d.ordu?.asker);
-export const seferdekiAsker = (d) => aktifSeferler(d).reduce((a, s) => a + toplamDeger(s.ekip?.asker), 0);
-export const seferdekiKisi = (d) => seferdekiIsci(d) + seferdekiKahramanUid(d).size + seferdekiAsker(d);
-export const onderSeferde = (d) => aktifSeferler(d).some((s) => s.ekip?.onder);
-export const kahramanSayisi = (d) => (d.kahramanlar || []).length;
-export const koydekiKahramanlar = (d) => { const s = seferdekiKahramanUid(d); return (d.kahramanlar || []).filter((k) => !s.has(k.uid)); };
-// İşçi yuvasına girmeyen kişi: kahramanlar (köyde ya da seferde) + seferdeki işçiler + askerler (köyde ya da seferde).
-export const calisamayanSayisi = (d) => kahramanSayisi(d) + seferdekiIsci(d) + askerToplam(d);
-
 // Yuva sırası: binalar (inşa sırası), sonra serbest işler (tablo sırası). Fazlalık sondan kırpılır.
 function yuvaSirasi(d) {
   const s = d.binalar.map((b) => b.uid).filter((u) => d.atama[u] > 0);
@@ -147,7 +118,7 @@ function yuvaSirasi(d) {
 
 // Fiilen çalışan atama (yaralılar çıkarılmış). Durumu değiştirmez.
 export function etkinAtama(d) {
-  let bos = Math.max(0, d.nufus - yaraliSayisi(d) - calisamayanSayisi(d));
+  let bos = Math.max(0, d.nufus - yaraliSayisi(d));
   const sonuc = {};
   for (const k of yuvaSirasi(d)) {
     const n = Math.min(d.atama[k], bos);
@@ -158,7 +129,7 @@ export function etkinAtama(d) {
 }
 export function issizSayisi(d) {
   const calisan = Object.values(etkinAtama(d)).reduce((a, n) => a + n, 0);
-  return Math.max(0, d.nufus - yaraliSayisi(d) - calisamayanSayisi(d) - calisan);
+  return Math.max(0, d.nufus - yaraliSayisi(d) - calisan);
 }
 export const binaIscisi = (d, b) => etkinAtama(d)[b.uid] || 0;
 

@@ -14,9 +14,6 @@ import { adimArastirma } from './arastirma.js';
 import { adimOlay } from './olay.js';
 import { adimTakvim } from './cag.js';
 import { adimTehdit } from './tehdit.js';
-import { adimSefer, adimIsaret } from './sefer.js';
-import { adimHedef } from './hedef.js';
-import { adimKomsu } from './komsu.js';
 
 // Adım m: değiştiricilerin süresi −1; 0 olan silinir (kalan null = kalıcı).
 export function adimDegistiriciler(durum) {
@@ -44,28 +41,22 @@ export const ADIMLAR = [
   ['m', 'Değiştiriciler', adimDegistiriciler],
   // TEHDIT.md §8.3: tehdit adımı olaydan ÖNCE; varış turunda n kötü olay seçmez (sonTur.tehditVaris).
   ['m2', 'Tehdit', adimTehdit],
-  // AKSIYON.md §8.3: sefer dönüşleri tehditten SONRA (bu turun savunmasında ekip yoktu), olaydan önce (yolda sefer olayı kotayı doldurur).
-  ['m3', 'Sefer ve kahraman', adimSefer],
   ['n', 'Olay', adimOlay],
   ['o', 'Takvim', adimTakvim],
-  // Takvimden sonra (yeni günün turu): işaret süreleri/doğuşu, hedefler (ilk kahraman teklifi, destan, görev kartları), komşu (mevsim başı niyet).
-  ['o2', 'Hedef işaretleri', adimIsaret],
-  ['o3', 'Hedefler', adimHedef],
-  ['o4', 'Komşular', adimKomsu],
 ];
 
-export function turIlerlet(durum, sec = {}) {
+export function turIlerlet(durum) {
   if (durum.olay?.aktif) return { durum, bildirimler: [], hata: OLAY_KILIDI };
   let d = kopya(durum);
   d.istatistik = { ...(d.istatistik || {}), sonTur: yeniSonTur(d.tur) };
   const bildirimler = [];
-  for (const [, , adim] of ADIMLAR) d = adim(d, bildirimler, sec);
+  for (const [, , adim] of ADIMLAR) d = adim(d, bildirimler);
   return { durum: d, bildirimler };
 }
 
 // Komut: "Mevsim sonuna ilerlet" (§8). En çok MEVSIM_SONU_MAX_TUR tur, önder Dinlen; olay çıkınca, açlık başlayınca,
-// inşaat bitince, savaş hazır olunca (yalnız savaş sahnesi açıkken; yerleşim atlanmasın) ya da mevsim bitince durur. Dönüş: { durum, hata?, bildirimler, turSayisi, neden }.
-export function mevsimSonunaIlerlet(durum, sec = {}) {
+// inşaat bitince ya da mevsim bitince durur. Dönüş: { durum, hata?, bildirimler, turSayisi, neden }.
+export function mevsimSonunaIlerlet(durum) {
   if (durum.olay?.aktif) return { durum, hata: OLAY_KILIDI, bildirimler: [], turSayisi: 0, neden: 'olay' };
   let d = durum;
   const bildirimler = [];
@@ -73,7 +64,7 @@ export function mevsimSonunaIlerlet(durum, sec = {}) {
   let i = 0;
   while (i < MEVSIM_SONU_MAX_TUR) {
     const hazir = { ...d, onder: { ...d.onder, eylem: VARSAYILAN_EYLEM, secim: null } };
-    const r = turIlerlet(hazir, sec);
+    const r = turIlerlet(hazir);
     const onceAc = d.acTur;
     d = r.durum;
     bildirimler.push(...r.bildirimler);
@@ -81,7 +72,6 @@ export function mevsimSonunaIlerlet(durum, sec = {}) {
     if (d.olay.aktif) { neden = 'olay'; break; }
     if (onceAc === 0 && d.acTur > 0) { neden = 'aclik'; break; }
     if (r.bildirimler.some((b) => b.kod === 'insaat_bitti')) { neden = 'insaat'; break; }
-    if (r.bildirimler.some((b) => b.kod === 'savas_hazir')) { neden = 'savas'; break; }
     if (d.tur % MEVSIM_TUR === 0) { neden = 'mevsim_sonu'; break; }
   }
   return { durum: d, bildirimler, turSayisi: i, neden };

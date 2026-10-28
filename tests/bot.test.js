@@ -32,28 +32,3 @@ test('tehdit açıkken 50 tohum Göçebe: ≥ 40/50 tohum 20–32 turda; en dü�
   assert.ok(oz.aralikta >= 40, `aralıkta ${oz.aralikta}`);
   assert.ok(oz.minNufus >= NUFUS_MIN);
 });
-
-// AKSIYON.md §9.2 (h): sefer kullanan hazırlıklı bot ("dengeli": r yeterliyse gönder; ilk kahraman Avcı, danışman; boşta keşif).
-test('sefer kullanan bot 50 tohum Göçebe: ≥ 40/50 tohum 20–32 turda; nüfus ≥ 2; ayı destanı ölçümü', (t) => {
-  const oz = botOzeti(Array.from({ length: 50 }, (_, i) => i + 1), { sefer: true });
-  const d = oz.destan;
-  t.diagnostic(`seferli: bitiren ${oz.tamamSayisi}/50 · tur min/ortanca/max ${oz.min}/${oz.ortanca}/${oz.max} · aralıkta ${oz.aralikta}`
-    + ` · en düşük nüfus ${oz.minNufus} · sefer ${JSON.stringify(oz.sefer)} · destan ${d.length}/50 bitirdi`
-    + ` (tur min/ortanca/max ${d[0]}/${d[Math.floor(d.length / 2)]}/${d.at(-1)}) · tehdit ${JSON.stringify(oz.tehdit)}`);
-  assert.ok(oz.aralikta >= 40, `aralıkta ${oz.aralikta}`);
-  assert.ok(oz.minNufus >= NUFUS_MIN);
-  assert.ok(oz.sefer.gonderilen >= 50, 'bot gerçekten sefer kullanıyor');
-});
-
-// docs/SAVAS.md §11 F1: aynı seferli bot, "Savaş sahnesi: Açık" (varışta Öneri/hatırlanan düzenle Saldır). Göçebe hedef ≥ 40/50,
-// nüfus ≥ 2, ayı destanı; savaş kapalı ölçümü yukarıdaki testtir (eski yol, değişmedi).
-test('savaş AÇIK seferli bot 50 tohum Göçebe: ≥ 40/50 tohum 20–32 turda; nüfus ≥ 2; savaşlar gerçekten yapılıyor; destan ölçümü', (t) => {
-  const oz = botOzeti(Array.from({ length: 50 }, (_, i) => i + 1), { sefer: true, savasSahnesi: true });
-  const d = oz.destan;
-  t.diagnostic(`savaş açık: bitiren ${oz.tamamSayisi}/50 · tur min/ortanca/max ${oz.min}/${oz.ortanca}/${oz.max} · aralıkta ${oz.aralikta}`
-    + ` · en düşük nüfus ${oz.minNufus} · sefer ${JSON.stringify(oz.sefer)} · savaş ${JSON.stringify(oz.savas)} · ZP ${oz.ayi.zp}`
-    + ` · destan ${d.length}/50 bitirdi (ortanca gün ${d[Math.floor(d.length / 2)]})`);
-  assert.ok(oz.aralikta >= 40, `aralıkta ${oz.aralikta}`);
-  assert.ok(oz.minNufus >= NUFUS_MIN);
-  assert.ok(oz.savas.toplam >= 50, 'savaşlar yapılıyor');
-});

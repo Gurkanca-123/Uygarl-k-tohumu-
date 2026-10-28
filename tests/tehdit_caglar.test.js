@@ -237,7 +237,7 @@ test('kayıt: yeni aktif alanları (evre/karar/elçi/silah) eksik v3 kaydı vars
   const eski = JSON.parse(serialize(tehditle(cagBaslangic('tasdevri', 1), aktif('komsu_baskini', 9))));
   for (const k of ['evre', 'karar', 'elciDenendi', 'silah']) delete eski.tehdit.aktif[k];
   const y = yukle(JSON.stringify(eski));
-  assert.equal(y.surum, 5);
+  assert.equal(y.surum, 3);
   assert.deepEqual([y.tehdit.aktif.evre, y.tehdit.aktif.karar, y.tehdit.aktif.elciDenendi, y.tehdit.aktif.silah], ['uyari', false, false, 0]);
 });
 

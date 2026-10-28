@@ -12,7 +12,7 @@ import { savunmaHesapla, savunmaDokum } from '../src/core/savunma.js';
 import { uygunOlaylar, olayCoz } from '../src/core/olay.js';
 import { OLAY } from '../src/core/yardimci.js';
 import { serialize, yukle } from '../src/save/kayit.js';
-import { botOyna, botTuru } from './yardimci/bot.js';
+import { botOyna } from './yardimci/bot.js';
 import { NUFUS_MIN, TEHDIT_BASLANGIC } from '../src/data/denge.js';
 
 // Tehditli test durumu: gerginlik/aktif ayarlı.
@@ -262,14 +262,12 @@ test('(d) kayıt v2 → v3 göçü; v3 gidiş-dönüş sonrası aynı sonraki tu
   delete v2.zorluk;
   delete v2.tehdit;
   const y = yukle(JSON.stringify(v2));
-  assert.equal(y.surum, 5); // v2 → v3 → v4 (AKSIYON) → v5 (SAVAŞ göçü)
+  assert.equal(y.surum, 3);
   assert.equal(y.zorluk, 'normal');
   assert.deepEqual(y.tehdit, tehditVarsayilan(9, { gerginlik: 0, nefesKalan: 10 }));
   // Aktif uyarılı bir oyun ortası
   let d = botOyna(5, { maxTur: 22 }).son;
-  // Olay bekliyorsa tur ilerlemez → bot turu (olayı çözer). Sürüm 4'te ayı işareti kaybolması tehdit zamanlamasını değiştirir.
-  for (let i = 0; i < 60 && !d.tehdit.aktif; i++) d = botTuru(d).durum;
-  assert.ok(d.tehdit.aktif);
+  while (!d.tehdit.aktif) d = turIlerlet(d).durum;
   const geri = yukle(serialize(d));
   assert.deepEqual(geri, d);
   assert.deepEqual(turIlerlet(geri), turIlerlet(d));

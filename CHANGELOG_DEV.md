@@ -1,5 +1,8 @@
 # CHANGELOG_DEV (yalnız son kayıtlar; eskiler `docs/CHANGELOG_ARSIV.md`)
 
+## 2026-10-28 — Aksiyon/savaş yan dala alındı (kullanıcı kararı)
+- `src/` ve `tests/` `8a51198` durumuna döndürüldü (tehdit 5 çağda + çit/sur + iş dağıtımı kalır; sefer/kahraman/komşu/hedef/savaş/görev sıklığı ayarı çıkar). Hepsi `yan/savas-aksiyon` dalında (HEAD `1a7ca0c`). Kayıt sürümü 3'e döndü. Testler 196 (195+1 todo).
+
 ## 2026-10-28 — Savaş F1: Ayı Avı görsel otomatik savaş (Opus 5.5 çekirdek+sahne, Sonnet 5.5 UI+düzeltme)
 - Çekirdek `core/savas.js`, veri `birimler|rutbeler|savas.js`, kayıt v5; savaş sonucu tek `sefer.rng` çekimiyle tutarlı (1000 girdide sahne=çekirdek %100), ölüm yok, nüfus ≥2. Savaş Kapalı = eski hesaplamalı yol (Göçebe 40/50 birebir). `turIlerlet(d,{siklik,savasSahnesi})`.
 - Sahne `render/savas.js` (~38 çağrı, 9,7 bin üçgen, 7,5–22 sn, atla/1×/2×). UI `ui/savas.js`: Ayarlar'da Savaş sahnesi, 'Savaş hazır' kartı, 3×3 yerleşim (öneri/otomatik/sürükle, canlı yüzdeler), sonuç kartı, ordu −/+, Lider rütbesi. `mevsimSonunaIlerlet` savaş hazırken durur (`neden:'savas'`). Shader hatası (objectNormal) düzeltildi.

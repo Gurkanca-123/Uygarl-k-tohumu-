@@ -1,12 +1,12 @@
 // Tüketim (TASARIM §1.2 g–h, §2.3, §2.5, §7.3.3): yiyecek, kış ısınması, yiyecek bozulması. Saf.
 import { YIYECEK_TUKETIM, KEMER_SIKMA, BOZULMA, BOZULMA_MIN } from '../data/denge.js';
 import {
-  BINA, kopya, mevsimTanim, binaKurulu, bulusEtkileri, etkinDegistiriciler, sonTur, bildir, seferdekiKisi,
+  BINA, kopya, mevsimTanim, binaKurulu, bulusEtkileri, etkinDegistiriciler, sonTur, bildir,
 } from './yardimci.js';
 
-// Kemer sıkma (acTur ≥ 1) ve değiştirici `tuketim` çarpanları dahil yiyecek ihtiyacı. Seferdekiler köyde yemez (erzak peşin; AKSIYON §2.2).
+// Kemer sıkma (acTur ≥ 1) ve değiştirici `tuketim` çarpanları dahil yiyecek ihtiyacı.
 export function yiyecekIhtiyaci(d) {
-  let c = Math.max(0, d.nufus - seferdekiKisi(d)) * YIYECEK_TUKETIM * (d.acTur >= 1 ? KEMER_SIKMA : 1);
+  let c = d.nufus * YIYECEK_TUKETIM * (d.acTur >= 1 ? KEMER_SIKMA : 1);
   for (const m of etkinDegistiriciler(d)) if (m.etki?.tuketim?.kaynak === 'yiyecek') c *= m.etki.tuketim.carpan;
   return c;
 }

@@ -15,16 +15,6 @@ export { onderEylemiSec } from './eylem.js';
 export { olayCoz } from './olay.js';
 export { cagAtla } from './cag.js';
 export { mevsimSonunaIlerlet } from './tur.js';
-// Aksiyon MVP (docs/AKSIYON.md §8.3)
-export { seferGonder, seferGeriCagir, seferOlayCoz, seferOnizleme, seferGorunumu, seferOlasiliklari, ekipGucu } from './sefer.js';
-export { kahramanTerfi, kahramanGorev, kahramanEsyaGiy, kahramanEsyaCikar, esyaYap, kahramanGorunumu } from './kahraman.js';
-export { komsuTicaret, komsuElciGonder, komsuYanit, komsuGorunumu } from './komsu.js';
-export { gorevKartiSec, destanAdim, hedefGorunumu } from './hedef.js';
-// Görsel savaş F1 (docs/SAVAS.md §10)
-export {
-  savasKur, yerlesimKaydet, ordunuYerlestir, yerlesimOnizle, savasBaslat, savasIzle, savasGorunumu, savasOlayListesi, birlikTerfi,
-  birlikTerhis, orduGorunumu, rutbeGorunumu,
-} from './savas.js';
 
 export const vergiAcik = (d) => d.buluslar.some((id) => BULUS[id].acar.ozellikler.includes('vergi'));
 

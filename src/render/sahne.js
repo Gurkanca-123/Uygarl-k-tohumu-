@@ -12,7 +12,6 @@ import { KoyCizim } from './koy.js';
 import { ORTAK } from './malzeme.js';
 import { stilKur } from './stil.js';
 import { baglantiMaskeleri } from '../world/cevre.js';
-import { SavasSahnesi } from './savas.js';
 
 const BINA = Object.fromEntries(BINALAR.map((b) => [b.id, b]));
 const ZOOM_MIN = 0.55, ZOOM_MAX = 3.4, YARIM_YUKSEKLIK = 8.5, ZEMIN_Y = 0.3;
@@ -283,20 +282,6 @@ export class Sahne {
     this.kameraGuncelle();
   }
 
-  // ---------- görsel savaş (docs/SAVAS.md §7): ayrı küçük sahne; açıkken köy sahnesi çizilmez ----------
-  // liste = çekirdek `savasOlayListesi(girdi)` (ya da `savasBaslat`/`savasIzle` sonucu `.liste`).
-  // sec: { hiz: 1|2, atla, hud (varsayılan true: yerleşik HUD), arayuzGizle (varsayılan true), mevsim, onBitti(ozet), onKapat() }.
-  savasOynat(liste, sec = {}) {
-    if (!this.savas) this.savas = new SavasSahnesi(this);
-    return this.savas.oynat(liste, sec);
-  }
-  savasAtla() { this.savas?.atla(); }
-  savasHiz(h) { this.savas?.hizAyarla(h); }
-  savasSar(sn) { this.savas?.sar(sn); }        // test: verilen saniyede dondurur (giriş dahil)
-  savasDevam() { if (this.savas) this.savas.durdu = false; }
-  savasKapat() { this.savas?.kapat(); }
-  savasBilgi() { return this.savas ? this.savas.bilgi() : { aktif: false }; }
-
   // ---------- kamera ----------
   boyutla() {
     const g = this.kap.clientWidth || innerWidth, y = this.kap.clientHeight || innerHeight;
@@ -307,7 +292,6 @@ export class Sahne {
     this.kamera.updateProjectionMatrix();
     this.renderer.setSize(g, y);
     this.stil?.boyut();
-    this.savas?.boyut();
     this.kirli = true;
   }
 
@@ -443,16 +427,6 @@ export class Sahne {
       if (!this.kirli && t - this.son < 1 / 31) return;
       const dt = Math.min(0.1, t - this.son);
       this.son = t;
-      if (this.savas?.aktif) {
-        const t1 = performance.now();
-        this.savas.tik(dt);
-        this.renderer.shadowMap.needsUpdate = true;
-        this.renderer.setRenderTarget(null);
-        this.renderer.render(this.savas.sahne, this.savas.kamera);
-        this.kareSureleri.push(performance.now() - t1);
-        if (this.kareSureleri.length > 120) this.kareSureleri.shift();
-        return;
-      }
       if (this.kirli) this.renderer.shadowMap.needsUpdate = true;
       this.kirli = false;
       ORTAK.uZaman.value = t;

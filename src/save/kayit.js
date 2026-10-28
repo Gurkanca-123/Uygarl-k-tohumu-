@@ -14,13 +14,6 @@ import { karoAt, karoDegistir, merkezNokta } from '../world/harita.js';
 import { kesifUygula } from '../world/kesif.js';
 import { tehditVarsayilan } from '../core/tehdit.js';
 import { TEHDIT_GOC_NEFES, VARSAYILAN_ZORLUK } from '../data/denge.js';
-import { seferVarsayilan } from '../core/sefer.js';
-import { kahramanDurumVarsayilan } from '../core/kahraman.js';
-import { komsuDurumVarsayilan } from '../core/komsu.js';
-import { hedefVarsayilan } from '../core/hedef.js';
-import { orduVarsayilan, rutbeVarsayilan, savasVarsayilan } from '../core/savas.js';
-import { CAGLAR } from '../data/caglar.js';
-import { RUTBELER } from '../data/rutbeler.js';
 
 export const KAYIT_SURUM = DURUM_SURUM;
 export const ANAHTARLAR = { otomatik: KAYIT_ANAHTAR_OTOMATIK, elle: KAYIT_ANAHTAR_ELLE };
@@ -63,31 +56,8 @@ export function goc2to3(eski) {
     tehdit: tehditVarsayilan(tohum ?? 1, { gerginlik: 0, nefesKalan: TEHDIT_GOC_NEFES }) };
 }
 
-// Sürüm 3 → 4 (aksiyon MVP, AKSIYON.md §8.2): kahraman/sefer/komşu/hedef alanları varsayılanla; ayrı RNG akışları oyun
-// tohumundan (sefer:, komsu:) — durum.rng ve tehdit.rng'ye dokunulmaz. "Ateş Başında Bir Ses" teklifi (kahramanDurum.ilk = false)
-// gün 6 geçmişse bir sonraki turun hedef adımında gelir. Komşu ilişkisi `tehdit.iliski.komsu`'da kalır (ilk komşu bulununca okunur).
-export function goc3to4(eski) {
-  const tohum = typeof eski.tohum === 'number' && Number.isFinite(eski.tohum) ? eski.tohum : 1;
-  return { ...eski, kahramanlar: [], kahramanDurum: kahramanDurumVarsayilan(), sandik: [], sefer: seferVarsayilan(tohum),
-    hedefIsaretleri: [], komsu: komsuDurumVarsayilan(tohum), komsular: [], hedef: hedefVarsayilan() };
-}
-
-// Sürüm 4 → 5 (görsel savaş F1, docs/SAVAS.md §10): ordu boş, rütbe Lider (F1'de yalnız Lider açık; ZP = 5 × çağSırası, ★ eşiğe göre),
-// savaş geçmişi boş; aktif seferlere `savas: null`, `ekip.asker: {}` (yolda olan seferler eski yolla döner). durum.rng / tehdit.rng /
-// sefer.rng dokunulmaz. TODO(tasarim) F2: Kışla'daki atanmış askerler → asker.mizrakci T3 (F1'de Kışla aynen işçi yuvası).
-export function goc4to5(eski) {
-  const sira = Math.max(0, CAGLAR.findIndex((c) => c.id === eski.cag));
-  const zp = 5 * sira;
-  const r = RUTBELER[0];
-  const yildiz = zp >= r.zp[2] ? 3 : zp >= r.zp[1] ? 2 : 1;
-  const sefer = eski.sefer && typeof eski.sefer === 'object' ? { ...eski.sefer,
-    aktif: Array.isArray(eski.sefer.aktif) ? eski.sefer.aktif.map((s) => (s && typeof s === 'object'
-      ? { ...s, savas: null, ekip: s.ekip && typeof s.ekip === 'object' ? { ...s.ekip, asker: {} } : s.ekip } : s)) : eski.sefer.aktif } : eski.sefer;
-  return { ...eski, sefer, ordu: orduVarsayilan(), rutbe: { ...rutbeVarsayilan(), zp, yildiz }, savas: savasVarsayilan() };
-}
-
 // GOCLER[n]: sürüm n kaydını sürüm n+1'e çeviren saf fonksiyon.
-export const GOCLER = { 1: goc1to2, 2: goc2to3, 3: goc3to4, 4: goc4to5 };
+export const GOCLER = { 1: goc1to2, 2: goc2to3 };
 
 export class KayitHatasi extends Error {}
 
@@ -135,8 +105,8 @@ export function oku(depo, anahtar, yeniTohum) {
 }
 
 // §1.2 p: otomatik kayıt çekirdeğin dışında, çağıran katmanda yapılır. Tur ilerler, hata yoksa otomatik yuvaya yazılır.
-export function turIlerletVeKaydet(depo, durum, sec = {}) {
-  const sonuc = turIlerlet(durum, sec);
+export function turIlerletVeKaydet(depo, durum) {
+  const sonuc = turIlerlet(durum);
   if (!sonuc.hata) kaydet(depo, ANAHTARLAR.otomatik, sonuc.durum);
   return sonuc;
 }

@@ -5,7 +5,7 @@
 import { YORGUNLUK_MAX, EYLEM_OLCEK_ADIM, VARSAYILAN_EYLEM, KESIF_BONUS_TOPLANIR } from '../data/denge.js';
 import {
   EYLEM, BINA, KAYNAK, kopya, mevcutCag, cagAcik, kaynakAcik, calisanBinalar, kaynakYeter, eksikMetni, kaynakUygula,
-  bulusEtkileri, bildir, sonTur, sinirla, olayKilitli, OLAY_KILIDI, hataDon, onderSeferde,
+  bulusEtkileri, bildir, sonTur, sinirla, olayKilitli, OLAY_KILIDI, hataDon,
 } from './yardimci.js';
 import { sonucUygula } from './sonuc.js';
 import { haritaKesfiUygula, kesifYaricapi } from '../world/kesif.js';
@@ -31,7 +31,6 @@ export function eylemUygunMu(d, id, secim) {
   if (!e) return 'Böyle bir eylem yok.';
   if (!cagAcik(d, e.cag)) return `${e.ad} henüz açılmadı.`;
   if (id !== VARSAYILAN_EYLEM) {
-    if (onderSeferde(d)) return 'Önder seferde; dönene kadar köyde eylem yapamaz.';
     if (d.onder.yaraliKalan > 0) return `Önder yaralı; ${d.onder.yaraliKalan} tur yalnız dinlenebilir.`;
     if (d.onder.yorgunluk >= YORGUNLUK_MAX) return 'Önder çok yorgun; yalnız dinlenebilir.';
   }

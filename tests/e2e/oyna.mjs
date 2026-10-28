@@ -58,7 +58,7 @@ async function senaryo(tarayici, ad, secenek, ekranGoruntusu0) {
     const k0 = await sayfa.evaluate(() => window.__oyun.oyun.durum.kaynaklar);
     kontrol(`${ad}: ilk gün kaynakları ilk Çadır'a yeter (odun ${k0.odun}, deri ${k0.deri})`, k0.odun >= 6 && k0.deri >= 2);
     const ip = await sayfa.locator('.ipucu').innerText();
-    kontrol(`${ad}: öğretici 1. adımla başlar`, ip.includes('1/6'));
+    kontrol(`${ad}: öğretici 1. adımla başlar`, ip.includes('1/5'));
     // Ayarlar'dan kalite değişince hemen uygulanır
     await sayfa.evaluate(() => { const a = window.__oyun.arayuz; a.ayar = { ...a.ayar, kalite: 'performans' }; a.kaliteUygula(); });
     const kp = await sayfa.evaluate(() => window.__oyun.sahne.stil.mat.uniforms.uAO.value);
@@ -75,7 +75,7 @@ async function senaryo(tarayici, ad, secenek, ekranGoruntusu0) {
   await sayfa.locator('.oge', { hasText: 'Oduncu' }).first().locator('button', { hasText: '+' }).click();
   const atama = await sayfa.evaluate(() => window.__oyun.oyun.durum.atama);
   kontrol(`${ad}: iş atandı`, atama['serbest:oduncu'] === 1, JSON.stringify(atama));
-  kontrol(`${ad}: öğretici işçi atanınca 2. adıma geçti`, (await sayfa.locator('.ipucu').innerText()).includes('2/6'));
+  kontrol(`${ad}: öğretici işçi atanınca 2. adıma geçti`, (await sayfa.locator('.ipucu').innerText()).includes('2/5'));
 
   // Çadır 5 odun + 2 deri ister; başlangıçta deri yok → Önder "Avlan" ile deri toplanır (Önder sekmesi üzerinden).
   const yeterli = () => sayfa.evaluate(() => { const k = window.__oyun.oyun.durum.kaynaklar; return k.odun >= 5 && k.deri >= 2; });
@@ -398,186 +398,7 @@ async function tehditSenaryosu(tarayici, ad, vp, dpr, ekranAd) {
   await ctx.close();
 }
 
-// SEFER + KAHRAMAN + KOMŞU + HEDEF arayüzü. Durum window.__oyun ile hazırlanır (çekirdek durumu yerinde değiştirilir, sonra arayuz.yenile()).
-// EKRAN_YAZ=1 ise docs/ekran/sefer-<ad>-<konu>.png yazar (toplam 4 görüntü: p1000 sefer + kahraman, p844 yolda + komşu).
-async function aksiyonSenaryosu(tarayici, ad, vp, dpr, ekranAd) {
-  console.log(`\n== ${ad} ==`);
-  const ctx = await tarayici.newContext({ viewport: vp, deviceScaleFactor: dpr, hasTouch: true, isMobile: true });
-  const sayfa = await ctx.newPage();
-  const hatalar = [];
-  sayfa.on('pageerror', (e) => hatalar.push(String(e)));
-  sayfa.on('console', (m) => { if (m.type() === 'error') hatalar.push(m.text()); });
-  await sayfa.goto(URL);
-  await sayfa.waitForSelector('.menu');
-  await sayfa.evaluate(() => localStorage.clear());
-  await sayfa.locator('button', { hasText: 'Yeni Oyun' }).first().click();
-  await sayfa.waitForSelector('.ust .chip');
-  await sayfa.waitForTimeout(400);
-  const yaz = process.env.EKRAN_YAZ === '1' && ekranAd;
-  const goruntu = async (konu) => { await sayfa.evaluate(() => document.querySelector('.tam-oneri')?.remove()); await sayfa.waitForTimeout(300); await sayfa.screenshot({ path: `${EKRAN}/sefer-${ekranAd}-${konu}.png` }); };
-  const hataToast = () => sayfa.locator('.toast.hata').count();
-  const durumOku = (f) => sayfa.evaluate(f);
-  const sigiyor = async (sel) => {
-    const r = await sayfa.evaluate((q) => {
-      const el = document.querySelector(q); if (!el) return null;
-      const b = el.getBoundingClientRect(), W = innerWidth, H = innerHeight;
-      const ust = document.querySelector('.ust').getBoundingClientRect(), alt = document.querySelector('.alt').getBoundingClientRect();
-      const g = el.querySelector('.govde');
-      return { l: b.left, t: b.top, r: b.right, b: b.bottom, w: b.width, W, H, ustAlt: ust.bottom, altUst: alt.top, tasma: g ? g.scrollHeight - g.clientHeight : 0, yatay: document.documentElement.scrollWidth > W };
-    }, sel);
-    return r;
-  };
-  // ---- hazırlık: kahraman yok, ilk kahraman teklifi, iki işaret ----
-  await sayfa.evaluate(() => {
-    const o = window.__oyun, d = o.oyun.durum;
-    const m = Math.floor(d.harita.boyut / 2);
-    d.olay.aktif = null; d.nufus = 6;
-    Object.assign(d.kaynaklar, { yiyecek: 40, deri: 6, alet: 4 });
-    d.kahramanlar = []; d.kahramanDurum.teklif = { siniflar: ['avci', 'kasif'] };
-    d.hedefIsaretleri = [{ uid: 'i1', tur: 'ayi', x: m + 3, y: m + 2, kalan: 6, zorluk: 4 }, { uid: 'i2', tur: 'harabe', x: m - 3, y: m + 1, kalan: 2, zorluk: 3 }];
-    o.arayuz.pencere = 'kapali'; o.arayuz.ogretici.kapat(); o.arayuz.yenile();
-  });
-  await sayfa.waitForTimeout(300);
-  // 1) harita işaretleri
-  const isr = await sayfa.evaluate(() => [...document.querySelectorAll('.isaret[data-isaret]')].map((e) => { const b = e.getBoundingClientRect(); return { w: b.width, h: b.height, kalan: e.querySelector('.is-kalan')?.textContent, gor: !e.hidden && b.right > 0 && b.left < innerWidth && b.bottom > 0 && b.top < innerHeight }; }));
-  kontrol(`${ad}: haritada 2 hedef işareti görünür, kalan gün sayısı yazar (${isr.map((x) => x.kalan).join(',')})`, isr.length === 2 && isr.every((x) => x.gor) && isr[0].kalan === '6' && isr[1].kalan === '2');
-  kontrol(`${ad}: işaret dokunma hedefi ≥40px`, isr.every((x) => x.w >= 40 && x.h >= 40), isr.map((x) => `${Math.round(x.w)}×${Math.round(x.h)}`).join(' '));
-  await sayfa.evaluate(() => { window.__oyun.sahne.yakinlastir?.(0.4, innerWidth / 2, innerHeight / 2); });
-  await sayfa.waitForTimeout(300);
-  kontrol(`${ad}: uzak zoomda da işaretler görünür`, (await sayfa.locator('.isaret[data-isaret]:not([hidden])').count()) >= 1);
-  await sayfa.evaluate(() => { window.__oyun.sahne.yakinlastir?.(2.5, innerWidth / 2, innerHeight / 2); });
-  await sayfa.waitForTimeout(200);
-  // 2) üst çubuk hedef rozeti
-  const hc = (await sayfa.locator('.chip.hedef').innerText()).replace(/\s+/g, ' ');
-  kontrol(`${ad}: üst çubukta destan rozeti (${hc})`, /1\/3/.test(hc));
-  // 3) ilk kahraman teklifi: kendiliğinden küçük kart, oyunu durdurmaz
-  kontrol(`${ad}: kahraman teklifi kendiliğinden küçük kart açar (Avcı/Kaşif)`, (await sayfa.locator('.aksiyon-kart [data-terfi="avci"]').count()) === 1 && (await sayfa.locator('.aksiyon-kart [data-terfi="kasif"]').count()) === 1 && (await sayfa.locator('.perde').count()) === 0);
-  kontrol(`${ad}: teklif kartı ekrana sığar, düğmeler ≥40px`, await (async () => { const r = await sigiyor('.pencere.aksiyon-kart'); const b = await sayfa.locator('.aksiyon-kart [data-terfi="avci"]').boundingBox(); return r && r.l >= 0 && r.b <= r.altUst + 1 && r.t >= r.ustAlt - 1 && b.height >= 40; })());
-  kontrol(`${ad}: Seferler sekmesi simgesinde dikkat noktası var`, await sayfa.locator('.sekmeler button[data-sekme="aksiyon"].dikkat').count() === 1);
-  await sayfa.locator('.aksiyon-kart [data-terfi="avci"]').click();
-  await sayfa.waitForTimeout(150);
-  const kh = await durumOku(() => window.__oyun.oyun.durum.kahramanlar.map((k) => k.sinif));
-  kontrol(`${ad}: Avcı terfisi kahramanı oluşturur, teklif kartı kapanır`, kh.length === 1 && kh[0] === 'avci' && (await sayfa.locator('.aksiyon-kart').count()) === 0 && (await hataToast()) === 0);
-  // 4) işarete dokun → sefer penceresi o hedefle açılır
-  await sayfa.locator('.isaret[data-isaret="i1"]').click();
-  await sayfa.waitForSelector('.pencere.sag.aksiyon.acik');
-  await sayfa.waitForTimeout(300);
-  const sec = await durumOku(() => ({ hedef: window.__oyun.arayuz.sf.hedef, tur: window.__oyun.arayuz.sf.tur, alt: window.__oyun.arayuz.aksiyonAlt }));
-  kontrol(`${ad}: işarete dokununca sefer penceresi o hedefle açılır (${JSON.stringify(sec)})`, sec.hedef === 'i1' && sec.tur === 'ayi_avi' && sec.alt === 'sefer' && (await sayfa.locator('.sf-hedefler button.secili[data-hedef="i1"]').count()) === 1);
-  // 5) önizleme: yüzdeler toplamı 100, süre/erzak/savunma satırları
-  const on = await sayfa.evaluate(() => ({ y: [...document.querySelectorAll('.sf-sonuc i')].map((e) => +e.dataset.yuzde), etik: document.querySelectorAll('.sf-yuzde span').length,
-    metin: document.querySelector('.sf-onizleme').innerText.replace(/\s+/g, ' '), oran: document.querySelector('.sf-bar.guc')?.dataset.oran }));
-  kontrol(`${ad}: önizleme 4 sonuç yüzdesi gösterir, toplam 100 (${on.y.join('+')})`, on.y.length === 4 && on.y.reduce((a, b) => a + b, 0) === 100 && on.etik === 4);
-  kontrol(`${ad}: önizleme güç/zorluk, süre, erzak, köy savunması yazar`, /Güç/.test(on.metin) && /Zorluk/.test(on.metin) && /gün/.test(on.metin) && /erzak/.test(on.metin) && /Köy savunması/.test(on.metin) && on.oran != null, on.metin.slice(0, 120));
-  const pr = await sigiyor('.pencere.sag.aksiyon');
-  kontrol(`${ad}: sefer penceresi viewport içinde, üst çubuğu/alt şeridi örtmez`, pr.l >= -1 && pr.r <= pr.W + 1 && pr.t >= pr.ustAlt - 1 && pr.b <= pr.altUst + 1 && !pr.yatay, JSON.stringify({ t: Math.round(pr.t), b: Math.round(pr.b), altUst: Math.round(pr.altUst) }));
-  kontrol(`${ad}: sefer penceresi boyut sınırında (${Math.round(pr.w)}/${pr.W})`, pr.w <= pr.W * 0.66 + 1);
-  kontrol(`${ad}: sefer kurulumu ve Gönder kaydırma gerektirmeden görünür`, pr.tasma <= 1, `taşma ${Math.round(pr.tasma)}`);
-  const gb = await sayfa.locator('[data-gonder]').boundingBox();
-  kontrol(`${ad}: Gönder düğmesi ≥40px`, gb.height >= 40 && gb.width >= 40);
-  if (yaz && ekranAd === 'p1000') await goruntu('sefer');
-  // 6) tehdit yaklaşırken uyarı
-  await sayfa.evaluate(() => {
-    const o = window.__oyun, d = o.oyun.durum;
-    d.tehdit.aktif = { id: 'komsu_baskini', guc: 7, aralik: [7, 7], kalan: 1, tavir: 'savun', bilinen: true, erteleme: 0, tahkimat: false, evre: 'uyari', karar: false, elciDenendi: false, silah: 0 };
-    o.arayuz.yenile();
-  });
-  await sayfa.waitForTimeout(200);
-  kontrol(`${ad}: yaklaşan tehdit varken önizleme uyarır`, /tehdit gelir/.test(await sayfa.locator('.sf-uyari').innerText().catch(() => '')));
-  await sayfa.evaluate(() => { const o = window.__oyun; o.oyun.durum.tehdit.aktif = null; o.arayuz.tehditAcik = false; o.arayuz.yenile(); });
-  await sayfa.waitForTimeout(150);
-  // 7) gönder
-  await sayfa.locator('[data-gonder]').click();
-  await sayfa.waitForTimeout(250);
-  const sf = await durumOku(() => { const d = window.__oyun.oyun.durum; return { n: d.sefer.aktif.length, tur: d.sefer.aktif[0]?.tur, ekip: d.sefer.aktif[0]?.ekip, alt: window.__oyun.arayuz.aksiyonAlt }; });
-  kontrol(`${ad}: sefer gönderilir (${sf.tur}, ${sf.ekip?.kahraman.length} kahraman + ${sf.ekip?.isci} işçi), Yolda sekmesine geçer`, sf.n === 1 && sf.tur === 'ayi_avi' && sf.alt === 'yolda' && (await hataToast()) === 0 && (await sayfa.locator('.sf-yol').count()) === 1);
-  kontrol(`${ad}: gönderilen işaret haritada "yolda" olarak işaretlenir`, (await sayfa.locator('.isaret.yolda[data-isaret="i1"]').count()) === 1);
-  // 8) yol olayı: kompakt kart + Yolda satırı, seçim uygulanır
-  const kalan0 = await durumOku(() => window.__oyun.oyun.durum.sefer.aktif[0].kalan);
-  await sayfa.evaluate(() => { const o = window.__oyun; o.oyun.durum.sefer.aktif[0].olay = { id: 'nehir_tasti' }; o.arayuz.yenile(); });
-  await sayfa.waitForTimeout(250);
-  kontrol(`${ad}: yol olayı Yolda sekmesinde seçenekleriyle görünür, oyunu durdurmaz`, (await sayfa.locator('.sf-yol .sf-olay [data-secenek]').count()) === 2 && (await sayfa.locator('.perde').count()) === 0);
-  await sayfa.evaluate(() => window.__oyun.arayuz.pencereKapat());
-  await sayfa.waitForTimeout(250);
-  kontrol(`${ad}: pencere kapalıyken yol olayı küçük kartta çıkar`, (await sayfa.locator('.aksiyon-kart [data-secenek]').count()) === 2);
-  await sayfa.evaluate(() => window.__oyun.arayuz.aksiyonAc({ alt: 'yolda' }));
-  await sayfa.waitForTimeout(250);
-  if (yaz && ekranAd === 'p844') await goruntu('yolda');
-  await sayfa.locator('.sf-yol .sf-olay [data-secenek="0"]').click();
-  await sayfa.waitForTimeout(200);
-  const kalan1 = await durumOku(() => { const s = window.__oyun.oyun.durum.sefer.aktif[0]; return { olay: s.olay, kalan: s.kalan }; });
-  kontrol(`${ad}: sefer olayı seçimi uygulanır (Bekle: kalan ${kalan0} → ${kalan1.kalan})`, kalan1.olay === null && kalan1.kalan === kalan0 + 1 && (await sayfa.locator('.aksiyon-kart').count()) === 0);
-  await sayfa.locator('.sf-geri').click();
-  await sayfa.waitForTimeout(200);
-  kontrol(`${ad}: ilk turda "Geri çağır" seferi geri alır`, (await durumOku(() => window.__oyun.oyun.durum.sefer.aktif.length)) === 0);
-  // 9) kahraman paneli
-  await sayfa.evaluate(() => { const o = window.__oyun, d = o.oyun.durum; d.sandik = ['tas_mizrak']; d.kahramanlar[0].xp = 14; d.kahramanlar[0].seviye = 2; o.arayuz.aksiyonAc({ alt: 'kahraman' }); });
-  await sayfa.waitForTimeout(300);
-  const kk = await sayfa.evaluate(() => ({ metin: document.querySelector('.sf-kah').innerText.replace(/\s+/g, ' '), xp: !!document.querySelector('.sf-kah .sf-bar.xp'), yuva: document.querySelectorAll('.sf-yuvalar button').length, yet: document.querySelectorAll('.sf-yetenek span').length }));
-  kontrol(`${ad}: kahraman kartı ad, sınıf, seviye, XP çubuğu, yetenekler, 3 eşya yuvası gösterir`, /Avcı/.test(kk.metin) && /Sv 2/.test(kk.metin) && kk.xp && kk.yuva === 3 && kk.yet === 3, kk.metin.slice(0, 80));
-  const kp = await sigiyor('.pencere.sag.aksiyon');
-  kontrol(`${ad}: kahraman paneli viewport içinde ve kaydırma gerektirmez`, kp.l >= -1 && kp.b <= kp.altUst + 1 && kp.t >= kp.ustAlt - 1 && kp.tasma <= 1, `taşma ${Math.round(kp.tasma)}`);
-  await sayfa.locator('[data-esya="tas_mizrak"]').click();
-  await sayfa.waitForTimeout(150);
-  kontrol(`${ad}: sandıktaki eşya kahramana giydirilir, sandık boşalır`, await durumOku(() => { const d = window.__oyun.oyun.durum; return d.kahramanlar[0].esya.silah === 'tas_mizrak' && d.sandik.length === 0; }));
-  await sayfa.locator('[data-yuva="silah"]').click();
-  await sayfa.waitForTimeout(150);
-  kontrol(`${ad}: dolu yuvaya dokununca eşya sandığa döner`, await durumOku(() => { const d = window.__oyun.oyun.durum; return d.kahramanlar[0].esya.silah === null && d.sandik.includes('tas_mizrak'); }));
-  await sayfa.locator('[data-gorev="bekci"]').click();
-  await sayfa.waitForTimeout(150);
-  kontrol(`${ad}: görev atama (Bekçi)`, (await durumOku(() => window.__oyun.oyun.durum.kahramanlar[0].gorev?.tur)) === 'bekci' && (await hataToast()) === 0);
-  if (yaz && ekranAd === 'p1000') await goruntu('kahraman');
-  // 10) komşu paneli: önce boş durum, sonra kart + talep
-  await sayfa.evaluate(() => { window.__oyun.arayuz.aksiyonAc({ alt: 'komsu' }); });
-  await sayfa.waitForTimeout(200);
-  kontrol(`${ad}: komşu yokken açıklayıcı boş durum`, /komşu bulunamadı/i.test(await sayfa.locator('.sf-icerik').innerText()));
-  await sayfa.evaluate(() => {
-    const o = window.__oyun, d = o.oyun.durum, m = Math.floor(d.harita.boyut / 2);
-    d.cag = 'tasdevri'; Object.assign(d.kaynaklar, { yiyecek: 60 });
-    d.komsular = [{ id: 'kuzey_kurt_boyu', x: m + 4, y: m - 3, mizac: 'saldirgan', cag: 'tasdevri', cagTur: 0, iliski: 12, durum: 'bagimsiz', bekleme: {},
-      niyet: { tur: 'harac', kalan: 1, kullanildi: false, harac: { yiyecek: 6 } } }];
-    if (d.tehdit) d.tehdit.iliski = { ...(d.tehdit.iliski || {}), komsu: 12 };
-    o.arayuz.yenile();
-  });
-  await sayfa.waitForTimeout(300);
-  const ks = await sayfa.evaluate(() => ({ metin: document.querySelector('.sf-komsu')?.innerText.replace(/\s+/g, ' ') || '', bar: !!document.querySelector('.sf-il-bar'), dugme: document.querySelectorAll('.sf-komsu-d button').length, yanit: document.querySelectorAll('[data-yanit]').length }));
-  kontrol(`${ad}: komşu kartı ad, mizaç, güç, ilişki çubuğu, elçi/takas düğmeleri`, /Kuzey Kurt Boyu/.test(ks.metin) && /Saldırgan/.test(ks.metin) && /⚔/.test(ks.metin) && ks.bar && ks.dugme === 2, ks.metin.slice(0, 90));
-  kontrol(`${ad}: gelen haraç talebine Öde/Reddet yanıt düğmeleri`, ks.yanit === 2 && /Haraç talebi/.test(ks.metin));
-  kontrol(`${ad}: komşu için harita simgesi (sisi açılmış karo)`, (await sayfa.locator('.isaret[data-komsu-isaret]').count()) <= 1);
-  const kmp = await sigiyor('.pencere.sag.aksiyon');
-  kontrol(`${ad}: komşu paneli viewport içinde`, kmp.l >= -1 && kmp.b <= kmp.altUst + 1 && kmp.t >= kmp.ustAlt - 1, `taşma ${Math.round(kmp.tasma)}`);
-  if (yaz && ekranAd === 'p844') await goruntu('komsu');
-  await sayfa.locator('[data-elci]').click();
-  await sayfa.waitForTimeout(150);
-  kontrol(`${ad}: Elçi gönder ilişkiyi artırır`, (await durumOku(() => window.__oyun.oyun.durum.komsular[0].iliski ?? 0)) > 12 || (await durumOku(() => window.__oyun.oyun.durum.tehdit?.iliski?.komsu ?? 0)) > 12);
-  await sayfa.locator('[data-yanit="red"]').click();
-  await sayfa.waitForTimeout(150);
-  kontrol(`${ad}: talebi reddetmek hata vermez, yanıt düğmeleri kalkar`, (await hataToast()) === 0 && (await sayfa.locator('[data-yanit]').count()) === 0);
-  // 11) hedefler: görev kartı seçimi + destan şeridi
-  await sayfa.evaluate(() => { const o = window.__oyun, d = o.oyun.durum; d.hedef.kartlar = ['kis_azigi', 'basarili_sefer', 'harac_siz']; d.hedef.gorev = null; o.arayuz.aksiyonAc({ alt: 'hedef' }); });
-  await sayfa.waitForTimeout(300);
-  const hp = await sayfa.evaluate(() => ({ ad: document.querySelector('.sf-destan-ust')?.innerText.replace(/\s+/g, ' '), adim: document.querySelectorAll('.sf-adim').length, kart: document.querySelectorAll('[data-kart]').length }));
-  kontrol(`${ad}: destan şeridi "Ayının İzinde" adımlarıyla, 3 görev kartı (${hp.ad})`, /Ayının İzinde/.test(hp.ad) && hp.adim === 3 && hp.kart === 3);
-  kontrol(`${ad}: üst çubuk rozeti görev seçimini işaret eder`, /Görev/.test(await sayfa.locator('.chip.hedef').innerText()));
-  const hpr = await sigiyor('.pencere.sag.aksiyon');
-  kontrol(`${ad}: hedef paneli viewport içinde`, hpr.l >= -1 && hpr.b <= hpr.altUst + 1 && hpr.t >= hpr.ustAlt - 1, `taşma ${Math.round(hpr.tasma)}`);
-  await sayfa.locator('[data-kart="basarili_sefer"]').click();
-  await sayfa.waitForTimeout(200);
-  kontrol(`${ad}: görev kartı seçilir, etkin görev gösterilir`, (await durumOku(() => window.__oyun.oyun.durum.hedef.gorev?.id)) === 'basarili_sefer' && (await sayfa.locator('.sf-gorev-k.etkin').count()) === 1);
-  kontrol(`${ad}: mevsim ritmi satırı`, /Bahar: keşif/.test(await sayfa.locator('.sf-ritim').innerText()));
-  // 12) bildirimler günlükte ve toast'ta
-  const g = await durumOku(() => window.__oyun.oyun.gecmis.filter((x) => /^(sefer|kahraman|komsu|hedef)_/.test(x.kod || '')).map((x) => x.kod));
-  kontrol(`${ad}: sefer_/kahraman_/komsu_/hedef_ bildirimleri günlükte (${[...new Set(g)].join(',')})`, g.includes('sefer_gonderildi') && g.includes('kahraman_yeni'));
-  kontrol(`${ad}: bu bildirimler toast'ta simgeyle görünür`, await sayfa.evaluate(() => [...document.querySelectorAll('.toast')].length >= 0) && g.length > 0);
-  // 13) öğretici mevsim ritmi adımı
-  await sayfa.evaluate(() => { const a = window.__oyun.arayuz; a.pencereKapat(); a.ogretici.yenidenGoster(); a.ogretici.adim = 5; a.secim = null; a.gizliKart.add('teklif'); a.yenile(); });
-  await sayfa.waitForTimeout(200);
-  kontrol(`${ad}: öğretici "Bahar: keşif • Yaz: sefer • Güz: hazırlık • Kış: tehdit" adımını içerir`, /Bahar: keşif • Yaz: sefer • Güz: hazırlık • Kış: tehdit/.test(await sayfa.locator('.ipucu').innerText()));
-  kontrol(`${ad}: sefer/kahraman/komşu/hedef arayüzü konsol hatası vermez`, hatalar.length === 0, hatalar.slice(0, 3).join(' | '));
-  await ctx.close();
-}
-
-const SADECE = ['tehdit', 'aksiyon'].includes(process.env.SADECE); // yalnız tehdit / aksiyon senaryoları (hızlı yineleme)
+const SADECE = process.env.SADECE === 'tehdit'; // yalnız tehdit senaryoları (hızlı yineleme)
 let cikis = 0;
 try {
   await bekle();
@@ -587,12 +408,6 @@ try {
   if (!SADECE) await yerlesimSenaryosu(tarayici, 'yerleşim 1000×450 dpr2', { width: 1000, height: 450 }, 2, 'p1000');
   if (!SADECE) await yerlesimSenaryosu(tarayici, 'yerleşim 844×390', { width: 844, height: 390 }, 1, 'p844');
   if (!SADECE) await yerlesimSenaryosu(tarayici, 'yerleşim 720×360', { width: 720, height: 360 }, 1, 'p720');
-  if (process.env.SADECE !== 'tehdit') {
-    await aksiyonSenaryosu(tarayici, 'aksiyon 1000×450 dpr2', { width: 1000, height: 450 }, 2, 'p1000');
-    await aksiyonSenaryosu(tarayici, 'aksiyon 844×390', { width: 844, height: 390 }, 1, 'p844');
-    await aksiyonSenaryosu(tarayici, 'aksiyon 720×360', { width: 720, height: 360 }, 1, 'p720');
-  }
-  if (process.env.SADECE === 'aksiyon') { await tarayici.close(); sunucu.kill(); const k = sonuclar.filter((s) => !s.ok).length; console.log(`\n${sonuclar.length - k}/${sonuclar.length} kontrol geçti`); process.exit(k ? 1 : 0); }
   await tehditSenaryosu(tarayici, 'tehdit 1000×450 dpr2', { width: 1000, height: 450 }, 2, 'p1000');
   await tehditSenaryosu(tarayici, 'tehdit 844×390', { width: 844, height: 390 }, 1, 'p844');
   if (!SADECE) { // ?stil=eski: eski düz görünüm (son işleme yok)
