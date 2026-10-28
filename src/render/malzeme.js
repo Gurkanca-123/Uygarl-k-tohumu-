@@ -12,7 +12,7 @@ export const ORTAK = {
 // Dünya normali (kar için) + isteğe bağlı rüzgâr / dalga / atlas / yan toprak rengi.
 // sec: { kar: 0..1 katsayı, ruzgar: bool (aSallan özniteliği), dalga: bool, atlas: bool (aHucre), yan: THREE.Color|null, yanK }
 export function yamala(mat, sec = {}) {
-  const anahtar = JSON.stringify({ k: sec.kar ?? 1, r: !!sec.ruzgar, d: !!sec.dalga, a: !!sec.atlas, y: !!sec.yan });
+  const anahtar = JSON.stringify({ k: sec.kar ?? 1, r: !!sec.ruzgar, d: !!sec.dalga, a: !!sec.atlas, ak: sec.atlasK ?? 1, y: !!sec.yan });
   mat.customProgramCacheKey = () => anahtar;
   mat.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, ORTAK);
@@ -80,6 +80,7 @@ ${sec.yan ? 'uniform vec3 uYanRenk; uniform float uYanK;' : ''}
     vec2 yu = vMapUv;
     vec2 au = vHucre + vec2(${P}) + fract(yu) * (${B} - 2.0 * ${P});
     vec4 sampledDiffuseColor = textureGrad(map, au, dFdx(yu) * ${B}, dFdy(yu) * ${B});
+    ${(sec.atlasK ?? 1) < 1 ? `sampledDiffuseColor.rgb = mix(vec3(0.82), sampledDiffuseColor.rgb, ${(sec.atlasK).toFixed(3)});` : ''}
     diffuseColor *= sampledDiffuseColor;
   }`);
     }
@@ -105,7 +106,7 @@ ${sec.yan ? 'uniform vec3 uYanRenk; uniform float uYanK;' : ''}
 const onbellek = new Map();
 function al(anahtar, yap) { let m = onbellek.get(anahtar); if (!m) { m = yap(); onbellek.set(anahtar, m); } return m; }
 
-export const binaMat = () => al('bina', () => yamala(new THREE.MeshLambertMaterial({ map: binaAtlasi(), vertexColors: true }), { atlas: true }));
+export const binaMat = () => al('bina', () => yamala(new THREE.MeshLambertMaterial({ map: binaAtlasi(), vertexColors: true }), { atlas: true, atlasK: 0.28 }));
 // ışıltı: ateş, pencere, kor (ışıktan bağımsız, ton eşlemesiz parlak)
 export const isilMat = () => al('isil', () => new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false }));
 // hayalet (yerleştirme önizlemesi): gerçek doku, yarı saydam, renk tonlu
