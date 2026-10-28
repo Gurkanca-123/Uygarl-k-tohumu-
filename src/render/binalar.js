@@ -135,17 +135,35 @@ class Kurucu {
   pencere(x, y, z, w, h, yon, o = {}) {
     const isikli = o.isikli ?? this.R() < 0.45;
     const cer = o.cerceve ?? P.kiris;
+    const panjur = o.panjur ?? (w >= 0.07 && this.R() < 0.6), pr = o.panjurRenk ?? [0x4f6f4a, 0x7a3a2c, 0x3f5f7a, 0x5a4030][Math.floor(this.R() * 4)];
     if (yon === 'z') {
       this.kutu(w + 0.04, h + 0.04, 0.02, x, y - 0.02, z, 'tahta', cer);
       this.kutu(w, h, 0.03, x, y, z + 0.004, 'duz', isikli ? P.pencere : P.pencereK, { isil: true });
+      this.kutu(0.008, h, 0.034, x, y, z + 0.006, 'kutuk', cer); // orta çıta
+      this.kutu(w + 0.07, 0.02, 0.045, x, y - 0.035, z + 0.01, 'tasBlok', 0xb9b2a2); // denizlik
+      this.kutu(w + 0.06, 0.016, 0.03, x, y + h + 0.015, z + 0.004, 'tasBlok', 0xa9a292); // lento
+      if (panjur) for (const sx of [-1, 1]) this.kutu(w * 0.42, h + 0.03, 0.014, x + sx * (w / 2 + w * 0.26), y - 0.012, z + 0.004, 'tahta', pr);
     } else {
       this.kutu(0.02, h + 0.04, w + 0.04, x, y - 0.02, z, 'tahta', cer);
       this.kutu(0.03, h, w, x + 0.004, y, z, 'duz', isikli ? P.pencere : P.pencereK, { isil: true });
+      this.kutu(0.034, h, 0.008, x + 0.006, y, z, 'kutuk', cer);
+      this.kutu(0.045, 0.02, w + 0.07, x + 0.01, y - 0.035, z, 'tasBlok', 0xb9b2a2);
+      this.kutu(0.03, 0.016, w + 0.06, x + 0.004, y + h + 0.015, z, 'tasBlok', 0xa9a292);
+      if (panjur) for (const sz of [-1, 1]) this.kutu(0.014, h + 0.03, w * 0.42, x + 0.004, y - 0.012, z + sz * (w / 2 + w * 0.26), 'tahta', pr);
     }
   }
   kapi(x, y, z, w, h, yon = 'z', renk = 0x5a3b24) {
-    if (yon === 'z') { this.kutu(w + 0.04, h + 0.03, 0.025, x, y, z, 'tahta', P.kiris); this.kutu(w, h, 0.035, x, y, z + 0.003, 'tahta', renk); }
-    else { this.kutu(0.025, h + 0.03, w + 0.04, x, y, z, 'tahta', P.kiris); this.kutu(0.035, h, w, x + 0.003, y, z, 'tahta', renk); }
+    if (yon === 'z') {
+      this.kutu(w + 0.04, h + 0.03, 0.025, x, y, z, 'tahta', P.kiris); this.kutu(w, h, 0.035, x, y, z + 0.003, 'tahta', renk);
+      this.kutu(w + 0.07, 0.02, 0.012, x, y + h + 0.03, z + 0.004, 'tasBlok', 0xa9a292); // lento
+      this.kutu(w + 0.1, 0.016, 0.07, x, y, z + 0.035, 'tasBlok', 0xb4ae9e); // eşik taşı
+      this.kure(0.011, x + w * 0.32, y + h * 0.5, z + 0.025, 'duz', P.altin); // kol
+    } else {
+      this.kutu(0.025, h + 0.03, w + 0.04, x, y, z, 'tahta', P.kiris); this.kutu(0.035, h, w, x + 0.003, y, z, 'tahta', renk);
+      this.kutu(0.012, 0.02, w + 0.07, x + 0.004, y + h + 0.03, z, 'tasBlok', 0xa9a292);
+      this.kutu(0.07, 0.016, w + 0.1, x + 0.035, y, z, 'tasBlok', 0xb4ae9e);
+      this.kure(0.011, x + 0.025, y + h * 0.5, z + w * 0.32, 'duz', P.altin);
+    }
   }
   bayrak(x, z, y, h, renk, o = {}) {
     this.direk(x, z, y, h, 0.018, o.direk || 0x5a4030);
@@ -222,9 +240,16 @@ class Kurucu {
           const y = pos[(o + i) * 3 + 1];
           const ao = isil ? 1 : 0.68 + 0.32 * Math.min(1, Math.max(0, (y - ZEMIN_Y) / 0.32));
           const t = !isil && this.ton ? this.ton : [1, 1, 1];
-          col[(o + i) * 3] = cc[i * 3] * ao * t[0];
-          col[(o + i) * 3 + 1] = cc[i * 3 + 1] * ao * t[1];
-          col[(o + i) * 3 + 2] = cc[i * 3 + 2] * ao * t[2];
+          // el boyaması etkisi: konuma bağlı yumuşak değer değişimi + üst yüzeylerde güneş solması, tabanda kir
+          let boya = 1;
+          if (!isil) {
+            const px = pos[(o + i) * 3], pz = pos[(o + i) * 3 + 2];
+            const n1 = Math.sin(px * 7.3 + y * 5.1) * Math.sin(pz * 6.1 - y * 3.7);
+            boya = 1 + 0.07 * n1 + 0.05 * Math.min(1, Math.max(0, (y - ZEMIN_Y) / 0.9)) - (y < ZEMIN_Y + 0.1 ? 0.05 : 0);
+          }
+          col[(o + i) * 3] = cc[i * 3] * ao * t[0] * boya;
+          col[(o + i) * 3 + 1] = cc[i * 3 + 1] * ao * t[1] * boya;
+          col[(o + i) * 3 + 2] = cc[i * 3 + 2] * ao * t[2] * boya * (isil ? 1 : 0.985 + 0.015 * Math.min(1, boya));
         }
         o += c;
         g.dispose();

@@ -1,5 +1,8 @@
 # CHANGELOG_DEV (yalnız son kayıtlar; eskiler `docs/CHANGELOG_ARSIV.md`)
 
+## 2026-10-28 — Bina ayrıntı geçişi 1 (Sonnet 5.5)
+- `binalar.js` ortak parçalar: pencere (çıta, denizlik, lento, rastgele renkli panjur), kapı (lento, eşik taşı, kol); `birlestir`: konuma bağlı el boyaması değer değişimi + üst solma/taban kiri. Tüm 54 bina etkilenir. Fark ince; asıl sıçrama için çağ çağ yeniden modelleme gerekir. Denenmedi: telefon.
+
 ## 2026-10-28 — Yapılar büyütüldü (Sonnet 5.5)
 - `binalar.js` `binaModeli`: yatay ×1,14 (merkez ×1,20), dikey ×1,35; her seviye +0,04 yatay / +0,05 dikey (yükseltme gözle görülür). Çit/sur ve önizleme değişmedi. Ekran: `docs/ekran/koy-buyuk-orta.png`. Telefonda denenmedi.
 
