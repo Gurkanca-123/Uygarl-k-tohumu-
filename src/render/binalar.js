@@ -964,19 +964,32 @@ M.muhafiz_kulesi = (k, c) => {
 
 M.mabet = (k, c) => {
   const Z = k.kaide(2, 'kerpic');
-  const s = c.s;
-  k.kutu(1.5, 0.28 * s, 1.5, 0, Z, -0.05, 'kerpic', P.kerpic);
-  k.kutu(1.05, 0.26 * s, 1.05, 0, Z + 0.28 * s, -0.1, 'kerpic', P.siva);
-  k.kutu(0.6, 0.24 * s, 0.6, 0, Z + 0.54 * s, -0.15, 'kerpic', 0xe0c090);
-  k.kutu(0.66, 0.04, 0.66, 0, Z + 0.78 * s, -0.15, 'duz', P.bronz);
-  k.kapi(0, Z + 0.54 * s, 0.155, 0.12, 0.16, 'z', 0x3a2418);
-  // merdiven
-  for (let i = 0; i < 6; i++) k.kutu(0.24, 0.09 * s, 0.1, 0, Z + i * 0.09 * s, 0.75 - i * 0.11, 'kerpic', 0xb78258);
-  for (const x of [-0.6, 0.6]) {
-    k.sil(0.05, 0.035, 0.12, 6, x, Z + 0.28 * s, 0.6, 'duz', P.bronz);
-    k.ates.push([x, Z + 0.28 * s + 0.12, 0.6, 0.3]);
-  }
-  k.bayrak(-0.24, -0.4, Z + 0.78 * s, 0.35, P.asi);
+  const s = c.s, acik = 0xe8c898;
+  // dört basamaklı zigurat: her kat boyalı kuşaklı, köşelerde mangal
+  const kat = [[1.55, 0.26 * s, -0.05, P.kerpic], [1.1, 0.24 * s, -0.08, P.siva], [0.7, 0.22 * s, -0.1, 0xe0c090]];
+  let y = Z;
+  kat.forEach(([w, h, z, col], i) => {
+    k.kutu(w, h, w, 0, y, z, 'kerpic', col);
+    k.kutu(w + 0.05, 0.035, w + 0.05, 0, y + h - 0.035, z, 'kerpic', acik);
+    k.kutu(w + 0.02, 0.03, w + 0.02, 0, y + h * 0.45, z, 'duz', i % 2 ? 0xb6402a : 0x2f6f9a);
+    for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+      const cx = sx * (w / 2 - 0.05), cz = z + sz * (w / 2 - 0.05);
+      k.sil(0.05, 0.035, 0.1, 6, cx, y + h, cz, 'duz', P.bronz); k.ates.push([cx, y + h + 0.1, cz, 0.25]);
+    }
+    y += h;
+  });
+  // tepe tapınağı: altın çatılı oda, kemerli kapı, parlayan ışık, bayrak
+  k.kutu(0.38, 0.22 * s, 0.38, 0, y, -0.1, 'kerpic', 0xf0d8a8);
+  k.kutu(0.5, 0.04, 0.5, 0, y + 0.22 * s, -0.1, 'duz', P.bronz);
+  k.koni(0.34, 0.2, 4, 0, y + 0.26 * s, -0.1, 'duz', P.altin, { ry: Math.PI / 4 });
+  k.kemer(0, y + 0.01, 0.092, 0.12, 0.17, 0xffb050, false, { isil: true });
+  k.bayrak(-0.22, -0.3, y + 0.26 * s, 0.35, P.asi);
+  // geniş merdiven (ön) + yan korkuluk, kutsal ateş çanakları, kurban taşı
+  for (let i = 0; i < 6; i++) k.kutu(0.32, 0.085 * s, 0.11, 0, Z + i * 0.085 * s, 0.86 - i * 0.1, 'kerpic', 0xb78258);
+  for (const sx of [-1, 1]) for (let i = 0; i < 4; i++) k.kutu(0.07, 0.09 + i * 0.07, 0.11, sx * 0.2, Z, 0.84 - i * 0.12, 'kerpic', 0xa87a52);
+  for (const x of [-0.62, 0.62]) { k.sil(0.07, 0.045, 0.14, 8, x, Z, 0.78, 'duz', P.bronz); k.ates.push([x, Z + 0.14, 0.78, 0.4]); }
+  k.kutu(0.2, 0.1, 0.12, -0.62, Z, 0.35, 'tasBlok', P.siva); k.kutu(0.2, 0.1, 0.12, 0.62, Z, 0.35, 'tasBlok', P.siva);
+  k.sil(0.04, 0.03, 0.08, 8, -0.9, Z, 0.6, 'duz', 0xb06a40); k.sil(0.04, 0.03, 0.08, 8, 0.9, Z, 0.6, 'duz', 0xb06a40);
 };
 
 // ---------- ANTİK ----------
@@ -1140,33 +1153,57 @@ M.hamam = (k, c) => {
 
 M.kutuphane = (k, c) => {
   const Z = k.kaide(2, 'mermer');
-  const y = Z + 0.06, h = 0.5 * c.s;
-  k.kutu(1.6, 0.06, 1.3, 0, Z, -0.1, 'mermer', P.mermer);
-  k.kutu(1.1, h, 0.8, 0, y, -0.25, 'tasBlok', P.kirec);
-  for (let i = 0; i < 6; i++) k.sil(0.035, 0.04, h, 8, -0.6 + i * 0.24, y, 0.3, 'mermer', P.mermer);
-  for (let i = 0; i < 3; i++) k.sil(0.035, 0.04, h, 8, -0.6, y, 0.1 - i * 0.3, 'mermer', P.mermer);
-  k.kutu(1.4, 0.07, 1.0, 0, y + h, -0.1, 'mermer', P.mermer);
-  k.besik(1.0, 1.44, 0.26, 0, y + h + 0.07, -0.1, 'kiremit', P.kiremit, { ry: Math.PI / 2 });
-  k.ekle(ucgenGeo([[[-0.45, 0, 0], [0.45, 0, 0], [0, 0.22, 0]]], [0, 0, -1]), { doku: 'mermer', renk: P.mermer, x: 0, y: y + h + 0.08, z: 0.41 });
-  k.kapi(0, y, 0.155, 0.18, 0.3, 'z', 0x3a2418);
-  for (const x of [-0.35, 0.35]) k.pencere(x, y + h * 0.55, 0.155, 0.08, 0.13, 'z', { isikli: true });
-  k.bayrak(0.75, 0.6, Z, 0.8, P.lacivert);
+  const y = Z + 0.12, h = 0.5 * c.s;
+  // krepis (üç basamak) + cella + sütunlu cephe
+  k.kutu(1.7, 0.06, 1.4, 0, Z, -0.1, 'mermer', P.mermer);
+  k.kutu(1.55, 0.06, 1.25, 0, Z + 0.06, -0.1, 'mermer', P.kirec);
+  k.kutu(1.15, h, 0.85, 0, y, -0.28, 'tasBlok', P.kirec);
+  const sut = (x, z) => { k.sil(0.036, 0.042, h, 10, x, y, z, 'mermer', P.mermer); k.sil(0.055, 0.055, 0.03, 10, x, y + h, z, 'mermer', 0xe8dcc0); k.kutu(0.12, 0.025, 0.12, x, y + h + 0.03, z, 'mermer', P.mermer); };
+  for (let i = 0; i < 6; i++) sut(-0.6 + i * 0.24, 0.32);
+  for (const x of [-0.62, 0.62]) for (const z of [0.05, -0.25, -0.55]) sut(x, z);
+  // arşitrav + friz + saçaklı çatı + alınlık (ön), altın sikke yerine kitap rulosu amblemi
+  k.kutu(1.45, 0.07, 1.05, 0, y + h + 0.06, -0.15, 'mermer', P.mermer);
+  k.kutu(1.45, 0.04, 1.05, 0, y + h + 0.13, -0.15, 'duz', 0x4f86c8);
+  k.besik(1.0, 1.5, 0.36, 0, y + h + 0.17, -0.15, 'kiremit', 0xc4603a, { ry: Math.PI / 2 });
+  k.sil(0.065, 0.065, 0.014, 14, 0, y + h + 0.28, 0.36, 'duz', P.altin, { rx: Math.PI / 2, y: y + h + 0.29 });
+  k.kutu(0.07, 0.012, 0.012, 0, y + h + 0.29, 0.372, 'duz', 0x4a3222);
+  // kapı, yan pencereler (kemerli, ışıklı) ve iç ışık
+  k.kapi(0, y, 0.145, 0.2, 0.32, 'z', 0x3a2418);
+  for (const x of [-0.38, 0.38]) k.kemer(x, y + 0.1, 0.145, 0.1, 0.22, 0xffcf7a, false, { isil: true });
+  for (const z of [-0.45, -0.1]) for (const sx of [-1, 1]) k.kemer(0, y + 0.1, 0, 0.1, 0.22, 0xffcf7a, false, { isil: true, x: sx * 0.58, z, ry: Math.PI / 2 });
+  // ön meydan: heykel kaidesi, defne, bayrak, ruloluk
+  k.kutu(0.16, 0.16, 0.16, -0.8, Z + 0.06, 0.6, 'mermer', P.kirec); k.sil(0.035, 0.045, 0.2, 6, -0.8, Z + 0.22, 0.6, 'mermer', P.mermer); k.kure(0.04, -0.8, Z + 0.45, 0.6, 'mermer', P.mermer);
+  for (const [x, z] of [[0.82, 0.62], [0.55, 0.7]]) { k.sil(0.02, 0.026, 0.12, 6, x, Z + 0.06, z, 'kutuk', 0x6a4a2a); k.kure(0.09, x, Z + 0.22, z, 'duz', 0x5f8f48, { det: 1 }); }
+  k.kutu(0.14, 0.05, 0.1, 0.35, Z + 0.06, 0.66, 'tahta', 0x8a5a32); for (let i = 0; i < 3; i++) k.sil(0.014, 0.014, 0.1, 6, 0.3 + i * 0.04, Z + 0.11, 0.66, 'duz', 0xe8dcc0, { rz: Math.PI / 2, y: Z + 0.13, x: 0.3 + i * 0.04 });
+  k.bayrak(0.9, 0.3, Z + 0.06, 0.8, P.lacivert);
 };
 
 M.tiyatro = (k, c) => {
   const Z = k.kaide(3, 'tas');
-  // yarım daire oturma basamakları (dışa doğru yükselir)
-  for (let i = 0; i < 5; i++) {
-    const r = 1.3 - i * 0.18, h = 0.08 * c.s * (5 - i);
-    k.ekle(new THREE.CylinderGeometry(r, r, h, 18, 1, false, Math.PI / 2, Math.PI), { doku: 'tasBlok', renk: i % 2 ? P.kirec : 0xd8ccb0, x: 0, y: Z + h / 2, z: 0.3 });
+  // cavea: yarım daire oturma basamakları (dışa doğru yükselir) + ışınsal merdivenler + üst galeri
+  for (let i = 0; i < 6; i++) {
+    const r = 1.35 - i * 0.16, h = 0.07 * c.s * (6 - i);
+    k.ekle(new THREE.CylinderGeometry(r, r, h, 20, 1, false, Math.PI / 2, Math.PI), { doku: 'tasBlok', renk: i % 2 ? P.kirec : 0xd8ccb0, x: 0, y: Z + h / 2, z: 0.25 });
   }
-  k.sil(0.4, 0.4, 0.02, 16, 0, Z, 0.35, 'mermer', P.mermer);
-  // sahne binası (alçak, önde)
-  k.kutu(1.7, 0.3 * c.s, 0.22, 0, Z, 1.1, 'tasBlok', P.kirec);
-  for (let i = 0; i < 7; i++) k.sil(0.028, 0.032, 0.26, 8, -0.72 + i * 0.24, Z, 0.9, 'mermer', P.mermer);
-  k.kutu(1.6, 0.04, 0.14, 0, Z + 0.26, 0.92, 'mermer', P.mermer);
-  for (let i = 0; i < 3; i++) k.kemer(-0.5 + i * 0.5, Z, 1.215, 0.16, 0.24, 0x2a1e16);
-  for (const x of [-1.25, 1.25]) k.bayrak(x, 1.1, Z, 0.8, P.lacivert);
+  for (const a of [-1.2, -0.6, 0, 0.6, 1.2]) { const ax = Math.sin(a) * 0.95, az = 0.25 - Math.cos(a) * 0.95; k.kutu(0.09, 0.07, 0.5, ax, Z + 0.28 * c.s, az, 'tasBlok', 0xb9b09a, { ry: -a }); }
+  const topY = Z + 0.07 * c.s * 6;
+  for (let i = 0; i < 9; i++) { const a = -Math.PI / 2 + (i / 8) * Math.PI; k.sil(0.026, 0.03, 0.2, 8, Math.sin(a) * 1.28, topY, 0.25 - Math.cos(a) * 1.28, 'mermer', P.mermer); }
+  // orkestra: mermer daire + mozaik halka + altar
+  k.sil(0.42, 0.42, 0.025, 18, 0, Z, 0.4, 'mermer', P.mermer);
+  k.sil(0.3, 0.3, 0.03, 18, 0, Z + 0.015, 0.4, 'duz', P.lacivert);
+  k.sil(0.14, 0.14, 0.035, 14, 0, Z + 0.03, 0.4, 'duz', P.altin);
+  // sahne binası (skene): iki katlı, sütunlu, kemerli girişler, kiremit çatı
+  k.kutu(1.9, 0.32 * c.s, 0.3, 0, Z, 1.15, 'tasBlok', P.kirec);
+  k.kutu(1.9, 0.04, 0.34, 0, Z + 0.32 * c.s, 1.15, 'mermer', P.mermer);
+  k.kutu(1.7, 0.2, 0.22, 0, Z + 0.36 * c.s, 1.15, 'tasBlok', 0xe0d6bc);
+  k.besik(1.9, 0.4, 0.14, 0, Z + 0.36 * c.s + 0.2, 1.15, 'kiremit', 0xc4603a);
+  for (let i = 0; i < 8; i++) k.sil(0.026, 0.03, 0.26, 8, -0.84 + i * 0.24, Z, 0.97, 'mermer', P.mermer);
+  k.kutu(1.8, 0.04, 0.16, 0, Z + 0.26, 0.96, 'mermer', P.mermer);
+  for (let i = 0; i < 3; i++) k.kemer(-0.55 + i * 0.55, Z, 1.31, 0.17, 0.25, 0x2a1e16);
+  for (let i = 0; i < 4; i++) k.kemer(-0.72 + i * 0.48, Z + 0.4 * c.s, 1.27, 0.09, 0.14, 0xffcf7a, false, { isil: true });
+  // maske süsü (altın) + bayraklar + meşaleler
+  k.sil(0.06, 0.06, 0.014, 12, 0, Z + 0.62 * c.s, 1.285, 'duz', P.altin, { rx: Math.PI / 2, y: Z + 0.62 * c.s });
+  for (const x of [-1.3, 1.3]) { k.bayrak(x, 1.15, Z, 0.8, P.lacivert); k.direk(x * 0.78, 0.7, Z, 0.4, 0.014, P.kiris); k.ates.push([x * 0.78, Z + 0.42, 0.7, 0.3]); }
 };
 
 M.kisla = (k, c) => {
@@ -1434,6 +1471,14 @@ M.kale = (k, c) => {
   k.besik(0.6, 0.45, 0.2, 0.6, Z + 0.28, -0.55, 'arduvaz', 0x6a4a3a);
   k.fici(0.6, 0.4, Z); k.fici(0.72, 0.5, Z); k.sandik(-0.6, 0.6, Z);
   baca(k, 0.75, -0.6, Z + 0.3, 0.2);
+  // kapı: kemer + sürgülü kapı + bayrak, köprü, hendek taşı, kule bayrakları, okçu delikleri
+  k.kemer(0, Z + 0.003, a + 0.17, 0.3, 0.38, 0x2a1810, false);
+  for (let i = -2; i <= 2; i++) k.kutu(0.012, 0.36, 0.012, i * 0.05, Z + 0.01, a + 0.175, 'duz', 0x3a3632);
+  for (let q = 0; q < 4; q++) k.kutu(0.3, 0.012, 0.012, 0, Z + 0.06 + q * 0.09, a + 0.178, 'duz', 0x3a3632);
+  k.kutu(0.4, 0.03, 0.55, 0, Z + 0.01, a + 0.45, 'tahta', 0x7a5634);
+  for (const sx of [-1, 1]) { k.direk(sx * 0.2, a + 0.62, Z, 0.14, 0.014); k.kutu(0.06, 0.12, 0.012, sx * 0.55, Z + hs * 0.7, a + 0.088, 'kumas', P.sancak); }
+  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { k.bayrak(sx * a, sz * a, Z + hs + 0.65, 0.22, sz > 0 ? P.sancak : 0x2f6f9a); k.kutu(0.025, 0.1, 0.01, sx * a, Z + hs * 0.55, sz * a + 0.205 * (sz > 0 ? 1 : -1), 'duz', 0x2a211a); }
+  for (const x of [-0.9, 0.9]) { k.kutu(0.06, 0.1, 0.1, x, Z + hs * 0.6, a + 0.09, 'duz', 0x2a211a); k.kutu(0.06, 0.1, 0.1, x, Z + hs * 0.6, -a - 0.09, 'duz', 0x2a211a); }
 };
 
 M.katedral = (k, c) => {
@@ -1471,6 +1516,20 @@ M.katedral = (k, c) => {
   k.kutu(0.3, 0.3, 0.3, 0, Z + h + 0.2, -0.7, 'tasBlok', 0xd8d0c0);
   k.koni(0.2, 0.75, 8, 0, Z + h + 0.5, -0.7, 'arduvaz', P.arduvaz);
   k.koni(0.015, 0.1, 4, 0, Z + h + 1.25, -0.7, 'duz', P.altin);
+  // uçan payandalar (nef yan duvarından dışa), sivri çıkıntılar, mahya süsü, haç, portal çerçeveleri
+  for (const sx of [-1, 1]) for (let i = 0; i < 4; i++) {
+    const z = -1.1 + i * 0.5;
+    k.kutu(0.04, 0.5, 0.05, sx * 0.54, Z + 0.55, z, 'tasBlok', 0xbfb7a6, { rz: sx * 0.9 });
+    k.kutu(0.1, 0.16, 0.1, sx * 0.9, Z + 0.52, z, 'tasBlok', 0xbfb7a6);
+    k.koni(0.05, 0.16, 4, sx * 0.9, Z + 0.68, z, 'duz', P.arduvaz, { ry: Math.PI / 4 });
+    if (sx > 0) k.kemer(0.455, Z + 0.55, z, 0.07, 0.17, 0xffcf7a, true, { isil: true, ry: Math.PI / 2, x: 0.455 });
+  }
+  k.kutu(0.04, 0.04, 2.1, 0, Z + h + 0.7, -0.3, 'duz', P.altin);
+  for (const [x, y, z] of [[0, Z + h + 1.27, -0.7], [-0.4, Z + 1.45 + 0.98, 0.85], [0.4, Z + 1.45 + 0.98, 0.85]]) { k.kutu(0.02, 0.12, 0.02, x, y, z, 'duz', P.altin); k.kutu(0.07, 0.02, 0.02, x, y + 0.07, z, 'duz', P.altin); }
+  for (const r of [0.34, 0.3, 0.26]) k.kemer(0, Z + 0.003, 0.988 + (0.34 - r) * 0.1, r, 0.5 + (r - 0.26) * 1.2, r === 0.3 ? 0x3a2418 : 0xbfb7a6, true);
+  k.kemer(0, Z + 0.003, 0.995, 0.22, 0.44, 0x2a1810, true);
+  for (const sx of [-1, 1]) for (const y of [0.9, 1.1]) k.kemer(sx * 0.4, Z + y, 1.045, 0.07, 0.16, 0x2a211a, true);
+  for (const [x, z] of [[-1.2, 1.2], [1.2, 1.2]]) { k.direk(x, z, Z, 0.45, 0.014, P.kiris); k.kutu(0.05, 0.06, 0.05, x, Z + 0.45, z, 'duz', P.pencere, { isil: true }); }
 };
 
 // ---------- genel yedek şablon (çağ tipine göre) ----------

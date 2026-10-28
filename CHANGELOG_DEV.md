@@ -1,5 +1,8 @@
 # CHANGELOG_DEV (yalnız son kayıtlar; eskiler `docs/CHANGELOG_ARSIV.md`)
 
+## 2026-10-28 — Anıt yapılar yeniden tasarlandı (Sonnet 5.5)
+- `binalar.js`: `mabet` (boyalı kuşaklı 4 katlı zigurat, köşe mangalları, altın piramit çatılı tepe tapınağı, geniş merdiven), `kutuphane` (başlıklı sütun cephesi, mavi friz, alınlık+sikke, kemerli ışıklı pencereler, heykel/defne), `tiyatro` (ışınsal merdivenli cavea, üst galeri sütunları, mozaik orkestra, iki katlı skene, meşaleler), `katedral` (uçan payandalar, sivri çıkıntılar, haçlar, çok katlı portal, kandiller), `kale` (sürgülü kapı + köprü, kule bayrakları, okçu delikleri). Önizleme ile kontrol edildi; oyun içi/telefon denenmedi.
+
 ## 2026-10-28 — Çağ merkezleri yeniden tasarlandı (Sonnet 5.5)
 - `binalar.js`: ortak `kutukOturak/kazan/kurutma`; `kamp_atesi` (büyük ateş, iki boyalı çadır, totem, kazan, kurutma), `ocak_meydani` (saman ev, kemik kapı, ayakta taş halkası, mağara resmi levhası), `koy_meydani` (boyalı frisli yönetim evi, merlon, kuyu, bronz başlıklı dikili taş), `agora` (sütun başlıklı tapınak cephesi, alınlık/akroter, heykel, defne, çeşme), `sehir_meydani` (sivri kemerli galeri, çıkmalı iskelet kat, çatı pencereleri, saat kulesi, çeşme, tezgâh, kandiller). Önizleme ile kontrol edildi; oyun içi/telefon denenmedi.
 
