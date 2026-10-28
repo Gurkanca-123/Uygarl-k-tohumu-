@@ -1,5 +1,8 @@
 # CHANGELOG_DEV (yalnız son kayıtlar; eskiler `docs/CHANGELOG_ARSIV.md`)
 
+## 2026-10-28 — Yapılar büyütüldü (Sonnet 5.5)
+- `binalar.js` `binaModeli`: yatay ×1,14 (merkez ×1,20), dikey ×1,35; her seviye +0,04 yatay / +0,05 dikey (yükseltme gözle görülür). Çit/sur ve önizleme değişmedi. Ekran: `docs/ekran/koy-buyuk-orta.png`. Telefonda denenmedi.
+
 ## 2026-10-28 — Bina taşıma (Sonnet 5.5)
 - `insa.js` `tasi(durum, uid, x, y)` (+ `tasimaMaliyeti`, `tasimaEdilebilirMi`, `tasimaZemini`), `denge.js` `TASIMA_MALIYET` 0,20. Seviye/hasar/işçi korunur; merkez, çit/sur ve işi süren bina taşınmaz. Bina kartında "↔ Taşı" (yerleştirme akışı yeniden kullanıldı). Test eklendi (197). e2e/telefon denenmedi.
 

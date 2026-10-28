@@ -1395,6 +1395,11 @@ export function binaModeli(b, durum = {}, secenek = {}) {
     pv.scale.setScalar(v.pervane.r);
     grup.add(pv);
   }
+  // Ölçek: yapılar "oyuncak" kalmasın; yükseklik genişlikten çok büyür (komşuya taşmaz), seviye ve merkez büyüdükçe daha heybetli.
+  if (!t.cevre && !secenek.onizleme) {
+    const xz = (t.tur === 'merkez' ? 1.2 : 1.14) + 0.04 * (sv - 1);
+    grup.scale.set(xz, xz * 1.18 + 0.05 * (sv - 1), xz);
+  }
   grup.userData = { tepe: v.tepe, duman: v.duman, ates: v.ates, pervane: pv, g: t.boyut[0], durum: kod };
   return grup;
 }
