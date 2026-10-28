@@ -1,5 +1,8 @@
 # CHANGELOG_DEV (yalnız son kayıtlar; eskiler `docs/CHANGELOG_ARSIV.md`)
 
+## 2026-10-28 — Ev grubu yeniden tasarlandı (Sonnet 5.5)
+- `binalar.js`: `M.kerpic_ev` (kirişli düz dam, kemerli kapı, biber şeritleri, tente, Sv2 üst oda, Sv3 çatı bahçesi), `M.tas_ev` (tek katman saçaklı kırma çatı, sütunlu sundurma+alınlık, zeytin ağacı; eski çift çatı katmanı kaldırıldı), `M.yari_ahsap_ev` (çıkmalı ahşap iskelet üst kat, çapraz payandalar, çatı penceresi, fener, fıçı). Önizlemeyle kontrol edildi; oyun içi/telefon denenmedi.
+
 ## 2026-10-28 — Buğulu görüntü düzeltmesi (Sonnet 5.5)
 - Neden: (1) büyütülen binalarda derz/tümsek ayrıntısı (`stil.js` `net`) devreye girip duvarları benekli gösteriyordu, (2) geniş parlama + AO + köy dışı doygunluk düşüşü + yakın sis görüntüyü soluklaştırıyordu.
 - `stil.js` bd: `net` ×0,3, parlama eşiği/şiddeti düşürüldü (0,5→0,28), AO daha hafif, kontrast 1,07→1,14, köy dışı doygunluk 0,68→0,86, kenar logaritmik ağırlığı azaltıldı; `sahne.js` sis 72–125 → 95–150. `binalar.js`: bina ölçeği grup yerine geometriye pişirildi (tekdüze 1,24; merkez 1,30; +0,04/seviye; zemin ZEMIN_Y sabit). Ekran: `docs/ekran/koy-net-yakin.png`. Telefonda denenmedi.
