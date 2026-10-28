@@ -1443,7 +1443,16 @@ function modelVerisi(id, sv, durumTam) {
     if (durum === 'k') { k.ton = [0.72, 0.72, 0.74]; k.duman = []; k.ates = []; }
   }
   const { ana, isil } = k.birlestir();
-  v = { ana, isil, duman: k.duman, ates: k.ates, pervane: k.pervane, tepe: govdeTepe, g: c.g, cag };
+  // Ölçek geometriye pişirilir (zemin çizgisi ZEMIN_Y sabit): grup ölçeği gölgelendiricide benekli kenar çizgisi üretiyordu.
+  const os = t.cevre ? 1 : (t.tur === 'merkez' ? 1.3 : 1.24) + 0.04 * (sv - 1);
+  const ol = (n) => { for (const g of [ana, isil]) { if (!g) continue; const p = g.getAttribute('position'); for (let i = 0; i < p.count; i++) p.setXYZ(i, p.getX(i) * n, ZEMIN_Y + (p.getY(i) - ZEMIN_Y) * n, p.getZ(i) * n); p.needsUpdate = true; g.computeBoundingBox(); g.computeBoundingSphere(); } };
+  const dz = (a) => a.map((e) => [e[0] * os, ZEMIN_Y + (e[1] - ZEMIN_Y) * os, e[2] * os, ...e.slice(3)]);
+  if (os !== 1) {
+    ol(os);
+    k.duman = dz(k.duman); k.ates = dz(k.ates);
+    if (k.pervane) k.pervane = { ...k.pervane, x: k.pervane.x * os, y: ZEMIN_Y + (k.pervane.y - ZEMIN_Y) * os, z: k.pervane.z * os, r: k.pervane.r * os };
+  }
+  v = { ana, isil, duman: k.duman, ates: k.ates, pervane: k.pervane, tepe: ZEMIN_Y + (govdeTepe - ZEMIN_Y) * os, g: c.g, cag };
   geoOnbellek.set(anahtar, v);
   return v;
 }
@@ -1515,11 +1524,6 @@ export function binaModeli(b, durum = {}, secenek = {}) {
     pv.position.set(v.pervane.x, v.pervane.y, v.pervane.z);
     pv.scale.setScalar(v.pervane.r);
     grup.add(pv);
-  }
-  // Ölçek: yapılar "oyuncak" kalmasın; yükseklik genişlikten çok büyür (komşuya taşmaz), seviye ve merkez büyüdükçe daha heybetli.
-  if (!t.cevre && !secenek.onizleme) {
-    const xz = (t.tur === 'merkez' ? 1.2 : 1.14) + 0.04 * (sv - 1);
-    grup.scale.set(xz, xz * 1.18 + 0.05 * (sv - 1), xz);
   }
   grup.userData = { tepe: v.tepe, duman: v.duman, ates: v.ates, pervane: pv, g: t.boyut[0], durum: kod };
   return grup;

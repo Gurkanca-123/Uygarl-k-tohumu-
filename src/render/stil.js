@@ -71,7 +71,7 @@ float stG3(vec3 p) {
       diffuseColor *= uKip > 3.5 ? mix(sampledDiffuseColor, kaba, 0.6) : sampledDiffuseColor;
       float lum = dot(kaba.rgb, vec3(0.3, 0.59, 0.11));
       float yog = length(fwidth(yu));
-      float net = (1.0 - smoothstep(0.022, 0.05, yog)) * uDetay;
+      float net = (1.0 - smoothstep(0.022, 0.05, yog)) * uDetay * (uKip > 3.5 ? 0.3 : 1.0); // bd: temiz low-poly, derz/tümsek ince
       float hn = floor(vHucre.x * 4.0 + 0.5) + (3.0 - floor(vHucre.y * 4.0 + 0.5)) * 4.0;
       vec2 t = yu;
       float desen = 0.0;
@@ -183,7 +183,7 @@ void main() {
   if (uAO > 0.5) { // iki ölçekli AO (bina dipleri, ağaç altları)
     float a1 = ao(vUv, dC, mix(4.0, 9.0, zk) * (0.6 + 0.4 * uZoom));
     float a2 = ao(vUv, dC, mix(9.0, 16.0, zk) * (0.6 + 0.4 * uZoom));
-    c *= mix(0.64, 1.0, a1 * 0.6 + a2 * 0.4);
+    c *= mix(0.7, 1.0, a1 * 0.75 + a2 * 0.25);
   }
   // kenar: derinlik siluet + güçlü log-parlaklık kıvrımı (B ile aynı ölçüt, kalınlık zoom'la)
   float dL = derin(vUv - vec2(px.x, 0.0)), dR = derin(vUv + vec2(px.x, 0.0));
@@ -193,7 +193,7 @@ void main() {
   float lX = log(parl(renk(vUv + vec2(px.x, 0.0))) + 0.02) - log(parl(renk(vUv - vec2(px.x, 0.0))) + 0.02);
   float lY = log(parl(renk(vUv + vec2(0.0, px.y))) + 0.02) - log(parl(renk(vUv - vec2(0.0, px.y))) + 0.02);
   float eL = smoothstep(0.85, 1.4, length(vec2(lX, lY)));
-  float kenar = max(eD, eL * mix(0.1, 0.4, zk));
+  float kenar = max(eD, eL * mix(0.02, 0.08, zk));
   vec3 bl = vec3(0.0);
   if (uParla > 0.5) { // sıcak parlama (kenar ışığı ve su parıltısı)
     float br = mix(6.0, 11.0, zk);
@@ -201,19 +201,19 @@ void main() {
       float a = float(i) * 2.39996;
       float r = sqrt((float(i) + 0.5) / 12.0) * br;
       vec3 s = renk(vUv + vec2(cos(a), sin(a)) * r * uPiksel);
-      bl += s * smoothstep(1.0, 2.0, parl(s));
+      bl += s * smoothstep(1.5, 3.0, parl(s));
     }
     bl /= 12.0;
   }
-  vec3 d = aces((c * 1.05 + bl * vec3(1.0, 0.8, 0.52) * 0.5) * vec3(1.03, 1.0, 0.95));
+  vec3 d = aces((c * 1.05 + bl * vec3(1.0, 0.8, 0.52) * 0.28) * vec3(1.03, 1.0, 0.95));
   d = doygunluk(d, 1.08);
   d.g = mix(d.g, (d.r + d.g) * 0.5, 0.12 * smoothstep(0.0, 0.2, d.g - d.b)); // limon yeşili → zeytin
   float L = parl(d);
   d = mix(d * vec3(0.92, 0.97, 1.08), d * vec3(1.05, 1.0, 0.92), smoothstep(0.12, 0.6, L)); // serin gölge, sıcak ışık
-  d = (d - 0.5) * 1.07 + 0.5;
+  d = (d - 0.5) * 1.14 + 0.5;
   // köy odağı: köy elipsi dışında doygunluk ve parlaklık hafif düşer (arka plan sakin), içi hafif sıcak
   float od = length((vUv - uOdak.xy) / max(uOdak.zw, vec2(1e-3))), dis = smoothstep(1.0, 2.1, od) * uOdakK;
-  d = mix(d, doygunluk(d, 0.68) * vec3(0.95, 0.97, 1.02) * 0.92, dis);
+  d = mix(d, doygunluk(d, 0.86) * vec3(0.97, 0.98, 1.01) * 0.96, dis);
   d *= mix(1.0, 1.04, (1.0 - smoothstep(0.6, 1.2, od)) * uOdakK);
   d = mix(d, vec3(0.06, 0.03, 0.015) + d * 0.1, kenar * 0.9);  // koyu sıcak kahve çizgi (siyah değil)
   d *= vinyet(vUv, 0.2);

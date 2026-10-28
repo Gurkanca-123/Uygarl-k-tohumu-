@@ -44,7 +44,7 @@ export class Sahne {
 
     this.sahne = new THREE.Scene();
     this.sahne.background = new THREE.Color(0x2c313a);
-    this.sahne.fog = new THREE.Fog(0x2c313a, 72, 125); // izometrik derinlik pusu (ekranın üstü hafif soluk)
+    this.sahne.fog = new THREE.Fog(0x2c313a, 95, 150); // izometrik derinlik pusu (ekranın üstü hafif soluk)
     this.kamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 200);
     this.kamera.zoom = 1.6;
 
