@@ -1,5 +1,8 @@
 # CHANGELOG_DEV (yalnız son kayıtlar; eskiler `docs/CHANGELOG_ARSIV.md`)
 
+## 2026-10-28 — Üretim/ekonomi yapıları yeniden tasarlandı (Sonnet 5.5)
+- `binalar.js`: `degirmen` (halkalı konik kule, galeri, saman külah, çuval istifi, kulübe), `han` (çıkmalı iskelet, balkon, tabela, fener, ahır, araba), `hamam` (iki kubbe + ışık delikleri, altın alem, üç kemerli revak, çini şerit, havlu ipi), `dokuma_atolyesi` (boya küpleri, yün balyası, çatı penceresi), `su_kemeri` (üst sıra kemer, payandalar), `liman` (vinç, sandıklar, fener, ağ). Önizlemeyle kontrol edildi; oyun içi/telefon denenmedi.
+
 ## 2026-10-28 — Anıt yapılar yeniden tasarlandı (Sonnet 5.5)
 - `binalar.js`: `mabet` (boyalı kuşaklı 4 katlı zigurat, köşe mangalları, altın piramit çatılı tepe tapınağı, geniş merdiven), `kutuphane` (başlıklı sütun cephesi, mavi friz, alınlık+sikke, kemerli ışıklı pencereler, heykel/defne), `tiyatro` (ışınsal merdivenli cavea, üst galeri sütunları, mozaik orkestra, iki katlı skene, meşaleler), `katedral` (uçan payandalar, sivri çıkıntılar, haçlar, çok katlı portal, kandiller), `kale` (sürgülü kapı + köprü, kule bayrakları, okçu delikleri). Önizleme ile kontrol edildi; oyun içi/telefon denenmedi.
 

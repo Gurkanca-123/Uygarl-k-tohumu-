@@ -1112,6 +1112,12 @@ M.liman = (k, c) => {
   k.kutu(0.01, 0.28, 0.24, 0.1, Z + 0.22, 0.45, 'kumas', 0xece0c8, { ry: 0.15 + Math.PI / 2 });
   k.sandik(0.5, -0.5, Z + 0.04); k.sandik(0.62, -0.42, Z + 0.04, 0.8); k.fici(0.15, -0.45, Z + 0.04);
   for (let i = 0; i < 3; i++) k.sil(0.035, 0.03, 0.11, 8, -0.05 + i * 0.07, Z + 0.04, -0.5, 'duz', 0xb06a40);
+  // vinç (iskele ucunda), balık sandıkları, ip makarası, fener direği, balık ağı
+  k.direk(0.55, 0.95, Z + 0.04, 0.5, 0.02); k.kutu(0.5, 0.025, 0.025, 0.3, Z + 0.52, 0.95, 'kutuk', P.direk); k.kutu(0.006, 0.28, 0.006, 0.08, Z + 0.26, 0.95, 'duz', 0x6a5a40); k.kutu(0.06, 0.05, 0.06, 0.08, Z + 0.22, 0.95, 'tahta', 0x8a5a32);
+  k.kutu(0.14, 0.05, 0.1, 0.9, Z + 0.04, -0.62, 'tahta', 0x9a6a3a); k.kure(0.015, 0.88, Z + 0.1, -0.62, 'duz', 0x6aa0c0); k.kure(0.015, 0.93, Z + 0.1, -0.6, 'duz', 0xc0c8d0);
+  k.sil(0.05, 0.05, 0.03, 8, 0.7, Z + 0.04, -0.36, 'kutuk', 0xb89868);
+  k.direk(0.95, 0.1, Z + 0.04, 0.4, 0.014, P.kiris); k.kutu(0.06, 0.07, 0.06, 0.95, Z + 0.44, 0.1, 'duz', P.pencere, { isil: true });
+  k.kutu(0.3, 0.2, 0.01, 0.2, Z + 0.15, -0.2, 'hasir', 0x8a7a5a, { ry: 0.3 });
 };
 
 M.su_kemeri = (k, c) => {
@@ -1130,6 +1136,8 @@ M.su_kemeri = (k, c) => {
   k.ekle(eg, { doku: 'tasBlok', renk: P.kirec, x: 0, y: Z, z: -0.1 });
   k.kutu(L + 0.06, 0.06, 0.3, 0, Z + h, -0.1, 'tasBlok', 0xd8ccb0);
   k.kutu(L, 0.02, 0.14, 0, Z + h + 0.05, -0.1, 'duz', P.su);
+  for (let i = 0; i < 2 * n + 1; i++) { const cx = -L / 2 + 0.2 + i * ((L - 0.4) / (2 * n)); k.kemer(cx, Z + h + 0.07, 0.06, 0.12, 0.17, 0x2a2a2a, false); }
+  for (const sx of [-1, 1]) k.kutu(0.1, h * 0.9, 0.36, sx * (L / 2 + 0.02), Z, -0.1, 'tasBlok', 0xa8a090);
   // çeşme havuzu
   k.sil(0.2, 0.22, 0.08, 10, 0.5, Z, 0.6, 'tasBlok', P.kirec);
   k.sil(0.17, 0.17, 0.01, 10, 0.5, Z + 0.075, 0.6, 'duz', P.su);
@@ -1138,17 +1146,26 @@ M.su_kemeri = (k, c) => {
 
 M.hamam = (k, c) => {
   const Z = k.kaide(2, 'tas');
-  const h = 0.4 * c.s;
+  const h = 0.4 * c.s, altin = 0xe8b84a;
   k.kutu(1.4, h, 1.0, 0, Z, -0.2, 'tasBlok', P.kirec);
+  k.kutu(1.42, 0.05, 1.02, 0, Z + h * 0.62, -0.2, 'duz', 0x2f7fa0);
   k.kutu(1.46, 0.05, 1.06, 0, Z + h, -0.2, 'mermer', P.mermer);
-  k.kubbe(0.38, -0.25, Z + h + 0.05, -0.25, 'kiremit', 0xc88a5a, { sy: 0.85 });
-  k.kubbe(0.22, 0.4, Z + h + 0.05, -0.3, 'kiremit', 0xc88a5a, { sy: 0.85 });
-  for (let i = 0; i < 4; i++) k.sil(0.012, 0.012, 0.03, 6, -0.25 + Math.cos(i * 1.6) * 0.16, Z + h + 0.34, -0.25 + Math.sin(i * 1.6) * 0.16, 'duz', 0xffe9b0, { isil: true });
-  k.kapi(0, Z, 0.305, 0.2, 0.26, 'z');
-  for (const x of [-0.12, 0.12]) k.sil(0.025, 0.03, 0.3, 8, x, Z, 0.36, 'mermer', P.mermer);
-  for (const x of [-0.5, 0.5]) k.pencere(x, Z + h * 0.5, 0.305, 0.08, 0.1, 'z');
-  baca(k, 0.6, -0.6, Z + h, 0.2, 'tasBlok', P.kirec);
-  k.bacaDumani(-0.25, Z + h + 0.4, -0.25, 0.6);
+  for (const [x, z, r] of [[-0.3, -0.28, 0.4], [0.42, -0.35, 0.25]]) {
+    k.sil(r, r * 1.02, 0.07, 14, x, Z + h + 0.05, z, 'mermer', P.mermer);
+    k.kubbe(r, x, Z + h + 0.12, z, 'kiremit', 0xc88a5a, { sy: 0.9, seg: 14, hseg: 6 });
+    k.sil(0.012, 0.012, 0.1, 5, x, Z + h + 0.12 + r * 0.88, z, 'duz', altin); k.kure(0.03, x, Z + h + 0.24 + r * 0.88, z, 'duz', altin);
+    for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; k.kutu(0.025, 0.025, 0.012, x + Math.cos(a) * r * 0.72, Z + h + 0.12 + r * 0.55, z + Math.sin(a) * r * 0.72, 'duz', 0xffe9b0, { isil: true, ry: -a }); }
+  }
+  for (const x of [-0.42, 0, 0.42]) k.kemer(x, Z + 0.01, 0.305, 0.22, 0.34, x === 0 ? 0x4a2e1c : 0x2a1e16, false);
+  for (const x of [-0.63, -0.21, 0.21, 0.63]) k.sil(0.025, 0.03, 0.32, 8, x, Z, 0.35, 'mermer', P.mermer);
+  k.kutu(1.35, 0.04, 0.12, 0, Z + 0.34, 0.35, 'mermer', P.mermer);
+  for (const x of [-0.55, 0.55]) k.pencere(x, Z + h * 0.74, 0.305, 0.07, 0.07, 'z', { isikli: true, panjur: false });
+  baca(k, 0.6, -0.6, Z + h, 0.2, 'tasBlok', P.kirec); k.bacaDumani(0.6, Z + h + 0.24, -0.6, 0.9);
+  k.bacaDumani(-0.3, Z + h + 0.8, -0.28, 0.6);
+  k.kutu(0.5, 0.01, 0.01, -0.75, Z + 0.32, 0.62, 'kutuk', P.direk); k.direk(-1.0, 0.62, Z, 0.32, 0.012); k.direk(-0.5, 0.62, Z, 0.32, 0.012);
+  for (let i = 0; i < 3; i++) k.kutu(0.09, 0.16, 0.008, -0.9 + i * 0.13, Z + 0.17, 0.62, 'kumas', [0xf0e8d8, 0x4f86c8, 0xf0e8d8][i]);
+  k.sil(0.11, 0.12, 0.06, 10, 0.78, Z, 0.7, 'tasBlok', P.kirec); k.sil(0.085, 0.085, 0.01, 10, 0.78, Z + 0.055, 0.7, 'duz', P.su);
+  k.fici(0.55, 0.8, Z, 0.9);
 };
 
 M.kutuphane = (k, c) => {
@@ -1293,16 +1310,24 @@ M.ciftlik = (k, c) => {
 M.degirmen = (k, c) => {
   const Z = k.kaide(2, 'tas');
   const h = 0.95 * c.s;
-  k.sil(0.24, 0.36, h, 10, 0, Z, 0, 'tasBlok', P.sivaB);
-  k.koni(0.32, 0.36, 10, 0, Z + h, 0, 'saman', 0x8a6a44);
-  k.kapi(0, Z, 0.34, 0.14, 0.22, 'z', 0x6a3a22);
-  k.pencere(0.0, Z + h * 0.6, 0.27, 0.06, 0.08, 'z');
-  k.pervane = { x: 0.0, y: Z + h - 0.05, z: 0.33, r: 0.75 * c.s };
-  // un çuvalları + el arabası
-  for (let i = 0; i < 4; i++) k.kure(0.06, 0.55 + (i % 2) * 0.1, Z + 0.05 + Math.floor(i / 2) * 0.08, 0.5, 'kumas', 0xe8dcc0, { sy: 0.8 });
-  k.kutu(0.18, 0.06, 0.12, -0.55, Z + 0.06, 0.55, 'tahta', 0x8a6a44);
-  k.sil(0.05, 0.05, 0.02, 8, -0.48, Z + 0.05, 0.62, 'duz', 0x3a2a1a, { rx: Math.PI / 2, y: Z + 0.05 });
-  k.cit(-0.85, -0.85, 0.85, -0.85, Z, 0x7a5634);
+  k.sil(0.25, 0.38, h, 12, 0, Z, 0, 'tasBlok', P.sivaB);
+  for (const f of [0.28, 0.58]) k.sil(0.34 - f * 0.12, 0.34 - f * 0.12, 0.025, 12, 0, Z + h * f, 0, 'tasBlok', 0xa8a090);
+  k.sil(0.31, 0.31, 0.03, 12, 0, Z + h * 0.7, 0, 'tahta', 0x6a4a2a);
+  for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; k.kutu(0.012, 0.07, 0.012, Math.cos(a) * 0.3, Z + h * 0.7 + 0.03, Math.sin(a) * 0.3, 'kutuk', P.kiris); }
+  k.sil(0.34, 0.31, 0.02, 12, 0, Z + h - 0.02, 0, 'tahta', 0x5a3a22);
+  k.koni(0.42, 0.4, 12, 0, Z + h, 0, 'saman', 0xc8a050);
+  k.koni(0.12, 0.1, 8, 0, Z + h + 0.38, 0, 'saman', 0x8a6a44);
+  k.kemer(0, Z + 0.003, 0.37, 0.15, 0.26, 0x4a2e1c, false);
+  for (let i = 0; i < 3; i++) k.kutu(0.24 - i * 0.03, 0.04, 0.09, 0, Z + i * 0.04, 0.45 - i * 0.04, 'tasBlok', 0xb4ae9e);
+  k.pencere(0.0, Z + h * 0.52, 0.31, 0.06, 0.1, 'z', { isikli: true, panjur: false });
+  k.pencere(0.0, Z + h * 0.82, 0.26, 0.06, 0.08, 'z', { isikli: false, panjur: false });
+  k.pervane = { x: 0.0, y: Z + h - 0.05, z: 0.4, r: 0.75 * c.s };
+  for (let i = 0; i < 6; i++) k.kure(0.06, 0.52 + (i % 3) * 0.12, Z + 0.05 + Math.floor(i / 3) * 0.1, 0.55, 'kumas', 0xe8dcc0, { sy: 0.8 });
+  k.kutu(0.2, 0.06, 0.13, -0.55, Z + 0.07, 0.55, 'tahta', 0x8a6a44);
+  for (const z of [0.5, 0.6]) k.sil(0.055, 0.055, 0.02, 8, -0.55, Z + 0.06, z, 'duz', 0x3a2a1a, { rx: Math.PI / 2, y: Z + 0.06 });
+  for (let i = 0; i < 4; i++) { k.sil(0.018, 0.026, 0.14, 6, 0.8 + (i % 2) * 0.06, Z, -0.2 + i * 0.07, 'saman', 0xd8b858); k.sil(0.026, 0.012, 0.04, 6, 0.8 + (i % 2) * 0.06, Z + 0.14, -0.2 + i * 0.07, 'saman', 0xd8b858); }
+  k.kutu(0.38, 0.22, 0.3, 0.7, Z, 0.7, 'tahta', 0x9a7a54); k.besik(0.46, 0.38, 0.16, 0.7, Z + 0.22, 0.7, 'saman', 0xc8a050, { ry: Math.PI / 2 });
+  k.cit(-0.9, -0.9, 0.9, -0.9, Z, 0x7a5634);
 };
 
 M.dokuma_atolyesi = (k, c) => {
@@ -1310,10 +1335,13 @@ M.dokuma_atolyesi = (k, c) => {
   const h = 0.36 * c.s;
   evGovdesi(k, 0.5, h, 0.46, Z, 'yariAhsap', P.sivaB, { kapiX: -0.08 });
   k.besik(0.62, 0.58, 0.3, 0, Z + h, -0.02, 'arduvaz', 0x7a5a3a);
-  // boyalı kumaş ipleri
+  k.kutu(0.16, 0.1, 0.1, -0.1, Z + h + 0.1, 0.18, 'yariAhsap', P.sivaB); k.besik(0.2, 0.15, 0.08, -0.1, Z + h + 0.2, 0.18, 'arduvaz', 0x7a5a3a, { ry: Math.PI / 2 });
+  k.direk(-0.28, 0.26, Z + 0.2, 0.1, 0.01); k.kutu(0.14, 0.008, 0.008, -0.2, Z + 0.3, 0.26, 'kutuk', P.kiris); k.sil(0.025, 0.025, 0.04, 8, -0.15, Z + 0.26, 0.26, 'duz', 0xb03a2e);
   for (const z of [-0.3, 0.32]) k.direk(0.38, z, Z, 0.32, 0.01);
   k.kutu(0.006, 0.006, 0.62, 0.38, Z + 0.31, 0.01, 'duz', 0x6a5a40);
   for (let i = 0; i < 4; i++) k.kutu(0.008, 0.18, 0.12, 0.38, Z + 0.13, -0.22 + i * 0.15, 'kumas', [0xb03a2e, 0x3f6ea8, 0xe8b84a, 0x5a8a3a][i]);
+  [0xb03a2e, 0x3f6ea8, 0xe8b84a].forEach((col, i) => { k.sil(0.045, 0.04, 0.07, 10, -0.4 + i * 0.12, Z, 0.42, 'tahta', 0x6a4a2a); k.sil(0.036, 0.036, 0.008, 10, -0.4 + i * 0.12, Z + 0.065, 0.42, 'duz', col); });
+  k.kutu(0.14, 0.09, 0.1, -0.36, Z, -0.38, 'kumas', 0xf0eadc); k.kutu(0.12, 0.08, 0.09, -0.3, Z + 0.09, -0.38, 'kumas', 0xe0d8c8);
   baca(k, -0.15, -0.12, Z + h + 0.1, 0.18);
 };
 
@@ -1360,24 +1388,29 @@ M.lonca_binasi = (k, c) => {
 
 M.han = (k, c) => {
   const Z = k.kaide(2, 'tas');
-  const h = 0.5 * c.s;
-  k.kutu(1.3, h, 0.55, -0.1, Z, -0.5, 'yariAhsap', P.sivaB);
-  k.besik(1.42, 0.7, 0.36, -0.1, Z + h, -0.5, 'arduvaz', 0x6a4a3a);
+  const h = 0.5 * c.s, kiris = 0x4a3222;
+  k.kutu(1.3, 0.28, 0.55, -0.1, Z, -0.5, 'moloz', 0xb0a898);
+  k.kutu(1.38, 0.03, 0.6, -0.1, Z + 0.27, -0.5, 'tahta', kiris);
+  k.kutu(1.38, h - 0.28, 0.6, -0.1, Z + 0.3, -0.5, 'yariAhsap', P.sivaB);
+  for (let i = 0; i < 7; i++) k.kutu(0.025, h - 0.28, 0.025, -0.76 + i * 0.22, Z + 0.3, -0.19, 'kutuk', kiris);
+  k.besik(1.5, 0.76, 0.36, -0.1, Z + h + 0.02, -0.5, 'arduvaz', 0x6a4a3a);
   k.kutu(0.55, h, 0.6, -0.5, Z, 0.25, 'yariAhsap', 0xe8d8b8);
-  k.besik(0.68, 0.7, 0.33, -0.5, Z + h, 0.25, 'arduvaz', 0x6a4a3a, { ry: Math.PI / 2 });
-  k.kapi(-0.5, Z, 0.555, 0.16, 0.24, 'z', 0x6a3a22);
-  for (const x of [-0.6, -0.4]) k.pencere(x, Z + h * 0.7, 0.555, 0.07, 0.09, 'z', { isikli: true });
-  for (const x of [0.1, 0.4]) k.pencere(x, Z + h * 0.5, -0.215, 0.07, 0.1, 'z', { isikli: true });
-  // tabela
-  k.kutu(0.12, 0.012, 0.012, -0.18, Z + h * 0.7, 0.5, 'kutuk', P.kiris);
-  k.kutu(0.08, 0.06, 0.01, -0.14, Z + h * 0.7 - 0.07, 0.5, 'tahta', P.altin);
-  // ahır sundurması
+  for (const sx of [-1, 0, 1]) k.kutu(0.025, h, 0.025, -0.5 + sx * 0.27, Z, 0.56, 'kutuk', kiris);
+  k.kutu(0.6, 0.025, 0.025, -0.5, Z + h * 0.52, 0.56, 'kutuk', kiris);
+  k.besik(0.7, 0.72, 0.33, -0.5, Z + h, 0.25, 'arduvaz', 0x6a4a3a, { ry: Math.PI / 2 });
+  k.kemer(-0.5, Z + 0.01, 0.556, 0.16, 0.26, 0x4a2e1c, false);
+  k.kutu(0.3, 0.025, 0.12, -0.5, Z + h * 0.52, 0.62, 'tahta', 0x6a4a2a);
+  for (let i = 0; i < 5; i++) k.kutu(0.012, 0.07, 0.012, -0.62 + i * 0.06, Z + h * 0.52 + 0.04, 0.67, 'kutuk', kiris);
+  for (const x of [-0.65, -0.35]) k.pencere(x, Z + h * 0.72, 0.556, 0.07, 0.09, 'z', { isikli: true, panjur: true, panjurRenk: 0x7a3a2c });
+  for (const x of [0.1, 0.4, -0.3]) k.pencere(x, Z + h * 0.62, -0.19, 0.07, 0.1, 'z', { isikli: true, panjur: true, panjurRenk: 0x4f6f4a });
+  k.kutu(0.22, 0.012, 0.012, -0.16, Z + h * 0.78, 0.56, 'kutuk', kiris); k.kutu(0.1, 0.09, 0.012, -0.12, Z + h * 0.78 - 0.09, 0.57, 'tahta', P.altin);
+  k.direk(-0.82, 0.62, Z, 0.22, 0.012, kiris); k.kutu(0.05, 0.06, 0.05, -0.82, Z + 0.22, 0.62, 'duz', P.pencere, { isil: true });
   for (const x of [0.3, 0.75]) k.direk(x, 0.6, Z, 0.3, 0.018);
-  k.kutu(0.55, 0.025, 0.55, 0.52, Z + 0.3, 0.35, 'saman', P.saman, { rx: -0.12 });
-  k.kutu(0.2, 0.08, 0.06, 0.55, Z, 0.4, 'saman', P.saman);
-  baca(k, -0.6, -0.55, Z + h + 0.15, 0.3);
-  baca(k, 0.35, -0.55, Z + h + 0.1, 0.3);
-  k.fici(0.1, 0.25, Z); k.fici(0.2, 0.32, Z);
+  k.kutu(0.6, 0.025, 0.55, 0.52, Z + 0.3, 0.35, 'saman', P.saman, { rx: -0.12 });
+  k.kutu(0.3, 0.07, 0.07, 0.55, Z, 0.4, 'tahta', 0x8a5a32); k.kutu(0.22, 0.08, 0.1, 0.55, Z + 0.07, 0.4, 'saman', P.saman);
+  k.kutu(0.3, 0.1, 0.2, 0.9, Z + 0.06, -0.2, 'tahta', 0x8a6a44); for (const z of [-0.28, -0.12]) k.sil(0.06, 0.06, 0.02, 8, 0.9, Z + 0.06, z, 'duz', 0x3a2a1a, { rx: Math.PI / 2, y: Z + 0.06 });
+  baca(k, -0.6, -0.55, Z + h + 0.15, 0.3); baca(k, 0.35, -0.55, Z + h + 0.1, 0.3);
+  k.fici(0.1, 0.25, Z); k.fici(0.2, 0.32, Z); k.sandik(-0.05, 0.4, Z);
 };
 
 M.darussifa = (k, c) => {
