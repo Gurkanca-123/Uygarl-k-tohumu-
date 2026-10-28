@@ -10,8 +10,8 @@ import { durum, binaEkle, yuvarla, K } from './yardimci/durum.js';
 
 const oyna = (d, n, fn = botTuru) => { let x = d; for (let i = 0; i < n; i++) x = fn(x).durum; return x; };
 
-test('§1.2 adım sırası a–o sabit + m2 tehdit (TEHDIT.md §8.3; p çekirdek dışında)', () => {
-  assert.deepEqual(ADIMLAR.map((a) => a[0]), ['a', 'b', 'b2', ...'cdefghijklm', 'm2', 'n', 'o']);
+test('§1.2 adım sırası a–o sabit + m2 tehdit + m3 sefer, o2–o4 işaret/hedef/komşu (TEHDIT §8.3, AKSIYON §8.3; p çekirdek dışında)', () => {
+  assert.deepEqual(ADIMLAR.map((a) => a[0]), ['a', 'b', 'b2', ...'cdefghijklm', 'm2', 'm3', 'n', 'o', 'o2', 'o3', 'o4']);
 });
 
 test('turIlerlet saf: girdi durumu değişmez; dönüş { durum, bildirimler }', () => {

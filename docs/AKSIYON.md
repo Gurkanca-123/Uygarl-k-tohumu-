@@ -1,6 +1,6 @@
 # Aksiyon ve Derinlik — Sefer, Kahraman, Komşu, Hedef (tasarım taslağı, 2026-10-26)
 
-Durum: **TASLAK — kullanıcı onayı bekliyor (§10).** Bağlı belgeler: `TEHDIT.md` (§1 ilkeler, §5 kararlar, §7 komşu kancaları),
+Durum: **§10 CEVAPLANDI (2026-10-28); MVP dilimi (§9.3) çekirdekte UYGULANDI — arayüz sonraki adım (§11).** Bağlı belgeler: `TEHDIT.md` (§1 ilkeler, §5 kararlar, §7 komşu kancaları),
 `TASARIM.md` §1 tur akışı, §4 çağlar, §7 denge. `ÖNERİ` = kullanıcı kararı bekleyen tasarımcı önerisi; uygulayıcı varsayılan
 olarak bunu kullanır. Sayılar Normal zorluk içindir; kaynak ödülleri `× (1 + 0,5 × çağSırası)` ile ölçeklenir (önder eylemleriyle aynı).
 Değişmeyen ilkeler: sıra tabanlı · hızlı tempo (hiçbir inşaat/bekleme süresi uzamaz) · dokunmatik yatay · yenilgi yok, `NUFUS_MIN 2`,
@@ -338,11 +338,56 @@ istatistik.sefer: { gonderilen, basari, yarali }
 
 ---
 
-## 10. Açık sorular (kullanıcıya) — her birinde ÖNERİ
+## 10. Açık sorular — CEVAPLANDI (2026-10-28, kullanıcı önerileri onayladı)
 
-1. **Komşu modeli A / B / C?** — ÖNERİ: **B** (keşifle bulunan 1–3 komşu, mevsimlik niyet, seferle etkileşim). C yalnız Sanayi/Modern'de.
-2. **Savaş modeli (a) / (b) / (c)?** — ÖNERİ: **(b)** hesaplamalı baskın seferi + Bronz'dan hafif birlik karşıtlığı; (c) mini savaş ekranı şimdilik yok.
-3. **Seferde ölüm olsun mu?** — ÖNERİ: **hayır**, yalnız yaralı (işçi 3 tur, kahraman 4/8 tur); ölüm yalnız tehdit sisteminde kalır.
-4. **Kahraman nüfustan mı çıksın (terfi) yoksa ek kişi mi?** — ÖNERİ: **nüfustan terfi** (yiyecek yer, konut kullanır, işçi yuvasına girmez); gezgin olarak gelen +1 nüfus olur.
-5. **İlk kahraman ne zaman?** — ÖNERİ: **gün 6** garanti olay ("Ateş Başında Bir Ses"), Avcı ya da Kaşif seçimi; ilk ayı işareti gün 8–12 arası garanti.
-6. **Ek zafer yolları (Ticaret, Hâkimiyet) ve çağ başı Gelenek (geri dönülmez) eklensin mi?** — ÖNERİ: **evet**, ama F2–F4'te; MVP'de yalnız Ayı destanı + mevsim görevleri.
+1. **Komşu modeli:** **B** — keşifle bulunan 1–3 komşu; ilişki puanı, ticaret, baskın. (C yalnız Sanayi/Modern kararıyla.)
+2. **Savaş modeli:** **(b)** hesaplanan baskın seferi (`baskin_seferi`); mini savaş ekranı YOK. Birlik karşıtlığı F3'te.
+3. **Seferde ölüm:** **yok**, yalnız yaralanma (işçi 3 tur, kahraman 4/8 tur); ölüm yalnız tehdit sisteminde.
+4. **Kahraman:** **nüfustan terfi** (nüfusa sayılır, yer, konut kullanır, işçi yuvasına girmez); gezgin +1 nüfus olarak gelir.
+5. **İlk kahraman:** **6. gün** garanti "Ateş Başında Bir Ses" (Avcı ya da Kaşif); **ilk ayı işareti 8–12. günler** arasında garanti.
+6. **Ek zafer yolları ve geri dönülmez gelenek:** **evet ama SONRAKİ fazlarda** (F2–F4); MVP'de yalnız Ayı destanı + mevsim görevleri.
+
+---
+
+## 11. Uygulama notları (MVP, 2026-10-28)
+
+**Dosyalar:** veri `src/data/seferler.js` (10 satır; açık: `kesif`, `ayi_avi`, `harabe`, `baskin_seferi` Bronz+; diğerleri şema),
+`kahramanlar.js` (Avcı, Kaşif açık; 5 sınıf şema; 9 eşya, MVP 5), `komsular.js` (3 komşu, MVP 1; 6 niyet kuralı), `hedefler.js`
+(destan + 4 görev), `dogrula.js` §8 çapraz denetim, `denge.js` "Aksiyon MVP" bölümü. Çekirdek `src/core/sefer.js`, `kahraman.js`,
+`komsu.js`, `komsu_temel.js` (güç/ilişki/tehdit kancaları; döngüsüz bağımlılık için ayrı), `hedef.js`.
+
+**Tur adımları:** `m2` Tehdit → **`m3` Sefer ve kahraman** (yaralı −1, bekçi XP/ağır yaralı, danışman; sefer kalan −1, %25 yol olayı,
+dönüş) → `n` Olay → `o` Takvim → **`o2` İşaretler** (süre, kaybolan ayı cezası, Bahar/Güz doğuşu, ilk ayı) → **`o3` Hedefler** (gün 6
+teklifi, destan, görev, kartlar) → **`o4` Komşular** (keşif oranıyla bulunma, çağ yetişme, mevsim başı kayma + niyet).
+
+**Durum (kayıt v4, `GOCLER[3]`):** `kahramanlar[]`, `kahramanDurum {teklif, ilk, yemin, sayac}`, `sandik[]`, `sefer {rng, aktif[], sayac,
+bekleme, ilkAyi, harabe, ayiKacti, istatistik, son[]}`, `hedefIsaretleri[]` (§2.3'teki `isaretler`), `komsu {rng}`, `komsular[]`,
+`hedef {destan, kartlar, gorev, unvanlar, sayac}`. RNG: `sefer:`/`komsu:` + tohum; kart çekimi durumsuz `kart:tohum:tur`.
+
+**Çakışmasızlık (TEHDIT §7, §13–14):** seferdeki işçi `etkinAtama`'dan, önder ve kahraman `savunmaDokum`'dan düşer; `kahramanSavunma`
+= köydeki yaralı olmayan bekçi kahraman (sınıf savunması + Sv); ittifak kalemi `komsu:<id>`. Komşu ilişkisi tek kaynak
+`tehdit.iliski.komsu` (ilk komşu). Kayıp hakkı kahramanları ve seferdeki işçileri saymaz (kahraman ölmez). Ayı Avı başarısı aktif `ayi`
+tehdidini iptal eder; baskın başarısı gerginlik −40 ve aktif komşu baskınını bozar. Düşmanca/baskın niyeti tehdit ağırlığı ×2, gerginlik
+artışı ×1,3, baskın niyetinde sonraki doğum kesin `komsu_baskini`. Tehdit varış turunda yol olayı çıkmaz; yol olayı tur olay kotasını doldurur.
+
+**Varsayımlar / sapmalar (TODO tasarim):**
+- İlk kahraman "olayı" ve yol olayları **durdurmayan** teklif/seçimdir (mevcut olay kuyruğunu ve `durum.rng` sırasını bozmamak için):
+  teklif `kahramanDurum.teklif` (komut `kahramanTerfi`), yol olayı `sefer.aktif[].olay` (komut `seferOlayCoz`; seçilmezse dönüşte 0. seçenek).
+- İşaret ömrü tüm türlerde 8 tur (ayı için 6 yazılmıştı). Kaybolan ayı: `ayi` ağırlığı ×3 20 tur + gerginlik +15.
+- Niyet kural sırası: §4.3'te 4 (≤−20) 5'ten (≤−50) önce olduğundan 5 hiç tutmazdı → baskın 4., düşmanca 5.
+- Cevapsız haraç talebi mevsim sonunda "red" sayılır. Avcı danışmanı +1 yiyecek/tur (belgede yoktu). Alet taşıyan işçi aleti tüketmez.
+- Ekip yaralanmasında işçi yoksa kahraman 3 tur yaralanır; tuzak = kesin +1 yaralı. Keşif seferi kısmi sonuçta yarıçap yarı.
+- Haraç talebi ve ittifak (MVP'de "yok" denmişti) çekirdekte çalışır (6 kural istendi); arayüz isterse gizler. Gelenek/başarım yok.
+
+**Ölçüm (2026-10-28, 50 tohum Göçebe, Normal):** pasif-sefer bot 50/50 aralıkta, ortanca 28. Seferli bot (ilk kahraman Avcı + danışman,
+boşta keşif, ayı/harabeye ≥%70 başarıyla): 46/50 aralıkta, tur 21/28/35, ~6,7 sefer/oyun, büyük başarı %85 (hedef %15–25 → aşama 7
+dengesi: Göçebe keşif zorluğu 2 düşük), ölüm 0, destan 47/50 bitirdi (ortanca gün 15).
+
+**Arayüz için API (UI adımı):** komutlar `seferGonder(d, seferId, hedefId|null, {kahraman:[uid], isci, onder})`, `seferGeriCagir(d, uid)`,
+`seferOlayCoz(d, uid, i)`, `kahramanTerfi(d, sinif)`, `kahramanGorev(d, uid, null|'bekci'|'danisman'|{tur:'usta', hedef:binaUid})`,
+`kahramanEsyaGiy(d, uid, esyaId)`, `kahramanEsyaCikar(d, uid, yuva)`, `esyaYap(d, esyaId)`, `gorevKartiSec(d, kartId)`, `destanAdim(d)`,
+`komsuTicaret(d, komsuId)`, `komsuElciGonder(d, komsuId)`, `komsuYanit(d, komsuId, 'kabul'|'red')`; okuma `seferOnizleme(d, seferId,
+hedefId, ekip)`, `seferGorunumu(d)`, `kahramanGorunumu(d)`, `komsuGorunumu(d)`, `hedefGorunumu(d)`. Bildirim kodları: `sefer_gonderildi |
+sefer_dondu | sefer_olay | sefer_isaret | sefer_isaret_kayboldu`, `kahraman_teklif | kahraman_yeni | kahraman_seviye | kahraman_yarali |
+kahraman_iyilesti | kahraman_esya | kahraman_sandik_dolu`, `komsu_bulundu | komsu_cag | komsu_niyet | komsu_ticaret | komsu_hediye |
+komsu_harac | komsu_harac_red | komsu_ittifak`, `hedef_destan | hedef_kartlar | hedef_gorev_tamam | hedef_gorev_basarisiz`.

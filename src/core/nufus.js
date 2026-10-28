@@ -9,7 +9,7 @@ import {
 } from '../data/denge.js';
 import {
   BINA, kopya, mevcutCag, sonTur, bildir, zar, atamaDuzelt, kisiEkle, barinmaKapasitesi, binaBul,
-  isciYuvasi, SERBEST, SERBEST_ONEK, olayKilitli, OLAY_KILIDI, hataDon,
+  isciYuvasi, SERBEST, SERBEST_ONEK, olayKilitli, OLAY_KILIDI, hataDon, calisamayanSayisi,
 } from './yardimci.js';
 
 // Penceredeki kayıplar: tur > d.tur − KAYIP_PENCERE (bu tur dahil son 3 tur).
@@ -20,8 +20,9 @@ export function kayipSiniri(d) {
   return Math.max(1, Math.floor(d.nufus * KAYIP_ORAN));
 }
 // Şu an kaybedilebilecek en çok kişi.
+// Kahramanlar ölmez, seferdeki işçiler köyde değildir (AKSIYON §3.5): yalnız köydeki sıradan kişiler kaybedilebilir.
 export function kayipHakki(d) {
-  return Math.max(0, Math.min(kayipSiniri(d) - penceredekiKayip(d), d.nufus - NUFUS_MIN));
+  return Math.max(0, Math.min(kayipSiniri(d) - penceredekiKayip(d), d.nufus - NUFUS_MIN, d.nufus - calisamayanSayisi(d)));
 }
 
 // Kopya üstünde: en çok `istenen` kişi kaybı uygular (kilit + taban). Dönüş: kaybedilen sayı.

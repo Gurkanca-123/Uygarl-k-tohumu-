@@ -109,6 +109,19 @@ export function yaraliSayisi(d) {
   return Math.min(d.nufus, n);
 }
 
+// ---------- Sefer / kahraman (docs/AKSIYON.md §2.1, §3.1) ----------
+// Seferdeki işçi, kahraman ve önder köyde üretmez, yemek yemez, savunmaya sayılmaz. Kahramanlar nüfusa sayılır ama işçi yuvasına
+// girmez (görev yeri ayrı). Eski kayıt / test durumlarında alanlar yoksa boş sayılır.
+export const aktifSeferler = (d) => d.sefer?.aktif || [];
+export const seferdekiIsci = (d) => aktifSeferler(d).reduce((a, s) => a + (s.ekip?.isci || 0), 0);
+export const seferdekiKahramanUid = (d) => new Set(aktifSeferler(d).flatMap((s) => s.ekip?.kahraman || []));
+export const seferdekiKisi = (d) => seferdekiIsci(d) + seferdekiKahramanUid(d).size;
+export const onderSeferde = (d) => aktifSeferler(d).some((s) => s.ekip?.onder);
+export const kahramanSayisi = (d) => (d.kahramanlar || []).length;
+export const koydekiKahramanlar = (d) => { const s = seferdekiKahramanUid(d); return (d.kahramanlar || []).filter((k) => !s.has(k.uid)); };
+// İşçi yuvasına girmeyen kişi: kahramanlar (köyde ya da seferde) + seferdeki işçiler.
+export const calisamayanSayisi = (d) => kahramanSayisi(d) + seferdekiIsci(d);
+
 // Yuva sırası: binalar (inşa sırası), sonra serbest işler (tablo sırası). Fazlalık sondan kırpılır.
 function yuvaSirasi(d) {
   const s = d.binalar.map((b) => b.uid).filter((u) => d.atama[u] > 0);
@@ -118,7 +131,7 @@ function yuvaSirasi(d) {
 
 // Fiilen çalışan atama (yaralılar çıkarılmış). Durumu değiştirmez.
 export function etkinAtama(d) {
-  let bos = Math.max(0, d.nufus - yaraliSayisi(d));
+  let bos = Math.max(0, d.nufus - yaraliSayisi(d) - calisamayanSayisi(d));
   const sonuc = {};
   for (const k of yuvaSirasi(d)) {
     const n = Math.min(d.atama[k], bos);
@@ -129,7 +142,7 @@ export function etkinAtama(d) {
 }
 export function issizSayisi(d) {
   const calisan = Object.values(etkinAtama(d)).reduce((a, n) => a + n, 0);
-  return Math.max(0, d.nufus - yaraliSayisi(d) - calisan);
+  return Math.max(0, d.nufus - yaraliSayisi(d) - calisamayanSayisi(d) - calisan);
 }
 export const binaIscisi = (d, b) => etkinAtama(d)[b.uid] || 0;
 

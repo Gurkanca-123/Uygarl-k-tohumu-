@@ -17,6 +17,7 @@ import {
   BINA, kopya, cagSira, binaKurulu, binaCalisir, etkinAtama, seviyeCarpani, bulusEtkileri,
   serbestAnahtar, depoTavani, etkinDegistiriciler, sonTur, bildir, KAYNAK, binaBul,
 } from './yardimci.js';
+import { ustaCarpani } from './kahraman.js';
 
 // ---------- Izgara ----------
 // Gerçek ızgara src/world'de (aşama 3). Bitişiklikte karolar oyuncunun GÖRDÜĞÜ hâliyle sayılır (sis sayılmaz, çağından
@@ -160,7 +161,7 @@ function binaCarpani(d, b, bit) {
   return {
     et,
     ortak: seviyeCarpani(b) * (1 + k.uretim + k.alan + k.kuresel + deg.bonus) * mevsimCarpani(d, t.mevsimEtiketi)
-      * huzurCarpani(d.huzur) * yolCarpani(d, b) * deg.carpan,
+      * huzurCarpani(d.huzur) * yolCarpani(d, b) * deg.carpan * ustaCarpani(d, b.uid),
   };
 }
 const ekle = (hedef, r, m) => { if (m) hedef[r] = (hedef[r] || 0) + m; };

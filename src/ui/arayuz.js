@@ -18,6 +18,7 @@ import {
   insaSekmesi, isSekmesi, arastirmaSekmesi, onderSekmesi, cagSekmesi, binaKarti, hucreKarti, maliyetChips, gereksinimMetni, binaResmi,
 } from './paneller.js';
 import { Ogretici } from './ogretici.js';
+import { aksiyonSekmesi, aksiyonKarti, hedefCipi, dikkatDurumu, IsaretKatmani, kodSimge } from './aksiyon.js';
 import { EYLEMLER } from '../data/eylemler.js';
 import { VARSAYILAN_EYLEM, YORGUNLUK_MAX } from '../data/denge.js';
 
@@ -25,7 +26,7 @@ const BINA = Object.fromEntries(BINALAR.map((b) => [b.id, b]));
 const OLAY = Object.fromEntries(OLAYLAR.map((o) => [o.id, o]));
 const EYLEM = Object.fromEntries(EYLEMLER.map((e) => [e.id, e]));
 const SEKMELER = [['insa', '🔨', 'İnşa', insaSekmesi], ['is', '👷', 'İş', isSekmesi], ['arastirma', '🔬', 'Araştırma', arastirmaSekmesi],
-  ['onder', '🧭', 'Önder', onderSekmesi], ['cag', '🏛', 'Çağ', cagSekmesi]];
+  ['onder', '🧭', 'Önder', onderSekmesi], ['aksiyon', '🗺', 'Seferler', aksiyonSekmesi], ['cag', '🏛', 'Çağ', cagSekmesi]];
 const MEVSIM_SIMGE = ['🌱', '☀️', '🍂', '❄️'];
 const KALITELER = [['yuksek', 'Yüksek'], ['standart', 'Standart'], ['performans', 'Performans']];
 const ROZET_ZOOM = 1.0;
@@ -43,6 +44,8 @@ export class Arayuz {
     this.secim = null; this.yerlestirme = null; this.yikOnay = null; this.kervanSecim = null; this.tehditAcik = false; this.tehditKucuk = false; this.sonTehditId = null;
     this.menuAcik = false; this.menuSayfa = 'ana'; this.yeniOnay = false; this.gunlukAcik = false; this.zaferGoster = null;
     this.scrollTop = {}; this.sonSekme = null; this.kapaliBolum = new Set();
+    this.aksiyonAlt = 'sefer'; this.sf = { tur: null, hedef: null, kahraman: [], isci: 0, onder: false, hazir: false }; this.kahSecili = null; this.ustaSecim = null;
+    this.gizliKart = new Set(); this.gorulenSon = null; this.aksiyonKartiVar = false;
     this.ogretici = new Ogretici(this);
     donusPerdesiKur();
     tamEkranDinle(() => this.yenile());
@@ -50,7 +53,7 @@ export class Arayuz {
     this.kaliteUygula();
     oyun.dinle((tip, veri) => this.olay(tip, veri));
     sahne.onTik = (x, y) => this.hucreTik(x, y);
-    sahne.onKare = () => this.rozetKonumla();
+    sahne.onKare = () => { this.rozetKonumla(); this.isaretler.konumla(); };
     sahne.onCizim = (x, y, faz) => this.cizimOlay(x, y, faz);
     sahne.onUzerinde = (x, y) => { if (this.yerlestirme && !this.sahneDokunmatik) this.yerlestirmeKonum(x, y); };
   }
@@ -86,7 +89,8 @@ export class Arayuz {
       h('div', { class: 'p-bas', onclick: () => this.pencereKucult() }, this.pIkon, this.pBaslik, this.pKucult, this.pKapat), this.panelGovde);
     this.rozetEl = h('div', { class: 'rozet-katman' });
     this.rozetler = new Map(); this.rozetAnahtar = null; this.rozetKamera = '';
-    this.ortaEl.append(this.rozetEl, this.toastEl, this.ipucuEl, this.kartEl, this.cubukEl, this.pencereEl, this.rayEl);
+    this.isaretler = new IsaretKatmani(this);
+    this.ortaEl.append(this.rozetEl, this.isaretler.el, this.toastEl, this.ipucuEl, this.kartEl, this.cubukEl, this.pencereEl, this.rayEl);
     this.modalEl = h('div');
     this.kok.append(this.ustEl, this.ortaEl, this.altEl, this.modalEl);
   }
@@ -95,6 +99,15 @@ export class Arayuz {
   sekmeTikla(id) {
     if (this.sekme === id && this.pencere === 'acik') this.pencere = 'kapali';
     else { this.sekme = id; this.pencere = 'acik'; if (this.secim) this.kartKucuk = true; if (this.tehditAcik) this.tehditKucuk = true; } // en çok 1 büyük pencere
+    this.kaydetUi(); this.yenile();
+  }
+  // Harita işareti / hedef rozeti / komşu simgesi: Seferler penceresini ilgili alt sekmede açar. { alt, hedef?, tur? }
+  aksiyonAc({ alt = 'sefer', hedef = null, tur = null } = {}) {
+    this.aksiyonAlt = alt;
+    if (alt === 'sefer' && hedef) { this.sf.hedef = hedef; if (tur) this.sf.tur = tur; }
+    this.sekme = 'aksiyon'; this.pencere = 'acik';
+    if (this.secim) this.kartKucuk = true;
+    if (this.tehditAcik) this.tehditKucuk = true;
     this.kaydetUi(); this.yenile();
   }
   pencereKucult() { this.pencere = this.pencere === 'kucuk' ? 'acik' : 'kucuk'; this.kaydetUi(); this.yenile(); }
@@ -135,7 +148,7 @@ export class Arayuz {
     const simge = SEVIYE_SIMGE[sev || seviye || 'bilgi'] || 'ℹ';
     const el = h('div', { class: `toast ${seviye}`, onclick: () => { el.remove(); this.toastTemizlikGuncelle(); } },
       h('span', { class: 'toast-sim' }, simge),
-      h('div', { class: 'toast-gov' }, satirlar.map((b) => h('div', {}, b.metin)), ek > 0 ? h('div', { class: 'soluk kucuk' }, `…ve ${ek} bildirim daha (Günlük)`) : null));
+      h('div', { class: 'toast-gov' }, satirlar.map((b) => h('div', {}, kodSimge(b.kod) ? `${kodSimge(b.kod)} ${b.metin}` : b.metin)), ek > 0 ? h('div', { class: 'soluk kucuk' }, `…ve ${ek} bildirim daha (Günlük)`) : null));
     this.toastEl.append(el);
     while (this.toastEl.querySelectorAll('.toast').length > 3) this.toastEl.querySelector('.toast').remove();
     this.toastTemizlikGuncelle();
@@ -406,7 +419,7 @@ export class Arayuz {
     if (this.yerlestirme) this.yerlestirmeGostermeden();
 
     this.kok.classList.toggle('yerlesme', !!this.yerlestirme);
-    this.ust(d); this.panel(d); this.alt(d); this.kart(d); this.cubuk(d); this.modal(d); this.rozetKur(d);
+    this.ust(d); this.panel(d); this.alt(d); this.kart(d); this.cubuk(d); this.modal(d); this.rozetKur(d); this.isaretler.guncelle(d);
     this.ogretici.guncelle(d, this.ipucuEl);
   }
 
@@ -438,6 +451,8 @@ export class Arayuz {
     ];
     const tc = tehditCipi(d, () => this.tehditTikla());
     if (tc) durumlar.unshift(tc);
+    const hc = hedefCipi(this, d);
+    if (hc) durumlar.unshift(hc);
     if (d.istatistik?.serbestKip) durumlar.unshift(h('div', { class: 'chip dolu' }, '🏆 Serbest'));
     const gunler = [0, 1, 2, 3, 4].map((i) => h('i', { class: i < t.mevsimGunu ? 'dolu' : '' }));
     this.ustEl.replaceChildren(
@@ -455,6 +470,8 @@ export class Arayuz {
     for (const [id, dg] of Object.entries(this.rayDugme)) dg.classList.toggle('secili', acik && this.sekme === id);
     this.pencereEl.classList.toggle('acik', acik);
     this.pencereEl.classList.toggle('kucuk', this.pencere === 'kucuk');
+    this.pencereEl.classList.toggle('aksiyon', this.sekme === 'aksiyon');
+    this.rayDugme.aksiyon?.classList.toggle('dikkat', dikkatDurumu(this, d).hepsi);
     if (!acik) return; // kapanırken eski içerik solarak kaybolur
     const [, ik, ad, fn] = SEKMELER.find((x) => x[0] === this.sekme);
     this.pIkon.textContent = ik; this.pBaslik.textContent = ad;
@@ -466,6 +483,7 @@ export class Arayuz {
     this.sonSekme = this.sekme;
     this.panelGovde.replaceChildren(fn(this));
     this.panelGovde.scrollTop = eski;
+    if (this.sekme === 'aksiyon') this.rayDugme.aksiyon?.classList.toggle('dikkat', dikkatDurumu(this, d).hepsi);
   }
 
   alt(d) {
@@ -528,13 +546,16 @@ export class Arayuz {
       if (this.secim.tip === 'bina') { const b = binaBul(d, this.secim.uid); if (b) { ic = binaKarti(this, b); anahtar = `b${b.uid}`; } }
       else { ic = hucreKarti(this, this.secim.x, this.secim.y); anahtar = `h${this.secim.x},${this.secim.y}`; }
     }
+    this.aksiyonKartiVar = false;
+    let ak = null;
+    if (!ic && !this.yerlestirme && !d.olay.aktif && (ak = aksiyonKarti(this, d))) { ic = ak; anahtar = ak.anahtar; this.aksiyonKartiVar = true; }
     const eski = this.kartEl.querySelector('.govde')?.scrollTop ?? 0;
     if (!ic) { this.kartEl.replaceChildren(); this.kartAnahtar = null; return; }
     const gir = anahtar !== this.kartAnahtar;
     this.kartAnahtar = anahtar;
     const el = this.pencereKabuk({
-      ...ic, kucuk: this.kartKucuk, sinif: `kart sol acik${gir ? ' gir' : ''}`,
-      kucult: () => { this.kartKucuk = !this.kartKucuk; this.yenile(); }, kapat: () => this.secimiKaldir(),
+      ...ic, kucuk: ak ? false : this.kartKucuk, sinif: `kart sol acik${ak ? ' aksiyon-kart' : ''}${gir ? ' gir' : ''}`,
+      kucult: ak ? null : () => { this.kartKucuk = !this.kartKucuk; this.yenile(); }, kapat: ak ? ak.kapat : () => this.secimiKaldir(),
     });
     this.kartEl.replaceChildren(el);
     const g = el.querySelector('.govde'); if (g && !gir) g.scrollTop = eski;
@@ -585,7 +606,7 @@ export class Arayuz {
     let son = null;
     for (const b of [...g].reverse()) {
       if (b.gun !== son) { ogeler.push(h('div', { class: 'gunluk-gun' }, `Gün ${b.gun}`)); son = b.gun; }
-      ogeler.push(h('div', { class: `gunluk-satir ${b.seviye}` }, h('span', {}, SEVIYE_SIMGE[b.seviye] || '•'), b.metin));
+      ogeler.push(h('div', { class: `gunluk-satir ${b.seviye}` }, h('span', {}, SEVIYE_SIMGE[b.seviye] || '•'), kodSimge(b.kod) ? `${kodSimge(b.kod)} ${b.metin}` : b.metin));
     }
     const kapat = () => { this.gunlukAcik = false; this.yenile(); };
     return h('div', { class: 'perde', onclick: (e) => { if (e.target === e.currentTarget) kapat(); } },

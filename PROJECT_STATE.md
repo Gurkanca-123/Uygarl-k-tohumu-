@@ -1,7 +1,7 @@
 # PROJECT_STATE (kısa; ayrıntı: `docs/MIMARI.md`, tasarım: `docs/TASARIM.md`)
 
 **Durum:** Aşama 0–5 bitti + görsel/arayüz yenilemesi (pencere sistemi, ayrıntılı köy ve bina modelleri) = **oynanabilir**. Sıradaki: ilk dakika düzeltmesi, aşama 6 (içerik/olay metinleri), 7 (denge).
-Testler: 196 (195 geçer + 1 `todo`). Tarayıcı testi: `npm run build && npm run e2e` (163 kontrol, `npm test`'e dahil değil). Varsayılan görünüm = stil BD (`?stil=eski` eski render; `?stil=a|b|c|d`).
+Testler: 233 (232 geçer + 1 `todo`). Tarayıcı testi: `npm run build && npm run e2e` (292 kontrol, `npm test`'e dahil değil). Varsayılan görünüm = stil BD (`?stil=eski` eski render; `?stil=a|b|c|d`).
 
 ## Oyun (özet)
 Sıra tabanlı (tur = gün, mevsim 5 gün, yıl 20 gün), 5 çağ, Önder eylemi/tur, yenilgi yok, zafer sonrası serbest kip. 64×64 harita, keşif sisi.
@@ -30,14 +30,14 @@ Sıra tabanlı (tur = gün, mevsim 5 gün, yıl 20 gün), 5 çağ, Önder eylemi
 - Yönelim/tam ekran: `dom.js` (`donusPerdesiKur`, `tamEkranAcKapa`); dikeyde örtü, ⛶ düğmeleri, `ut_tam` öneri bayrağı; `public/manifest.webmanifest` (display fullscreen). Gerçek cihazda denenmedi.
 
 ## Yol haritası (kullanıcı sırası, 2026-10-26)
-1) görsel stil: BD seçildi ve varsayılan (bina modelleri oynanış onayından sonra) · 2) dış tehditler: 5 çağın hepsinde çalışıyor + arayüz bağlı (`docs/TEHDIT.md` §12–14) · 3) aksiyon: `docs/AKSIYON.md` (sefer/kahraman/komşu/savaş/hedefler) taslak, 6 karar kullanıcıda · 4) çağ genişletme (kullanıcı düşünüyor): Sanayi ve Modern çağlar eklenebilir (7 çağ?); veri tabloları + çekirdek varsayımları önce tasarım belgesinde ele alınacak, şimdi uygulanmaz. Stil adayı D = referans konsept sanat (`?stil=d`).
+1) görsel stil: BD seçildi ve varsayılan (bina modelleri oynanış onayından sonra) · 2) dış tehditler: 5 çağın hepsinde çalışıyor + arayüz bağlı (`docs/TEHDIT.md` §12–14) · 3) aksiyon: `docs/AKSIYON.md` MVP uygulandı (sefer/kahraman/komşu/hedef; kararlar onaylı, §10–11) · 4) çağ genişletme (kullanıcı düşünüyor): Sanayi ve Modern çağlar eklenebilir (7 çağ?); veri tabloları + çekirdek varsayımları önce tasarım belgesinde ele alınacak, şimdi uygulanmaz. Stil adayı D = referans konsept sanat (`?stil=d`).
 
 ## DEVAM NOTU (yeni oturum için, 2026-10-26)
 - Kullanıcı kararları: BD stil varsayılan; tehdit belgesi `docs/TEHDIT.md` §11 önerileriyle ONAYLANDI (karar penceresi durdurmaz, 3 kademeli çip, Göçebe'de can kaybı yok, varsayılan Normal+Barışçıl, komşu=soyut kaynak, karşı saldırı yok).
 - BİTTİ: tehdit sistemi 5 çağda (Silah Dağıt, Nöbet Tut, Elçi Gönder, Kuşatma kararı), çit/sur + çizim arayüzü, tehdit penceresi/çipi, iş atama kartı + Kadro paneli, kompakt pencereler. Ölçüm (pasif oyun): çağ başına 1/2/3/~5/~5,7 tehdit.
-- Tehdit API (UI için): `tehditGorunumu(d)`, `beklenenSonuc`, `savunmaDokum`, `cevreDurumu`; komutlar `tehditTavir(d,'savun'|'saklan')`, `haracOde`, `tahkimatYap`, `bekciAta`, `zorlukAyarla`, `insaEtCok(d,binaId,[[x,y]..])`; yeni oyun `yeniOyun(tohum,{zorluk})`; bildirim kodları `tehdit_uyari|varis|bilgi|iz`. Detay: `docs/TEHDIT.md` §12–13. Henüz yok: Nöbet Tut, Elçi Gönder, Silah Dağıt, Kuşatma durduran pencere.
-- Sıradaki: `docs/AKSIYON.md` §10'daki 6 karar (öneriler: komşu B, savaş (b) baskın seferi, seferde ölüm yok, kahraman terfiyle, ilk kahraman 6. gün, ek zafer/gelenek sonra) → onayla MVP (Avcı+Kaşif, 3 sefer, 1 komşu); çağ genişletme (Sanayi/Modern) kararı, aşama 6 içerik (Haiku metin), aşama 7 denge, bina modelleri (oynanış onayından sonra; Tripo hesabı var, PC'den `TRIPO_API_KEY` ortam sırrı + `api.tripo3d.ai` izni gerekir).
+- Tehdit API (UI için): `tehditGorunumu(d)`, `beklenenSonuc`, `savunmaDokum`, `cevreDurumu`; komutlar `tehditTavir(d,'savun'|'saklan')`, `haracOde`, `tahkimatYap`, `bekciAta`, `zorlukAyarla`, `insaEtCok(d,binaId,[[x,y]..])`; yeni oyun `yeniOyun(tohum,{zorluk})`; bildirim kodları `tehdit_uyari|varis|bilgi|iz`. Detay: `docs/TEHDIT.md` §12–13.
+- Sıradaki: aksiyon fazları F2–F5 (AKSIYON.md §9: ek sefer türleri, Bronz+ komşu/baskın seferi, kahraman sınıfları, gelenek/zafer yolları), sefer dengesi gerçek oyunla ayarı, çağ genişletme (Sanayi/Modern) kararı, aşama 6 içerik (Haiku metin), aşama 7 denge, bina modelleri (oynanış onayından sonra; Tripo hesabı var, PC'den `TRIPO_API_KEY` ortam sırrı + `api.tripo3d.ai` izni gerekir).
 - Rol kuralı: tasarım/görsel ajanlarına "kıdemli oyun tasarımcısı/sanat yönetmeni" rolü ver. Fable yok → Opus tasarım/çekirdek, Sonnet UI/test, Haiku metin.
 
 ## Kayıt
-Sürüm 3 (tehdit alanları; v2 `GOCLER[2]` ile açılır), alan beyaz listeli (`DURUM_SEMASI`), tipik ~2,5 KB, göç zinciri `GOCLER`.
+Sürüm 4 (sefer/kahraman/komşu/hedef; v3 `GOCLER[3]`, v2 `GOCLER[2]` ile açılır), alan beyaz listeli (`DURUM_SEMASI`), tipik ~2,5 KB, göç zinciri `GOCLER`.

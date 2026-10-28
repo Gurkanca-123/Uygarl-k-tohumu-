@@ -87,6 +87,8 @@ function olayGoster(d, o, bildirimler) {
 export function adimOlay(durum, bildirimler = []) {
   const d = kopya(durum);
   if (d.olay.aktif) return d;
+  // AKSIYON §7: yolda sefer olayı çıkan tur olay kotasını doldurur.
+  if (d.istatistik?.sonTur?.seferOlayi) return d;
   const t = takvim(d.tur + 1);
   const zaman = { gun: t.gun, mevsim: t.mevsim };
   if (zaman.gun < ILK_OLAY_TUR) return d;

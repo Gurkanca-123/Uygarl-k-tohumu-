@@ -304,7 +304,114 @@ export function dogrula(v) {
     if ((cagBulusSay.get(c.id) || 0) !== 1) hata(`${y}: tam 1 çağ buluşu olmalı (${cagBulusSay.get(c.id) || 0})`);
   });
 
+  // --- 8. aksiyon (docs/AKSIYON.md §8.1): seferler, kahramanlar, eşyalar, komşular, hedefler ---
+  if (v.SEFERLER) aksiyonDenetle(v, { hata, cag, kay, bina, sira, cagRef, binaRef, bulusRef, kaynakNesne });
+
   return h;
+}
+
+// Aksiyon tablolarının çapraz denetimi (id benzersizliği, çağ aralığı, eşya yuvası, ödül kaynakları, destan/görev koşulları).
+function aksiyonDenetle(v, { hata, cag, kay, bina, sira, cagRef, binaRef, bulusRef, kaynakNesne }) {
+  const tekil = (ad, tablo) => {
+    const g = new Set();
+    for (const x of tablo || []) {
+      if (typeof x.id !== 'string' || !KIMLIK.test(x.id)) hata(`${ad}: geçersiz id "${x.id}"`);
+      if (g.has(x.id)) hata(`${ad}: tekrarlanan id "${x.id}"`);
+      g.add(x.id);
+      if (typeof x.ad !== 'string' || !x.ad) hata(`${ad}.${x.id}: ad yok`);
+    }
+    return g;
+  };
+  const sefer = tekil('SEFERLER', v.SEFERLER);
+  const sinif = tekil('SINIFLAR', v.SINIFLAR);
+  const esya = tekil('ESYALAR', v.ESYALAR);
+  tekil('KOMSULAR', v.KOMSULAR);
+  tekil('DESTANLAR', v.DESTANLAR);
+  tekil('MEVSIM_GOREVLERI', v.MEVSIM_GOREVLERI);
+  tekil('SEFER_OLAYLARI', v.SEFER_OLAYLARI);
+  const aralik = (y, o) => {
+    cagRef(y, o.cagMin);
+    if (o.cagMax != null) { cagRef(y, o.cagMax); if (sira(o.cagMin) > sira(o.cagMax)) hata(`${y}: cagMin > cagMax`); }
+  };
+  for (const s of v.SEFERLER) {
+    const y = `SEFERLER.${s.id}`;
+    aralik(y, s);
+    if (!(v.SEFER_ETIKETLERI || []).includes(s.etiket)) hata(`${y}: geçersiz etiket "${s.etiket}"`);
+    if (!['isaret', 'yok', 'komsu'].includes(s.hedef)) hata(`${y}: geçersiz hedef "${s.hedef}"`);
+    if (s.hedef === 'isaret' && !(v.ISARET_TURLERI || []).includes(s.isaret)) hata(`${y}: işaret türü geçersiz`);
+    if (s.hedef !== 'isaret' && s.isaret) hata(`${y}: işaretsiz hedefte isaret alanı olmamalı`);
+    if (s.zorluk !== 'komsu') {
+      if (!s.zorluk || typeof s.zorluk !== 'object') hata(`${y}: zorluk tablosu yok`);
+      else {
+        for (const [c, n] of Object.entries(s.zorluk)) { cagRef(`${y}.zorluk`, c); if (!(n > 0)) hata(`${y}.zorluk.${c}: pozitif olmalı`); }
+        if (!(s.cagMin in s.zorluk)) hata(`${y}: açılış çağında zorluk yok`);
+      }
+    }
+    if (s.sure !== 'mesafe' && !(Number.isInteger(s.sure) && s.sure >= 2 && s.sure <= 4)) hata(`${y}: süre 2–4 ya da 'mesafe'`);
+    if (!(s.ekipMin >= 1 && s.ekipMax >= s.ekipMin)) hata(`${y}: ekip sınırı geçersiz`);
+    for (const c of Object.keys(s.sinifCarpan || {})) if (!sinif.has(c)) hata(`${y}.sinifCarpan: bilinmeyen sınıf "${c}"`);
+    kaynakNesne(`${y}.odul.kaynak`, s.odul?.kaynak);
+    kaynakNesne(`${y}.odul.ozel.kaynak`, s.odul?.ozel?.kaynak);
+    for (const [c, p] of Object.entries(s.odul?.ozel?.paket || {})) { cagRef(`${y}.paket`, c); kaynakNesne(`${y}.paket.${c}`, p, { enGecCag: c }); }
+    for (const e of s.odul?.ozel?.esyalar || []) if (!esya.has(e)) hata(`${y}: bilinmeyen eşya "${e}"`);
+    if (s.odul?.ozel?.buyukEsya && !esya.has(s.odul.ozel.buyukEsya)) hata(`${y}: bilinmeyen eşya "${s.odul.ozel.buyukEsya}"`);
+    for (const e of s.odul?.ozel?.esya || []) if (!esya.has(e.id)) hata(`${y}: bilinmeyen eşya "${e.id}"`);
+    const tablo = s.odul?.ozel?.tablo;
+    if (tablo && Math.abs(tablo.reduce((a, t) => a + t.p, 0) - 1) > 1e-9) hata(`${y}: ödül tablosu olasılıkları 1 değil`);
+    if (s.gerekir?.bina) binaRef(`${y}.gerekir`, s.gerekir.bina);
+    if (s.gerekir?.bulus) bulusRef(`${y}.gerekir`, s.gerekir.bulus);
+    if (s.tehditBag && !(v.TEHDITLER || []).some((t) => t.id === s.tehditBag)) hata(`${y}: bilinmeyen tehdit "${s.tehditBag}"`);
+  }
+  for (const k of v.SINIFLAR || []) {
+    const y = `SINIFLAR.${k.id}`;
+    cagRef(y, k.cagMin);
+    for (const yt of k.yetenekler || []) if (![1, 3, 5].includes(yt.sv)) hata(`${y}.${yt.id}: yetenek seviyesi 1/3/5 olmalı`);
+    if (k.acik && (k.yetenekler || []).length !== 3) hata(`${y}: açık sınıfın 3 yeteneği olmalı`);
+  }
+  const xp = v.XP_ESIK || [];
+  if (xp.length !== 5 || xp[0] !== 0 || xp.some((x, i) => i && x <= xp[i - 1])) hata('XP_ESIK: 5 artan eşik, ilki 0');
+  for (const c of cag.keys()) {
+    if (!(v.KAHRAMAN_TAVAN?.[c] >= 1)) hata(`KAHRAMAN_TAVAN: ${c} yok`);
+    if (v.YEMIN_MALIYET && !v.YEMIN_MALIYET[c]) hata(`YEMIN_MALIYET: ${c} yok`);
+  }
+  for (const [c, m] of Object.entries(v.YEMIN_MALIYET || {})) kaynakNesne(`YEMIN_MALIYET.${c}`, m, { enGecCag: c });
+  for (const e of v.ESYALAR || []) {
+    const y = `ESYALAR.${e.id}`;
+    if (!(v.ESYA_YUVALARI || []).includes(e.yuva)) hata(`${y}: geçersiz yuva "${e.yuva}"`);
+    if (e.tarif) { binaRef(`${y}.tarif`, e.tarif.bina); kaynakNesne(`${y}.tarif`, e.tarif.kaynak); }
+  }
+  for (const k of v.KOMSULAR || []) {
+    cagRef(`KOMSULAR.${k.id}`, k.cagBul);
+    if (k.tehditKaynak && !(v.TEHDIT_KAYNAKLARI || []).includes(k.tehditKaynak)) hata(`KOMSULAR.${k.id}: bilinmeyen tehdit kaynağı`);
+  }
+  const KURAL_ANAHTAR = ['iliskiMin', 'iliskiMax', 'cagMin', 'ittifakYok', 'mizac', 'gucOranMin', 'barisciKapali'];
+  for (const r of v.NIYET_KURALLARI || []) {
+    for (const a of Object.keys(r.kosul || {})) if (!KURAL_ANAHTAR.includes(a)) hata(`NIYET_KURALLARI.${r.id}: bilinmeyen koşul "${a}"`);
+    if (r.kosul?.mizac && !v.MIZACLAR?.[r.kosul.mizac]) hata(`NIYET_KURALLARI.${r.id}: bilinmeyen mizaç`);
+    if (r.kosul?.cagMin) cagRef(`NIYET_KURALLARI.${r.id}`, r.kosul.cagMin);
+  }
+  if ((v.NIYET_KURALLARI || []).length !== 6 || v.NIYET_KURALLARI?.at(-1)?.id !== 'sessiz') hata('NIYET_KURALLARI: 6 kural, sonuncusu sessiz');
+  const ADIM_ANAHTAR = ['isaret', 'sefer', 'komut'];
+  for (const ds of v.DESTANLAR || []) {
+    const y = `DESTANLAR.${ds.id}`;
+    cagRef(y, ds.cag);
+    (ds.adimlar || []).forEach((a, i) => {
+      const k = Object.keys(a.kosul || {});
+      if (k.length !== 1 || !ADIM_ANAHTAR.includes(k[0])) hata(`${y}.adimlar[${i}]: koşul tek ve tanınan anahtar olmalı`);
+      if (a.kosul.isaret && !(v.ISARET_TURLERI || []).includes(a.kosul.isaret)) hata(`${y}.adimlar[${i}]: işaret türü geçersiz`);
+      if (a.kosul.sefer && !sefer.has(a.kosul.sefer.id)) hata(`${y}.adimlar[${i}]: bilinmeyen sefer "${a.kosul.sefer.id}"`);
+      if (a.kosul.komut?.gerekir?.bina) binaRef(`${y}.adimlar[${i}]`, a.kosul.komut.gerekir.bina);
+    });
+    if (ds.odul?.esya && !esya.has(ds.odul.esya)) hata(`${y}: bilinmeyen eşya "${ds.odul.esya}"`);
+  }
+  for (const g of v.MEVSIM_GOREVLERI || []) {
+    const y = `MEVSIM_GOREVLERI.${g.id}`;
+    cagRef(y, g.cagMin);
+    if (!(v.GOREV_KOSUL_TURLERI || []).includes(g.kosul?.tur)) hata(`${y}: geçersiz koşul türü`);
+    if (g.kosul?.kaynak && !kay.has(g.kosul.kaynak)) hata(`${y}: bilinmeyen kaynak "${g.kosul.kaynak}"`);
+    kaynakNesne(`${y}.odul.kaynak`, g.odul?.kaynak);
+  }
+  for (const o of v.SEFER_OLAYLARI || []) if (!(o.secenekler || []).length) hata(`SEFER_OLAYLARI.${o.id}: seçenek yok`);
 }
 
 // Döngüleri bulur; her döngü bir id yolu olarak döner. Bilinmeyen gereksinimleri yok sayar (başvuru denetimi ayrıca yakalar).

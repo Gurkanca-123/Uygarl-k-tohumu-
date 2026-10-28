@@ -32,3 +32,15 @@ test('tehdit açıkken 50 tohum Göçebe: ≥ 40/50 tohum 20–32 turda; en dü�
   assert.ok(oz.aralikta >= 40, `aralıkta ${oz.aralikta}`);
   assert.ok(oz.minNufus >= NUFUS_MIN);
 });
+
+// AKSIYON.md §9.2 (h): sefer kullanan hazırlıklı bot ("dengeli": r yeterliyse gönder; ilk kahraman Avcı, danışman; boşta keşif).
+test('sefer kullanan bot 50 tohum Göçebe: ≥ 40/50 tohum 20–32 turda; nüfus ≥ 2; ayı destanı ölçümü', (t) => {
+  const oz = botOzeti(Array.from({ length: 50 }, (_, i) => i + 1), { sefer: true });
+  const d = oz.destan;
+  t.diagnostic(`seferli: bitiren ${oz.tamamSayisi}/50 · tur min/ortanca/max ${oz.min}/${oz.ortanca}/${oz.max} · aralıkta ${oz.aralikta}`
+    + ` · en düşük nüfus ${oz.minNufus} · sefer ${JSON.stringify(oz.sefer)} · destan ${d.length}/50 bitirdi`
+    + ` (tur min/ortanca/max ${d[0]}/${d[Math.floor(d.length / 2)]}/${d.at(-1)}) · tehdit ${JSON.stringify(oz.tehdit)}`);
+  assert.ok(oz.aralikta >= 40, `aralıkta ${oz.aralikta}`);
+  assert.ok(oz.minNufus >= NUFUS_MIN);
+  assert.ok(oz.sefer.gonderilen >= 50, 'bot gerçekten sefer kullanıyor');
+});

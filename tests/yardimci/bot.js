@@ -24,6 +24,10 @@ import { takvim } from '../../src/core/takvim.js';
 import { beklenenSonuc, haracMaliyeti, TEHDIT, bekciAta, haracOde, tehditTavir } from '../../src/core/tehdit.js';
 import { bekciDegeri } from '../../src/core/savunma.js';
 import { MEVSIM_TUR, YORGUNLUK_MAX } from '../../src/data/denge.js';
+import { seferOnizleme, seferGonder, kahramanTerfi, kahramanGorev, kahramanEsyaGiy, gorevKartiSec, destanAdim } from '../../src/core/komutlar.js';
+import { calisamayanSayisi } from '../../src/core/yardimci.js';
+import { ESYA } from '../../src/core/kahraman.js';
+import { destanAdimBilgi } from '../../src/core/hedef.js';
 
 const KAYNAKLAR = ['yiyecek', 'odun', 'tas', 'deri'];
 const BULUS_YOLU = ['tas_yontma', 'mizrak_ucu', 'deri_isleme', 'yerlesik_hayat', 'hayvan_izleri'];
@@ -136,7 +140,7 @@ function hedefler(d) {
 function isleriAta(d) {
   // Önce tüm atamaları sıfırla.
   for (const k of Object.keys(d.atama)) d = isAta(d, k, 0).durum;
-  const isci = d.nufus - yaraliSayisi(d);
+  const isci = d.nufus - yaraliSayisi(d) - calisamayanSayisi(d);
   const h = hedefler(d);
   const yuvaDolu = {};
   const eklenen = [];
@@ -202,8 +206,51 @@ function tehditHazirla(d, strateji) {
   return x;
 }
 
+// ---------- Sefer (AKSIYON.md §9.2 "dengeli": r ≥ 1 ise gönder) ----------
+// İlk kahraman teklifinde Avcı; sandıktaki eşyaları giydir; köydeyken bekçi. Ayı ve harabe işaretlerine, en az işçiyle
+// büyük/başarı olasılığı ≥ %70 olacak ekiple gider (tehdit dönüşten önce gelecekse ve yiyecek azsa gitmez). Destan adımı ve ilk kart.
+const SEFER_SIRA = { ayi: 'ayi_avi', harabe: 'harabe' };
+const GOREV = process.env.BOT_GOREV || 'danisman';
+const BOT_ESIK = Number(process.env.BOT_ESIK) || 0.6;  // büyük+başarı olasılığı bu değerin altındaysa gitmez
+const KESIF = process.env.BOT_KESIF !== '0';
+function seferHazirla(d) {
+  let x = d;
+  const dene = (r) => { if (!r.hata) x = r.durum; return !r.hata; };
+  if (x.kahramanDurum?.teklif) dene(kahramanTerfi(x, 'avci'));
+  for (const k of x.kahramanlar || []) {
+    for (const id of [...(x.sandik || [])]) {
+      const e = ESYA[id];
+      if (!k.esya[e.yuva]) dene(kahramanEsyaGiy(x, k.uid, id));
+    }
+    if (!k.gorev) dene(kahramanGorev(x, k.uid, GOREV));
+  }
+  if (destanAdimBilgi(x).uygun) dene(destanAdim(x));
+  if (x.hedef?.kartlar?.length && !x.hedef.gorev) dene(gorevKartiSec(x, x.hedef.kartlar[0]));
+  const kahraman = (x.kahramanlar || []).filter((k) => !k.yarali).map((k) => k.uid);
+  for (const i of x.hedefIsaretleri || []) {
+    const id = SEFER_SIRA[i.tur];
+    if (!id) continue;
+    for (let isci = 0; isci <= 2; isci++) {
+      const ekip = { kahraman, isci };
+      const o = seferOnizleme(x, id, i.uid, ekip);
+      if (!o.uygun) { if (/işçi|kişi/.test(o.hata || '')) break; continue; }
+      if (o.uyari || (x.kaynaklar.yiyecek || 0) - o.erzak < x.nufus * 2) break;
+      if (o.olasiliklar.buyuk + o.olasiliklar.basari >= BOT_ESIK) { dene(seferGonder(x, id, i.uid, ekip)); break; }
+    }
+  }
+  // Boştaki kahraman keşif seferine (yalnız kahramanlar, işçisiz).
+  const bos = (x.kahramanlar || []).filter((k) => !k.yarali && !(x.sefer?.aktif || []).some((s) => s.ekip.kahraman.includes(k.uid)));
+  if (KESIF && bos.length && !(x.sefer?.aktif || []).length) {
+    const o = seferOnizleme(x, 'kesif', null, { kahraman: bos.map((k) => k.uid) });
+    if (o.uygun && !o.uyari && o.olasiliklar.buyuk + o.olasiliklar.basari >= BOT_ESIK && (x.kaynaklar.yiyecek || 0) - o.erzak >= x.nufus * 2) {
+      dene(seferGonder(x, 'kesif', null, { kahraman: bos.map((k) => k.uid) }));
+    }
+  }
+  return x;
+}
+
 // ---------- Ana döngü ----------
-export function botTuru(d, { tehditStrateji = 'hazirlikli' } = {}) {
+export function botTuru(d, { tehditStrateji = 'hazirlikli', sefer = false } = {}) {
   let x = d;
   while (x.olay.aktif) x = olaySec(x);
   const s = cagSartlari(x);
@@ -215,6 +262,7 @@ export function botTuru(d, { tehditStrateji = 'hazirlikli' } = {}) {
     const id = BULUS_YOLU.find((b) => !arastirilabilirMi(x, b));
     if (id) x = arastirmaSec(x, id).durum;
   }
+  if (sefer) x = seferHazirla(x);
   x = insaDene(x);
   x = isleriAta(x);
   x = tehditHazirla(x, tehditStrateji);
@@ -224,16 +272,18 @@ export function botTuru(d, { tehditStrateji = 'hazirlikli' } = {}) {
 }
 
 // Göçebe'yi bitirmeyi dener. Dönüş: { tohum, tamam, tur (çağ atlandığı tur), minNufus, son (durum), eksikler }
-export function botOyna(tohum, { maxTur = 80, hedefCag = 'tasdevri', zorluk = 'normal', tehditStrateji = 'hazirlikli' } = {}) {
+export function botOyna(tohum, { maxTur = 80, hedefCag = 'tasdevri', zorluk = 'normal', tehditStrateji = 'hazirlikli', sefer = false } = {}) {
   let d = yeniOyun(tohum, { zorluk });
   let minNufus = d.nufus;
+  let destanTur = null;
   for (let i = 0; i < maxTur; i++) {
-    const r = botTuru(d, { tehditStrateji });
+    const r = botTuru(d, { tehditStrateji, sefer });
     d = r.durum;
     minNufus = Math.min(minNufus, d.nufus);
-    if (d.cag === hedefCag) return { tohum, tamam: true, tur: d.tur, minNufus, son: d };
+    if (destanTur === null && d.hedef?.destan?.bitti) destanTur = d.tur;
+    if (d.cag === hedefCag) return { tohum, tamam: true, tur: d.tur, minNufus, son: d, destanTur };
   }
-  return { tohum, tamam: false, tur: d.tur, minNufus, son: d, eksikler: cagSartlari(d).eksikler };
+  return { tohum, tamam: false, tur: d.tur, minNufus, son: d, eksikler: cagSartlari(d).eksikler, destanTur };
 }
 
 export function botOzeti(tohumlar, secenek = {}) {
@@ -246,14 +296,18 @@ export function botOzeti(tohumlar, secenek = {}) {
     aralikta: tamam.filter((t) => t >= 20 && t <= 32).length,
     minNufus: Math.min(...sonuclar.map((s) => s.minNufus)),
     tehdit: sonuclar.flatMap((s) => s.son.tehdit?.gecmis || []).reduce((a, g) => ({ ...a, [g.sonuc]: (a[g.sonuc] || 0) + 1 }), {}),
+    sefer: sonuclar.reduce((a, s) => { for (const [k, v] of Object.entries(s.son.sefer?.istatistik || {})) a[k] = (a[k] || 0) + v; return a; }, {}),
+    destan: sonuclar.filter((s) => s.destanTur !== null).map((s) => s.destanTur).sort((a, b) => a - b),
   };
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const n = Number(process.argv[2]) || 50;
   const strateji = process.argv[3] || 'hazirlikli';
-  const oz = botOzeti(Array.from({ length: n }, (_, i) => i + 1), { tehditStrateji: strateji, zorluk: process.argv[4] || 'normal' });
+  const oz = botOzeti(Array.from({ length: n }, (_, i) => i + 1), { tehditStrateji: strateji, zorluk: process.argv[4] || 'normal',
+    sefer: process.argv[5] === 'sefer' });
   console.log(`Tohum: ${n} · bitiren: ${oz.tamamSayisi} · tur min/ortanca/max: ${oz.min}/${oz.ortanca}/${oz.max}`
-    + ` · 20–32 aralığında: ${oz.aralikta} · en düşük nüfus: ${oz.minNufus} · tehdit (${strateji}): ${JSON.stringify(oz.tehdit)}`);
+    + ` · 20–32 aralığında: ${oz.aralikta} · en düşük nüfus: ${oz.minNufus} · tehdit (${strateji}): ${JSON.stringify(oz.tehdit)}`
+    + ` · sefer: ${JSON.stringify(oz.sefer)} · destan bitiren ${oz.destan.length} (ortanca tur ${oz.destan[Math.floor(oz.destan.length / 2)] ?? '—'})`);
   for (const s of oz.sonuclar.filter((x) => !x.tamam).slice(0, 5)) console.log(`  tohum ${s.tohum}: bitiremedi —`, s.eksikler.join('; '));
 }

@@ -14,6 +14,10 @@ import { karoAt, karoDegistir, merkezNokta } from '../world/harita.js';
 import { kesifUygula } from '../world/kesif.js';
 import { tehditVarsayilan } from '../core/tehdit.js';
 import { TEHDIT_GOC_NEFES, VARSAYILAN_ZORLUK } from '../data/denge.js';
+import { seferVarsayilan } from '../core/sefer.js';
+import { kahramanDurumVarsayilan } from '../core/kahraman.js';
+import { komsuDurumVarsayilan } from '../core/komsu.js';
+import { hedefVarsayilan } from '../core/hedef.js';
 
 export const KAYIT_SURUM = DURUM_SURUM;
 export const ANAHTARLAR = { otomatik: KAYIT_ANAHTAR_OTOMATIK, elle: KAYIT_ANAHTAR_ELLE };
@@ -56,8 +60,17 @@ export function goc2to3(eski) {
     tehdit: tehditVarsayilan(tohum ?? 1, { gerginlik: 0, nefesKalan: TEHDIT_GOC_NEFES }) };
 }
 
+// Sürüm 3 → 4 (aksiyon MVP, AKSIYON.md §8.2): kahraman/sefer/komşu/hedef alanları varsayılanla; ayrı RNG akışları oyun
+// tohumundan (sefer:, komsu:) — durum.rng ve tehdit.rng'ye dokunulmaz. "Ateş Başında Bir Ses" teklifi (kahramanDurum.ilk = false)
+// gün 6 geçmişse bir sonraki turun hedef adımında gelir. Komşu ilişkisi `tehdit.iliski.komsu`'da kalır (ilk komşu bulununca okunur).
+export function goc3to4(eski) {
+  const tohum = typeof eski.tohum === 'number' && Number.isFinite(eski.tohum) ? eski.tohum : 1;
+  return { ...eski, kahramanlar: [], kahramanDurum: kahramanDurumVarsayilan(), sandik: [], sefer: seferVarsayilan(tohum),
+    hedefIsaretleri: [], komsu: komsuDurumVarsayilan(tohum), komsular: [], hedef: hedefVarsayilan() };
+}
+
 // GOCLER[n]: sürüm n kaydını sürüm n+1'e çeviren saf fonksiyon.
-export const GOCLER = { 1: goc1to2, 2: goc2to3 };
+export const GOCLER = { 1: goc1to2, 2: goc2to3, 3: goc3to4 };
 
 export class KayitHatasi extends Error {}
 

@@ -10,13 +10,20 @@ import { KAROLAR } from '../data/karolar.js';
 import { VERGI, ZORLUK, ISDAGIT_ONCELIKLER } from '../data/denge.js';
 import { TEHDITLER, TEHDIT_KAYNAKLARI, TEHDIT_TAVIRLARI, TEHDIT_SONUCLARI, TEHDIT_EVRELERI } from '../data/tehditler.js';
 import { kesifGecerli } from '../world/kesif.js';
+import { SEFERLER, ISARET_TURLERI, SEFER_OLAYLARI } from '../data/seferler.js';
+import { SINIFLAR, ESYALAR, GOREV_TURLERI } from '../data/kahramanlar.js';
+import { KOMSULAR, MIZACLAR, KOMSU_DURUMLARI, NIYET_TURLERI } from '../data/komsular.js';
+import { DESTANLAR, MEVSIM_GOREVLERI } from '../data/hedefler.js';
+import { SEFER_SONUCLARI } from '../data/denge.js';
 
 // Sürüm 2 (aşama 3): harita = { tohum, boyut, kesif, degisim } (zemin yeniden üretilir); sürüm 1 göçü save/kayit.js'de.
 // Sürüm 3 (tehdit MVP): zorluk + tehdit (docs/TEHDIT.md §8.2); göç GOCLER[2].
-export const DURUM_SURUM = 3;
+// Sürüm 4 (aksiyon MVP): kahramanlar, sandık, sefer, hedef işaretleri, komşular, hedefler (docs/AKSIYON.md §8.2); göç GOCLER[3].
+export const DURUM_SURUM = 4;
 
 const idler = (t) => t.map((x) => x.id);
 const KAROKOD = new Set(KAROLAR.map((k) => k.kod));
+const ESYA_ALAN = { tur: 'metin', izinli: ESYALAR.map((e) => e.id), bos: true };
 
 // Şema dili: 'sayi' | 'metin' | 'mantik' | 'sozluk' (herhangi JSON nesnesi) |
 //   { tur:'metin', izinli?, kontrol? } | { tur:'sayi', bos? } (bos: null olabilir) |
@@ -92,6 +99,48 @@ export const DURUM_SEMASI = S.nesne({
     gecmis: S.dizi(S.nesne({ tur: S.sayi(), id: S.metin({ izinli: idler(TEHDITLER) }), guc: S.sayi(), savunma: S.sayi(),
       sonuc: S.metin({ izinli: TEHDIT_SONUCLARI }) })),
   }),
+  // Sürüm 4: aksiyon (AKSIYON.md §8.2). Eksik alt alanlar varsayılanla dolar (göç ayrıca eski oyunu hazırlar).
+  kahramanlar: S.dizi(S.nesne({
+    uid: S.metin(), ad: S.metin(), sinif: S.metin({ izinli: idler(SINIFLAR) }), seviye: S.sayi(), xp: S.sayi(),
+    gorev: S.nesne({ tur: S.metin({ izinli: GOREV_TURLERI }), hedef: S.metin({ bos: true }) }, { bos: true, varsayilan: { hedef: null } }),
+    yarali: S.sayi(), portre: S.sayi(),
+    esya: S.nesne({ silah: ESYA_ALAN, giysi: ESYA_ALAN, tilsim: ESYA_ALAN }, { varsayilan: { silah: null, giysi: null, tilsim: null } }),
+  }, { varsayilan: { seviye: 1, xp: 0, gorev: null, yarali: 0, portre: 0, esya: { silah: null, giysi: null, tilsim: null } } })),
+  kahramanDurum: S.nesne({
+    teklif: S.nesne({ tur: S.sayi(), siniflar: { tur: 'metinDizi', izinli: idler(SINIFLAR) } }, { bos: true }),
+    ilk: 'mantik', yemin: { tur: 'sozlukMantik', anahtarlar: idler(CAGLAR) }, sayac: S.sayi(),
+  }),
+  sandik: { tur: 'metinDizi', izinli: idler(ESYALAR) },
+  sefer: S.nesne({
+    rng: S.sayi(), sayac: S.sayi(), ilkAyi: 'mantik', harabe: S.sayi(), ayiKacti: S.sayi(),
+    bekleme: { tur: 'sozlukSayi' },
+    istatistik: { tur: 'sozlukSayi', anahtarlar: [...SEFER_SONUCLARI, 'gonderilen', 'yaraliIsci'] },
+    aktif: S.dizi(S.nesne({
+      uid: S.metin(), tur: S.metin({ izinli: idler(SEFERLER) }), hedef: S.metin({ bos: true }), x: S.sayi({ bos: true }), y: S.sayi({ bos: true }),
+      kalan: S.sayi(), sure: S.sayi(), guc: S.sayi(), zorluk: S.sayi(), erzak: S.sayi(), gonderimTuru: S.sayi(),
+      ekip: S.nesne({ kahraman: { tur: 'metinDizi' }, isci: S.sayi(), onder: 'mantik' }),
+      olay: S.nesne({ id: S.metin({ izinli: idler(SEFER_OLAYLARI) }) }, { bos: true }),
+      olayEtki: { tur: 'sozlukSayi', anahtarlar: ['sureEk', 'odulCarpan', 'yaraliOlasilik'] }, olayOldu: 'mantik',
+    }, { varsayilan: { hedef: null, x: null, y: null, olay: null, olayEtki: {}, olayOldu: false } })),
+    son: S.dizi(S.nesne({ uid: S.metin(), tur: S.metin({ izinli: idler(SEFERLER) }), sonuc: S.metin({ izinli: SEFER_SONUCLARI }),
+      turNo: S.sayi(), kazanc: { tur: 'sozlukSayi' }, bp: S.sayi(), xp: S.sayi(), yarali: S.sayi() })),
+  }),
+  hedefIsaretleri: S.dizi(S.nesne({ uid: S.metin(), tur: S.metin({ izinli: ISARET_TURLERI }), x: S.sayi(), y: S.sayi(),
+    kalan: S.sayi(), zorluk: S.sayi() })),
+  komsu: S.nesne({ rng: S.sayi() }),
+  komsular: S.dizi(S.nesne({
+    id: S.metin({ izinli: idler(KOMSULAR) }), x: S.sayi(), y: S.sayi(), mizac: S.metin({ izinli: Object.keys(MIZACLAR) }),
+    cag: S.metin({ izinli: idler(CAGLAR) }), cagTur: S.sayi(), iliski: S.sayi(), durum: S.metin({ izinli: KOMSU_DURUMLARI }),
+    niyet: { tur: 'sozluk', bos: true, kontrol: (n) => NIYET_TURLERI.includes(n.tur) }, bekleme: { tur: 'sozlukSayi' },
+  }, { varsayilan: { iliski: 0, durum: 'bagimsiz', niyet: null, bekleme: {} } })),
+  hedef: S.nesne({
+    destan: S.nesne({ id: S.metin({ izinli: idler(DESTANLAR) }), adim: S.sayi(), bitti: 'mantik' }),
+    kartlar: { tur: 'metinDizi', izinli: idler(MEVSIM_GOREVLERI) },
+    gorev: S.nesne({ id: S.metin({ izinli: idler(MEVSIM_GOREVLERI) }), kalan: S.sayi(),
+      baslangic: { tur: 'sozlukSayi', anahtarlar: ['tur', 'sefer', 'hediye'] } }, { bos: true }),
+    unvanlar: { tur: 'metinDizi' },
+    sayac: { tur: 'sozlukSayi' },
+  }),
 });
 
 const YOK = Symbol('yok');
@@ -115,7 +164,8 @@ function suzDeger(deger, sema, varsayilan) {
       if (sema.kontrol && !sema.kontrol(deger)) return v;
       return deger;
     case 'sozluk':
-      return duzNesne(deger) ? kopya(deger) : v;
+      if (!duzNesne(deger) || (sema.kontrol && !sema.kontrol(deger))) return v;
+      return kopya(deger);
     case 'sozlukSayi':
     case 'sozlukMantik': {
       if (!duzNesne(deger)) return v;
