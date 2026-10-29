@@ -40,6 +40,24 @@
 ## 2026-10-28 — Bina taşıma (Sonnet 5.5)
 - `insa.js` `tasi(durum, uid, x, y)` (+ `tasimaMaliyeti`, `tasimaEdilebilirMi`, `tasimaZemini`), `denge.js` `TASIMA_MALIYET` 0,20. Seviye/hasar/işçi korunur; merkez, çit/sur ve işi süren bina taşınmaz. Bina kartında "↔ Taşı" (yerleştirme akışı yeniden kullanıldı). Test eklendi (197). e2e/telefon denenmedi.
 
+## 2026-10-28 — Aksiyon/savaş yan dala alındı (kullanıcı kararı)
+- `src/` ve `tests/` `8a51198` durumuna döndürüldü (tehdit 5 çağda + çit/sur + iş dağıtımı kalır; sefer/kahraman/komşu/hedef/savaş/görev sıklığı ayarı çıkar). Hepsi `yan/savas-aksiyon` dalında (HEAD `1a7ca0c`). Kayıt sürümü 3'e döndü. Testler 196 (195+1 todo).
+
+## 2026-10-28 — Savaş F1: Ayı Avı görsel otomatik savaş (Opus 5.5 çekirdek+sahne, Sonnet 5.5 UI+düzeltme)
+- Çekirdek `core/savas.js`, veri `birimler|rutbeler|savas.js`, kayıt v5; savaş sonucu tek `sefer.rng` çekimiyle tutarlı (1000 girdide sahne=çekirdek %100), ölüm yok, nüfus ≥2. Savaş Kapalı = eski hesaplamalı yol (Göçebe 40/50 birebir). `turIlerlet(d,{siklik,savasSahnesi})`.
+- Sahne `render/savas.js` (~38 çağrı, 9,7 bin üçgen, 7,5–22 sn, atla/1×/2×). UI `ui/savas.js`: Ayarlar'da Savaş sahnesi, 'Savaş hazır' kartı, 3×3 yerleşim (öneri/otomatik/sürükle, canlı yüzdeler), sonuç kartı, ordu −/+, Lider rütbesi. `mevsimSonunaIlerlet` savaş hazırken durur (`neden:'savas'`). Shader hatası (objectNormal) düzeltildi.
+- Testler 252 (251+1 todo); e2e 292 + savas_ui 129. Gerçek cihaz denenmedi. Kalan: ayı/figür ayrıntısı, ufuk, F2–F5.
+
+## 2026-10-28 — Görev sıklığı azaltma (Sonnet 5.5) + savaş tasarımı `docs/SAVAS.md` (Opus 5.5)
+- Karar isteyen öğe oyun başına 7,2→3,6 (≈ her 8 turda bir); mevsim kartı çağda en çok 2 set, isteğe bağlı, 4 tur sonra kapanır; aynı anda 1 bekleyen karar; işaret ≤2; toast birleştirme (`src/ui/toast.js`); destan ara adımları sessiz; Ayarlar'da Görev sıklığı Az/Normal/Çok (`ut_ayar.siklik` → `turIlerlet(durum,{siklik})`, çekirdek saf). Göçebe 40/50 hedefte, ortanca ~26, ayı destanı %90. Testler 242 (241+1 todo), e2e 292/292.
+- Yedek: `yedek/savas-oncesi` dalı (savaş fazı öncesi sağlam sürüm).
+
+## 2026-10-28 — Aksiyon MVP: sefer, kahraman, komşu, hedef (Opus 5.5 çekirdek, Sonnet 5.5 UI+denge)
+- Çekirdek: `seferler|kahramanlar|komsular|hedefler.js`, `core/sefer|kahraman|komsu|hedef.js`, kayıt v4 (`goc3to4`), ayrı RNG akışları. Avcı/Kaşif, Keşif/Ayı Avı/Harabe, 1 komşu, Ayı destanı + 4 görev kartı. Seferde ölüm yok.
+- UI: `src/ui/aksiyon.js` (Seferler penceresi: Sefer/Yolda/Kahraman/Komşu/Hedef), harita işaretleri, 6. gün kahraman teklifi, 🎯 hedef rozeti.
+- Denge: `SEFER_SANS` [0,3;1,4], eşikler/ödül çarpanı, zorluklar yükseltildi; r=1 → büyük %35/başarı %30/kısmi %17/başarısız %18. Bot ölçümünde (kahramanlar hep ekipte) büyük başarı ~%49: telefonda gerçek oynanışla ayarlanacak. Seferli bot Göçebe 41/50 hedefte, ayı destanı 43/50.
+- Testler 233 (232+1 todo), e2e 292/292. Gerçek cihaz denenmedi.
+
 ## 2026-10-27 — Tehditler 5 çağda + arayüz bağlantısı (Opus 5.5 çekirdek, Sonnet 5.5 UI) + aksiyon tasarımı
 - Çekirdek: 10 tehdit tanımı, çağ başına 2–6 aday, gerginlik/darbe artışı, kuşatma evresi (3 tur, surla aşınma), `silahDagit`, `kusatmaKarar`, Önder eylemleri `nobet_tut`/`elci_gonder`. Pasif oyun ölçümü: çağ başına 1/2/3/4,85/5,65 tehdit, kayıp ~%9–15; nüfus ≥2 korunur. Kayıt sürümü 3 aynı.
 - UI: tehdit penceresi tüm seçenekler (elçi hatası düzeldi), kuşatma karar penceresi, çip. e2e 163/163, testler 196 (195+1 todo). Gerçek cihaz denenmedi.

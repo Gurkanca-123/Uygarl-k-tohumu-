@@ -1,6 +1,6 @@
 # PROJECT_STATE (kısa; ayrıntı: `docs/MIMARI.md`, tasarım: `docs/TASARIM.md`)
 
-**Durum:** Aşama 0–5 bitti + görsel/arayüz yenilemesi (pencere sistemi, ayrıntılı köy ve bina modelleri) = **oynanabilir**. Sıradaki: ilk dakika düzeltmesi, aşama 6 (içerik/olay metinleri), 7 (denge).
+**Durum (2026-10-28):** Ana oyun = ŞEHİR KURMA odaklı (tehdit/çit/iş dağıtımı dahil). Sefer, kahraman, komşu, ayı/tapınak (harabe) görevleri, mevsim görev kartları ve görsel savaş **ana daldan çıkarıldı**, `yan/savas-aksiyon` dalında duruyor (kullanıcı kararı: şehir kurmaya odaklan, bitince tekrar düşünülecek). Sıradaki: şehir kurma derinliği (bina/çağ içeriği, denge, bina modelleri).
 Testler: 196 (195 geçer + 1 `todo`). Tarayıcı testi: `npm run build && npm run e2e` (163 kontrol, `npm test`'e dahil değil). Varsayılan görünüm = stil BD (`?stil=eski` eski render; `?stil=a|b|c|d`).
 
 ## Oyun (özet)
@@ -32,11 +32,12 @@ Sıra tabanlı (tur = gün, mevsim 5 gün, yıl 20 gün), 5 çağ, Önder eylemi
 ## Yol haritası (kullanıcı sırası, 2026-10-26)
 1) görsel stil: BD seçildi ve varsayılan (bina modelleri oynanış onayından sonra) · 2) dış tehditler: 5 çağın hepsinde çalışıyor + arayüz bağlı (`docs/TEHDIT.md` §12–14) · 3) aksiyon: `docs/AKSIYON.md` (sefer/kahraman/komşu/savaş/hedefler) taslak, 6 karar kullanıcıda · 4) çağ genişletme (kullanıcı düşünüyor): Sanayi ve Modern çağlar eklenebilir (7 çağ?); veri tabloları + çekirdek varsayımları önce tasarım belgesinde ele alınacak, şimdi uygulanmaz. Stil adayı D = referans konsept sanat (`?stil=d`).
 
-## DEVAM NOTU (yeni oturum için, 2026-10-26)
-- Kullanıcı kararları: BD stil varsayılan; tehdit belgesi `docs/TEHDIT.md` §11 önerileriyle ONAYLANDI (karar penceresi durdurmaz, 3 kademeli çip, Göçebe'de can kaybı yok, varsayılan Normal+Barışçıl, komşu=soyut kaynak, karşı saldırı yok).
-- BİTTİ: tehdit sistemi 5 çağda (Silah Dağıt, Nöbet Tut, Elçi Gönder, Kuşatma kararı), çit/sur + çizim arayüzü, tehdit penceresi/çipi, iş atama kartı + Kadro paneli, kompakt pencereler. Ölçüm (pasif oyun): çağ başına 1/2/3/~5/~5,7 tehdit.
-- Tehdit API (UI için): `tehditGorunumu(d)`, `beklenenSonuc`, `savunmaDokum`, `cevreDurumu`; komutlar `tehditTavir(d,'savun'|'saklan')`, `haracOde`, `tahkimatYap`, `bekciAta`, `zorlukAyarla`, `insaEtCok(d,binaId,[[x,y]..])`; yeni oyun `yeniOyun(tohum,{zorluk})`; bildirim kodları `tehdit_uyari|varis|bilgi|iz`. Detay: `docs/TEHDIT.md` §12–13. Henüz yok: Nöbet Tut, Elçi Gönder, Silah Dağıt, Kuşatma durduran pencere.
-- Sıradaki: `docs/AKSIYON.md` §10'daki 6 karar (öneriler: komşu B, savaş (b) baskın seferi, seferde ölüm yok, kahraman terfiyle, ilk kahraman 6. gün, ek zafer/gelenek sonra) → onayla MVP (Avcı+Kaşif, 3 sefer, 1 komşu); çağ genişletme (Sanayi/Modern) kararı, aşama 6 içerik (Haiku metin), aşama 7 denge, bina modelleri (oynanış onayından sonra; Tripo hesabı var, PC'den `TRIPO_API_KEY` ortam sırrı + `api.tripo3d.ai` izni gerekir).
+## DEVAM NOTU (yeni oturum için, 2026-10-28)
+- **Yan dal:** `yan/savas-aksiyon` (uzak depoda) = sefer/kahraman/komşu/hedef + görsel savaş F1 + görev sıklığı ayarı; kayıt v5. Tasarım belgeleri ana dalda arşiv: `docs/AKSIYON.md`, `docs/SAVAS.md`. Geri almak için: o dalı `main`'e birleştir (kayıt sürümü 5; ana dal kayıt v3 → ana dal eski kayıtları `:bozuk` yedekleyip yeni oyun açar).
+- Yedek: `yedek/savas-oncesi` (aksiyon MVP + sıklık işi, savaş öncesi).
+- Kullanıcı kararları: BD stil varsayılan; tehdit belgesi `docs/TEHDIT.md` önerileriyle ONAYLANDI; ana oyun şehir kurma; savaş/sefer yan dalda.
+- Tehdit API: `tehditGorunumu(d)`, komutlar `tehditTavir`, `haracOde`, `tahkimatYap`, `bekciAta`, `silahDagit`, `kusatmaKarar`, `zorlukAyarla`, `insaEtCok`; `yeniOyun(tohum,{zorluk})`. Detay `docs/TEHDIT.md` §12–14.
+- Sıradaki öneri: şehir kurma derinliği — aşama 6 içerik (Haiku metin), aşama 7 denge (bot ölçümüyle), çağ genişletme kararı (Sanayi/Modern), bina modelleri (Tripo: PC'den `TRIPO_API_KEY` ortam sırrı + `api.tripo3d.ai` izni), takas arayüzü, Önder/Araştırma sekmeleri cilası.
 - Rol kuralı: tasarım/görsel ajanlarına "kıdemli oyun tasarımcısı/sanat yönetmeni" rolü ver. Fable yok → Opus tasarım/çekirdek, Sonnet UI/test, Haiku metin.
 
 ## Kayıt
