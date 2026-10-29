@@ -1,5 +1,8 @@
 # CHANGELOG_DEV (yalnız son kayıtlar; eskiler `docs/CHANGELOG_ARSIV.md`)
 
+## 2026-10-29 — Kalan yapıların ayrıntı geçişi (Sonnet 5.5)
+- `binalar.js` ekleri: kil ocağı (çömlek rafı, çanak istifi, çömlekçi çarkı), maden (lamba, renkli cevher, vinç), mermer ocağı (yatan sütun, yarı heykel, altın damar), bağ bahçe (asma çardağı, üzüm, fıçı), kulübe, nöbet çiti (meşale, sancak), mağara resmi (meşale, el izleri), kışla (mankenler, silah rafı, sancaklar), manastır (kuyu, rahipler), darüşşifa (şifalı ot bahçesi, çeşme), lonca (sancak, sandıklar), ağıl. Böylece 54 yapının tamamı bu seanstaki görsel turdan geçti. Telefonda/oyun içinde denenmedi (kullanıcı deneyecek).
+
 ## 2026-10-29 — Göçebe/Taş Devri küçük yapılar zenginleştirildi (Sonnet 5.5)
 - `binalar.js`: çadır (kafatası direği, ateş, süs flamaları), avcı kulübesi (boynuz, et şeritleri, yay), toplayıcı (ot demetleri, havan, çalı), oduncu (testere tezgâhı, talaş), kurutma rafı (balık/et, ateş), gözcü direği (taş yığını, uyarı ateşi), şifacı (havan, kökler, şifa taşları), taş ocağı (kazmalar, moloz), alet yapımcısı (çakmaktaşı, bileme taşı), erzak çukuru (çuvallar, sepetler), balıkçı (kayık, ağ çerçevesi). Önizleme ile kontrol edildi; oyun içi/telefon denenmedi.
 
