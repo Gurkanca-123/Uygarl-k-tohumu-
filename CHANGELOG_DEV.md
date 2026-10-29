@@ -1,5 +1,8 @@
 # CHANGELOG_DEV (yalnız son kayıtlar; eskiler `docs/CHANGELOG_ARSIV.md`)
 
+## 2026-10-29 — Tarım/üretim yapıları yeniden tasarlandı (Sonnet 5.5)
+- `binalar.js`: `tarla` yardımcısına başaklar (tüm tarlalar), `koyun`/`tavuk` figürleri; `ciftlik` (koyun sürüsü, kümes, silo), `sulanan_tarla` (şaduf+havuz, korkuluk, hayvanlar), `ambar` (samanlı çatı, havalandırma, rampa, çuvallar), `demirci` (açık demirhane: ocak, örs, körük, su teknesi, alet rafı), `eritme_firini` (taş bantlı konik fırın, yükleme platformu, kalıplar, cüruf), `pazar_yeri` (orta çeşme, flama ipleri, sepetler), `kuyu` (makara, kova, yalak, çiçekler). Önizleme ile kontrol edildi; oyun içi/telefon denenmedi.
+
 ## 2026-10-28 — Üretim/ekonomi yapıları yeniden tasarlandı (Sonnet 5.5)
 - `binalar.js`: `degirmen` (halkalı konik kule, galeri, saman külah, çuval istifi, kulübe), `han` (çıkmalı iskelet, balkon, tabela, fener, ahır, araba), `hamam` (iki kubbe + ışık delikleri, altın alem, üç kemerli revak, çini şerit, havlu ipi), `dokuma_atolyesi` (boya küpleri, yün balyası, çatı penceresi), `su_kemeri` (üst sıra kemer, payandalar), `liman` (vinç, sandıklar, fener, ağ). Önizlemeyle kontrol edildi; oyun içi/telefon denenmedi.
 
