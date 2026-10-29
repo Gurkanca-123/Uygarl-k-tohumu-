@@ -1,5 +1,8 @@
 # CHANGELOG_DEV (yalnız son kayıtlar; eskiler `docs/CHANGELOG_ARSIV.md`)
 
+## 2026-10-29 — Ekran bildirimleri azaltıldı (Sonnet 5.5)
+- `arayuz.js`: toast yalnız önemli kodlar için (`ONEMLI_KOD`/`KRITIK_KOD`); inşaat bitti, iş dağıtımı, keşif, doğum, göçmen vb. yalnız Günlük'e düşer. En çok 2 toast, 3 satır, 4 sn. Ayarlar → "Ekran bildirimleri" (Önemli / Hepsi / Yalnız kritik), `ut_ayar.bildirim`. Testler geçti, build tamam; telefonda denenmedi.
+
 ## 2026-10-29 — Kalan yapıların ayrıntı geçişi (Sonnet 5.5)
 - `binalar.js` ekleri: kil ocağı (çömlek rafı, çanak istifi, çömlekçi çarkı), maden (lamba, renkli cevher, vinç), mermer ocağı (yatan sütun, yarı heykel, altın damar), bağ bahçe (asma çardağı, üzüm, fıçı), kulübe, nöbet çiti (meşale, sancak), mağara resmi (meşale, el izleri), kışla (mankenler, silah rafı, sancaklar), manastır (kuyu, rahipler), darüşşifa (şifalı ot bahçesi, çeşme), lonca (sancak, sandıklar), ağıl. Böylece 54 yapının tamamı bu seanstaki görsel turdan geçti. Telefonda/oyun içinde denenmedi (kullanıcı deneyecek).
 
