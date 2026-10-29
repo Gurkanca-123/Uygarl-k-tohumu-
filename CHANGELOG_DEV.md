@@ -1,5 +1,8 @@
 # CHANGELOG_DEV (yalnız son kayıtlar; eskiler `docs/CHANGELOG_ARSIV.md`)
 
+## 2026-10-29 — Göçebe/Taş Devri küçük yapılar zenginleştirildi (Sonnet 5.5)
+- `binalar.js`: çadır (kafatası direği, ateş, süs flamaları), avcı kulübesi (boynuz, et şeritleri, yay), toplayıcı (ot demetleri, havan, çalı), oduncu (testere tezgâhı, talaş), kurutma rafı (balık/et, ateş), gözcü direği (taş yığını, uyarı ateşi), şifacı (havan, kökler, şifa taşları), taş ocağı (kazmalar, moloz), alet yapımcısı (çakmaktaşı, bileme taşı), erzak çukuru (çuvallar, sepetler), balıkçı (kayık, ağ çerçevesi). Önizleme ile kontrol edildi; oyun içi/telefon denenmedi.
+
 ## 2026-10-29 — Tarım/üretim yapıları yeniden tasarlandı (Sonnet 5.5)
 - `binalar.js`: `tarla` yardımcısına başaklar (tüm tarlalar), `koyun`/`tavuk` figürleri; `ciftlik` (koyun sürüsü, kümes, silo), `sulanan_tarla` (şaduf+havuz, korkuluk, hayvanlar), `ambar` (samanlı çatı, havalandırma, rampa, çuvallar), `demirci` (açık demirhane: ocak, örs, körük, su teknesi, alet rafı), `eritme_firini` (taş bantlı konik fırın, yükleme platformu, kalıplar, cüruf), `pazar_yeri` (orta çeşme, flama ipleri, sepetler), `kuyu` (makara, kova, yalak, çiçekler). Önizleme ile kontrol edildi; oyun içi/telefon denenmedi.
 
