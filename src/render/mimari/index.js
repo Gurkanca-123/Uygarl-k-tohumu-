@@ -6,6 +6,8 @@ import { katedral, VARYANT_ADET as KAT_VARYANT } from './tarifler/katedral.js';
 import { degirmen, VARYANT_ADET as DEG_VARYANT } from './tarifler/degirmen.js';
 import { kale, VARYANT_ADET as KALE_VARYANT } from './tarifler/kale.js';
 import { manastir, VARYANT_ADET as MAN_VARYANT } from './tarifler/manastir.js';
+import { han, VARYANT_ADET as HAN_VARYANT } from './tarifler/han.js';
+import { demirci, eritmeFirini, dokumaAtolyesi, darphane, aletYapimcisi, VARYANT_ADET as ATL_VARYANT } from './tarifler/atolyeler.js';
 import { stilAl, mimariCag } from './cag_stilleri.js';
 import { varyantSec } from './varyasyon.js';
 
@@ -15,6 +17,12 @@ const KAYIT = {
   degirmen: { varyant: DEG_VARYANT, yap: degirmen },
   kale: { varyant: KALE_VARYANT, yap: kale },
   manastir: { varyant: MAN_VARYANT, yap: manastir },
+  han: { varyant: HAN_VARYANT, yap: han },
+  demirci: { varyant: ATL_VARYANT, yap: demirci },
+  eritme_firini: { varyant: ATL_VARYANT, yap: eritmeFirini },
+  dokuma_atolyesi: { varyant: ATL_VARYANT, yap: dokumaAtolyesi },
+  darphane: { varyant: ATL_VARYANT, yap: darphane },
+  alet_yapimcisi: { varyant: ATL_VARYANT, yap: aletYapimcisi },
 };
 
 export const mimariKayitlar = () => Object.keys(KAYIT);

@@ -6,9 +6,11 @@ import { mkdirSync } from 'node:fs';
 import { botTuru } from '../yardimci/bot.js';
 import { yeniOyun } from '../../src/core/oyun_durumu.js';
 import { uygunYerler } from '../../src/world/yerlestir.js';
+import { BINALAR } from '../../src/data/binalar.js';
 import { merkezNokta } from '../../src/world/harita.js';
 import { kesfet } from '../../src/world/kesif.js';
 
+const BINA = Object.fromEntries(BINALAR.map((b) => [b.id, b]));
 const gerek = createRequire(import.meta.url);
 let playwright;
 try { playwright = gerek('playwright'); } catch { playwright = gerek(`${process.env.PLAYWRIGHT_DIR || '/node-tools/node_modules'}/playwright`); }
@@ -29,7 +31,7 @@ function koy() {
   const yeniUid = () => (typeof ornek === 'number' ? uid++ : `b${uid++}`);
   for (const b of d.binalar) if (b.id === 'cadir' || b.id === 'kulube') b.id = 'yari_ahsap_ev';
   const ozel = {};
-  for (const id of ['katedral', 'degirmen']) {
+  for (const id of (process.env.MIMARI_BINALAR || 'katedral,degirmen').split(',')) {
     const yer = uygunYerler(d, id)[0];
     if (yer) { d.binalar.push({ uid: yeniUid(), id, x: yer[0], y: yer[1], seviye: 1, insaKalan: 0, hasarli: false }); ozel[id] = yer; }
   }
@@ -71,8 +73,8 @@ try {
     }
     // yapı odaklı kareler (katedral/değirmen): zoom 2.6, yapının ortasına
     for (const [id, yer] of Object.entries(ozel)) {
-      const bs = id === 'katedral' ? 3 : 2;
-      await sayfa.evaluate(({ z, x, y }) => { const s = window.__oyun.sahne; s.kamera.zoom = z; s.kamera.updateProjectionMatrix(); s.odakla(x, y); }, { z: id === 'katedral' ? 2.2 : 3.0, x: yer[0] + bs / 2, y: yer[1] + bs / 2 });
+      const bs = BINA[id].boyut[0];
+      await sayfa.evaluate(({ z, x, y }) => { const s = window.__oyun.sahne; s.kamera.zoom = z; s.kamera.updateProjectionMatrix(); s.odakla(x, y); }, { z: bs === 3 ? 2.2 : bs === 2 ? 3.0 : 3.4, x: yer[0] + bs / 2, y: yer[1] + bs / 2 });
       await sayfa.waitForTimeout(2200);
       const yol = `${CIKTI}/mimari-${mod}-${id}.png`;
       await sayfa.screenshot({ path: yol });
