@@ -12,7 +12,7 @@ import {
 import { ISDAGIT_ONCELIKLER } from '../data/denge.js';
 import {
   KAYNAK, BINA, BULUS, CAG, kaynakAcik, cagAcik, issizSayisi, evsizSayisi, barinmaKapasitesi, isciYuvasi, binaIsi, kuruluSayisi,
-  kaynakYeter, eksikMetni, yaraliSayisi, mevcutCag, binaIscisi,
+  kaynakYeter, eksikMetni, yaraliSayisi, mevcutCag, binaIscisi, cocukSayisi, calismaGucu,
 } from '../core/yardimci.js';
 import { maliyetHesapla, yukseltmeMaliyeti, onarimMaliyeti, insaEdilebilirMi, insaatSinirDolu, evrimEdilebilirMi, evrimMaliyeti } from '../core/insa.js';
 import { hamUretimHesapla } from '../core/uretim.js';
@@ -176,7 +176,8 @@ export function isSekmesi(a) {
   const eksikBina = yuvalar.filter((y) => y.tip === 'bina' && y.aktif && y.n < y.yuva).length;
 
   const ust = h('div', { class: `oge ozet${issiz > 0 ? ' dikkat' : ''}` },
-    h('div', { class: 'baslik' }, h('span', {}, issiz > 0 ? `👥 ${issiz} kişi boşta` : '✓ Herkesin işi var'), h('span', { class: 'soluk kucuk' }, `${calisan}/${d.nufus} çalışıyor`)),
+    h('div', { class: 'baslik' }, h('span', {}, issiz > 0 ? `👥 ${issiz} kişi boşta` : '✓ Herkesin işi var'), h('span', { class: 'soluk kucuk' }, `${calisan}/${calismaGucu(d)} çalışıyor`)),
+    cocukSayisi(d) > 0 ? h('div', { class: 'soluk kucuk', 'data-cocuk': 'say' }, `👶 ${cocukSayisi(d)} çocuk (büyüyene dek çalışamaz, yiyecek tüketir)`) : null,
     issiz > 0 ? h('div', { class: 'neden' }, 'İşsizler huzuru düşürür. Aşağıdan iş ver ya da otomatik dağıt.') : null,
     eksikBina ? h('div', { class: 'soluk kucuk' }, `${eksikBina} binanın yuvası eksik.`) : null,
     yaraliSayisi(d) ? h('div', { class: 'soluk kucuk' }, `Yaralı: ${yaraliSayisi(d)}`) : null,

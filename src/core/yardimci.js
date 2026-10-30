@@ -10,7 +10,7 @@ import { KAYNAKLAR } from '../data/kaynaklar.js';
 import { KAROLAR } from '../data/karolar.js';
 import { MEVSIMLER } from '../data/mevsimler.js';
 import {
-  SEVIYE_CARPAN, SEVIYE_ETKI, SEVIYE_ISCI_EK, SEVIYE_KAPASITE_EK, SERBEST_ISLER, YENI_KISI_ISI,
+  SEVIYE_CARPAN, SEVIYE_ETKI, SEVIYE_ISCI_EK, SEVIYE_KAPASITE_EK, SERBEST_ISLER, YENI_KISI_ISI, COCUK_SURE, YETISKIN_YAS,
 } from '../data/denge.js';
 import { takvim } from './takvim.js';
 import { rngSonraki } from './rng.js';
@@ -104,10 +104,37 @@ export const merkezBina = (d) => d.binalar.find((b) => BINA[b.id].tur === 'merke
 export const serbestAnahtar = (isId) => SERBEST_ONEK + isId;
 export const atamaToplam = (d) => Object.values(d.atama).reduce((a, n) => a + n, 0);
 
+// ---------- Halk defteri (çocuklar) ----------
+// d.halk = [{ id, dogum }] kayıtlı vatandaşlar (başlangıç, doğanlar, göçmenler). Defter nüfustan KISA olabilir (eski kayıt, test kurulumu):
+// kayıtsız kişiler yetişkin sayılır. Sayaçlar (nufus, atama) yetkili kalır; defter yalnız yaş/kimlik ekler.
+export const yas = (d, h) => d.tur - h.dogum;
+export const cocukMu = (d, h) => yas(d, h) < COCUK_SURE;
+export function cocukSayisi(d) {
+  return Math.min(d.nufus, (d.halk || []).reduce((a, h) => a + (cocukMu(d, h) ? 1 : 0), 0));
+}
+// Çalışabilir kişi sayısı = nüfus − çocuklar (yaralılar ayrıca düşer).
+export const calismaGucu = (d) => Math.max(0, d.nufus - cocukSayisi(d));
+
+// Kopya üstünde: deftere n kişi ekler. cocuk=true → bugün doğmuş; değilse yetişkin (dogum = tur − YETISKIN_YAS).
+export function halkEkle(d, n, cocuk) {
+  if (!d.halk) d.halk = [];
+  if (!Number.isInteger(d.halkSayac)) d.halkSayac = d.halk.reduce((a, h) => Math.max(a, h.id), 0);
+  for (let i = 0; i < n; i++) d.halk.push({ id: ++d.halkSayac, dogum: cocuk ? d.tur : d.tur - YETISKIN_YAS });
+}
+// Kopya üstünde: n kişiyi defterden çıkarır; önce çocuklar (en gençten), sonra en genç yetişkinler. Kayıtsız kişiler defteri etkilemez.
+export function halkCikar(d, n) {
+  if (!d.halk) return;
+  for (let i = 0; i < n && d.halk.length; i++) {
+    let k = -1;
+    for (let j = d.halk.length - 1; j >= 0; j--) if (cocukMu(d, d.halk[j])) { k = j; break; }
+    d.halk.splice(k >= 0 ? k : d.halk.length - 1, 1);
+  }
+}
+
 // Değiştiricilerden yaralı (çalışamayan) kişi sayısı.
 export function yaraliSayisi(d) {
   const n = d.degistiriciler.reduce((a, m) => a + (m.etki?.yaraliIsci || 0), 0);
-  return Math.min(d.nufus, n);
+  return Math.min(calismaGucu(d), n);
 }
 
 // Yuva sırası: binalar (inşa sırası), sonra serbest işler (tablo sırası). Fazlalık sondan kırpılır.
@@ -119,7 +146,7 @@ function yuvaSirasi(d) {
 
 // Fiilen çalışan atama (yaralılar çıkarılmış). Durumu değiştirmez.
 export function etkinAtama(d) {
-  let bos = Math.max(0, d.nufus - yaraliSayisi(d));
+  let bos = Math.max(0, calismaGucu(d) - yaraliSayisi(d));
   const sonuc = {};
   for (const k of yuvaSirasi(d)) {
     const n = Math.min(d.atama[k], bos);
@@ -130,7 +157,7 @@ export function etkinAtama(d) {
 }
 export function issizSayisi(d) {
   const calisan = Object.values(etkinAtama(d)).reduce((a, n) => a + n, 0);
-  return Math.max(0, d.nufus - yaraliSayisi(d) - calisan);
+  return Math.max(0, calismaGucu(d) - yaraliSayisi(d) - calisan);
 }
 export const binaIscisi = (d, b) => etkinAtama(d)[b.uid] || 0;
 
@@ -142,7 +169,7 @@ export function atamaDuzelt(d) {
     if (k.startsWith(SERBEST_ONEK) ? SERBEST[k.slice(SERBEST_ONEK.length)] : binaBul(d, k)) temiz[k] = n;
   }
   d.atama = temiz;
-  let fazla = atamaToplam(d) - d.nufus;
+  let fazla = atamaToplam(d) - calismaGucu(d);
   const sira = yuvaSirasi(d).reverse();
   for (const k of sira) {
     if (fazla <= 0) break;
@@ -153,10 +180,12 @@ export function atamaDuzelt(d) {
   }
 }
 
-// Kopya üstünde: yeni kişiler §2.5 gereği Toplayıcı'ya yazılır.
-export function kisiEkle(d, n) {
+// Kopya üstünde: yeni kişiler deftere yazılır. Yetişkinler (göçmen) §2.5 gereği Toplayıcı'ya yazılır; doğan çocuklar (cocuk=true) çalışmaz, atanmaz.
+export function kisiEkle(d, n, cocuk = false) {
   if (!(n > 0)) return;
   d.nufus += n;
+  halkEkle(d, n, cocuk);
+  if (cocuk) return;
   const k = serbestAnahtar(YENI_KISI_ISI);
   d.atama[k] = (d.atama[k] || 0) + n;
 }

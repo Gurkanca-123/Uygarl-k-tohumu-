@@ -1,4 +1,9 @@
-# Bireysel vatandaş sistemi — TASARIM ÖNERİSİ (UYGULANMADI; kullanıcı onayı bekliyor)
+# Bireysel vatandaş sistemi — TASARIM ÖNERİSİ
+
+**DURUM (2026-10-30):** KISMEN UYGULANDI. Kullanıcı kararı: "çocuklar çalışmasın". Yapılan: `d.halk = [{ id, dogum }]` defteri + `halkSayac`, çocuk = doğumdan `COCUK_SURE` (5 tur = 1 mevsim) tur,
+çalışma gücü = nüfus − çocuklar, kayıpta önce çocuklar, göçmen/başlangıç kişileri yetişkin. Kayıt sürümü DEĞİŞMEDİ (alan opsiyonel; eski kayıtta defter yok → herkes yetişkin).
+BEKLİYOR: hane (konuta yerleştirme), yaşlanma/ölüm, isimler, vatandaş/hane arayüz kartları. Kullanıcı kararı bekleyen sorular aşağıda hâlâ geçerli (yaşlanma oranı, isim).
+
 
 ## Bugünkü model (kodda)
 `nufus` tek sayı · `atama` = iş sayaçları (`{uid | serbest:x: adet}`) · doğum `nufus.js` (aralık, boş barınak, yiyecek ≥ 2×nüfus, huzur ≥ 40) ·

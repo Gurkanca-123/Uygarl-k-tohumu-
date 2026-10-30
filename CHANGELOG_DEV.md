@@ -1,5 +1,11 @@
 # CHANGELOG_DEV (yalnız son kayıtlar; eskiler `docs/CHANGELOG_ARSIV.md`)
 
+## 2026-10-30 — Çocuklar çalışmaz + halk defteri (kullanıcı kararı) (Sonnet 5.5)
+- `denge.js`: `COCUK_SURE = 5` (1 mevsim), `YETISKIN_YAS`. `yardimci.js`: `halkEkle/halkCikar/cocukSayisi/calismaGucu`; `kisiEkle(d, n, cocuk)`; işçi hesapları (`yaraliSayisi`, `etkinAtama`, `issizSayisi`, `atamaDuzelt`) ve `isAta` çalışma gücüne bağlandı.
+- Doğum: çocuk doğar, atanmaz, işsiz sayılmaz, yiyecek tüketir. Kayıp: önce çocuklar. Göçmen/başlangıç: yetişkin. Şema: `halk[{id,dogum}]`, `halkSayac` (kayıt sürümü 3 AYNI; eski kayıt açılır, herkes yetişkin).
+- UI: İş panelinde "👶 N çocuk" satırı, nüfus çipinde çocuk sayısı, "N/çalışma gücü çalışıyor".
+- Denge etkisi: Göçebe bot ortanca 28→33 tur; test bandı 20–32 → 20–36 (43/50). Ayrıntı `docs/DENGE_BULGULARI.md`. Testler: `tests/cocuk.test.js` (7) + 3 eski test güncellendi; toplam 236 (235 geçer + 1 todo). Uzun sim değişmezlerine halk denetimi eklendi (0 ihlal).
+
 ## 2026-10-30 — Denge düzeltmeleri (kullanıcı onaylı) (Sonnet 5.5)
 - Taş Ocağı: `karo:tasli` bitişiklik bonusu (+%25/karo, max 2). Çağ penceresi: yiyecek bozulması yüzünden ulaşılamayan geçiş maliyeti için 💡 ipucu (`cagSartlari().ipuclari`; şartı değiştirmez).
 - `tests/denge_ipuclari.test.js` (2); toplam 229 (228 geçer + 1 todo). `docs/VATANDAS.md`: bireysel vatandaş "defter" tasarım önerisi (UYGULANMADI, onay bekliyor).

@@ -11,7 +11,7 @@ import { arastirilabilirMi } from '../../src/core/arastirma.js';
 import { hamUretimHesapla } from '../../src/core/uretim.js';
 import { yiyecekIhtiyaci } from '../../src/core/tuketim.js';
 import {
-  BINA, BULUS, mevcutCag, isciYuvasi, yaraliSayisi, serbestAnahtar, barinmaKapasitesi, depoTavani, issizSayisi, atamaToplam, kaynakYeter, binaBul, binaKurulu,
+  BINA, BULUS, calismaGucu, mevcutCag, isciYuvasi, yaraliSayisi, serbestAnahtar, barinmaKapasitesi, depoTavani, issizSayisi, atamaToplam, kaynakYeter, binaBul, binaKurulu,
 } from '../../src/core/yardimci.js';
 import { BULUSLAR } from '../../src/data/buluslar.js';
 import { NUFUS_MIN } from '../../src/data/denge.js';
@@ -144,6 +144,9 @@ export function degismezler(d) {
   if (!Number.isFinite(d.nufus) || d.nufus < 0) h.push(`nüfus geçersiz (${d.nufus})`);
   if (!Number.isFinite(d.huzur) || d.huzur < 0 || d.huzur > 100) h.push(`huzur aralık dışı (${d.huzur})`);
   if (atamaToplam(d) > d.nufus) h.push(`atama (${atamaToplam(d)}) nüfusu (${d.nufus}) aşıyor`);
+  if (atamaToplam(d) > calismaGucu(d)) h.push(`atama (${atamaToplam(d)}) çalışabilir sayıyı (${calismaGucu(d)}) aşıyor`);
+  if ((d.halk || []).length > d.nufus) h.push(`halk defteri (${d.halk.length}) nüfustan (${d.nufus}) büyük`);
+  if (new Set((d.halk || []).map((x) => x.id)).size !== (d.halk || []).length) h.push('yinelenen halk kimliği');
   const uidler = new Set(d.binalar.map((b) => b.uid));
   if (uidler.size !== d.binalar.length) h.push('yinelenen bina uid');
   for (const s of d.insaatSirasi) {

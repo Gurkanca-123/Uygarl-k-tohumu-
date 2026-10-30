@@ -60,6 +60,10 @@ export const DOGUM_NUFUS_BOLEN = 30;      // doğan = min(1 + floor(nüfus/30), 
 export const GOC_HUZUR_ESIK = 15;
 export const GOC_OLASILIK = 0.2;
 export const YENI_KISI_ISI = 'toplayici';
+// Çocuklar (kullanıcı kararı 2026-10-30: "çocuklar çalışmasın"): doğumdan COCUK_SURE tur çocuktur; çalışmaz (iş yuvası/serbest iş/işsiz sayılmaz),
+// yiyecek tüketir, nüfusa ve barınmaya sayılır. Başlangıç ve göçmen kişileri yetişkindir (doğum = tur − YETISKIN_YAS).
+export const COCUK_SURE = 5;
+export const YETISKIN_YAS = 100;
 
 // --- §2.2 serbest işler ---
 export const SERBEST_ISLER = [

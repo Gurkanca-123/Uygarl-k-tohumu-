@@ -8,7 +8,7 @@ import { tasimaZemini, tasimaMaliyeti } from '../core/insa.js';
 import { secenekUygunMu } from '../core/olay.js';
 import { bilgiUretimi } from '../core/arastirma.js';
 import { takvim } from '../core/takvim.js';
-import { kaynakAcik, depoTavani, mevcutCag, binaBul, barinmaKapasitesi, issizSayisi, isciYuvasi, binaIsi } from '../core/yardimci.js';
+import { kaynakAcik, depoTavani, mevcutCag, binaBul, barinmaKapasitesi, issizSayisi, isciYuvasi, binaIsi, cocukSayisi } from '../core/yardimci.js';
 import { maliyetHesapla } from '../core/insa.js';
 import { yerUygunMu, uygunYerler, yerBaglami } from '../world/yerlestir.js';
 import { cevreDurumu } from '../world/cevre.js';
@@ -467,7 +467,7 @@ export class Arayuz {
     const durumlar = [
       h('div', { class: 'chip bp', title: 'Bilgi Puanı' }, h('span', { class: 'sim' }, '💡'), h('b', {}, `+${yuvarla(bilgiUretimi(d))}`), h('small', {}, 'BP/gün')),
       h('div', { class: `chip huzur ${huzurSinif}`, title: 'Huzur', style: `--oran:${Math.max(0, Math.min(100, d.huzur))}%` }, h('span', { class: 'sim' }, '😊'), h('b', {}, Math.round(d.huzur))),
-      h('div', { class: `chip nufus${d.nufus > bar ? ' uyari' : ''}${isz > 0 ? ' tikla' : ''}`, title: `Nüfus / barınak${isz > 0 ? ` · ${isz} işsiz (İş sekmesini açar)` : ''}`, onclick: () => { if (isz > 0) { this.sekme = 'is'; this.pencere = 'acik'; this.kaydetUi(); this.yenile(); } } }, h('span', { class: 'sim' }, '👥'), h('b', {}, d.nufus), h('small', {}, `/${bar}`),
+      h('div', { class: `chip nufus${d.nufus > bar ? ' uyari' : ''}${isz > 0 ? ' tikla' : ''}`, title: `Nüfus / barınak${cocukSayisi(d) > 0 ? ` · ${cocukSayisi(d)} çocuk` : ''}${isz > 0 ? ` · ${isz} işsiz (İş sekmesini açar)` : ''}`, onclick: () => { if (isz > 0) { this.sekme = 'is'; this.pencere = 'acik'; this.kaydetUi(); this.yenile(); } } }, h('span', { class: 'sim' }, '👥'), h('b', {}, d.nufus), h('small', {}, `/${bar}`),
         isz > 0 ? h('span', { class: 'azl' }, `${isz} boşta`) : null),
     ];
     const tc = tehditCipi(d, () => this.tehditTikla());

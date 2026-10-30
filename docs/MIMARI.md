@@ -97,3 +97,7 @@ Sıradaki: aşama 4 (MODEL_PLANI'na göre). Denge ayarı aşama 7 (bot sonucu a�
 - Bitiş (`adimInsaat` → `evrimBitir`): id=hedef, uid/konum/atama korunur, seviye=min(max(1,eski−1), hedef.maxSeviye, enYuksekSeviye). Bozuk kayıt → girdi düşer; sığmazsa iptal + iade.
 - Komutlar: `evrimYap`, `evrimCok(uidler)` (yalnız seçilenler). Kayıt/yükleme evrim sürerken desteklenir (test: `evrim.test.js`).
 - Uzun sim: `tests/yardimci/uzun_sim.js` (`degismezler`, `uzunOyna`).
+
+## Halk defteri / çocuklar (2026-10-30)
+- `d.halk = [{ id, dogum }]` kayıtlı kişiler (başlangıç, doğanlar, göçmenler); defter nüfustan KISA olabilir (kayıtsızlar yetişkin). Sayaçlar (`nufus`, `atama`) yetkili kalır.
+- Çocuk: `tur − dogum < COCUK_SURE`. `calismaGucu = nufus − cocukSayisi`; iş yuvası/serbest iş/işsizlik/atama sınırı bunu kullanır. Doğum `kisiEkle(d, n, true)` (atanmaz); kayıp `halkCikar` (önce çocuklar).

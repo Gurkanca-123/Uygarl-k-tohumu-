@@ -2,7 +2,7 @@
 import { CAGLAR } from '../data/caglar.js';
 import { BINALAR } from '../data/binalar.js';
 import {
-  BASLANGIC_KAYNAK, BASLANGIC_NUFUS, HUZUR_BASLANGIC, HARITA_BOYUT, YENI_KISI_ISI, GORUS_BASLANGIC, ZORLUK, VARSAYILAN_ZORLUK,
+  BASLANGIC_KAYNAK, BASLANGIC_NUFUS, HUZUR_BASLANGIC, HARITA_BOYUT, YENI_KISI_ISI, YETISKIN_YAS, GORUS_BASLANGIC, ZORLUK, VARSAYILAN_ZORLUK,
 } from '../data/denge.js';
 import { tehditVarsayilan } from './tehdit.js';
 import { yeniHarita, merkezKonumu } from '../world/harita.js';
@@ -32,6 +32,8 @@ export function yeniOyun(tohum = VARSAYILAN_TOHUM, { zorluk = VARSAYILAN_ZORLUK 
     arastirma: null,
     buluslar: [],
     nufus: BASLANGIC_NUFUS,
+    halk: Array.from({ length: BASLANGIC_NUFUS }, (_, i) => ({ id: i + 1, dogum: -YETISKIN_YAS })),
+    halkSayac: BASLANGIC_NUFUS,
     atama: { [`serbest:${YENI_KISI_ISI}`]: BASLANGIC_NUFUS },
     huzur: HUZUR_BASLANGIC,
     acTur: 0,

@@ -24,7 +24,13 @@ Kaynak: `src/data/*.js` okuması + `tests/yardimci/uzun_sim.js` (tüm çağlar b
 8. **BP kullanılmayabiliyor:** mevcut çağın tüm buluşları bitince bilgi havuzu birikir (Orta Çağ botunda ≈4300 BP). Oyuncu için çağ ilerleyince sorun olmaz; serbest kipte BP kullanım alanı yok.
 9. **Kalabalık cezası:** nüfus kalabalık eşiğini (Göçebe 10, Taş 22) aştıkça huzur −1/kişi. Konutu çağ geçişinden fazla büyüten oyuncu huzur tuzağına düşer (bot gözlemi: huzur ≈ 6, üretim ×0,7, göç).
 
+## Çocukların çalışmaması (kullanıcı kararı 2026-10-30) — ölçülen etki
+- `COCUK_SURE` denemeleri (50 tohum, Göçebe, `bot.js`): 12 tur → ortanca 44 tur · 8 → 42 · 6 → 34 (35/50 aralıkta 20–36) · 5 → ortanca 33, **43/50** 20–36 · 4 → 33.
+  Önceki durum (çocuk çalışıyordu): 47/50 aralıkta 20–32. Seçilen 5 (= 1 mevsim); Göçebe test bandı 20–32 → 20–36 genişletildi (`GOCEBE_BAND_UST`).
+- Uzun çocukluk (≥8) Göçebe'yi ≈2× uzatır: doğum hızı zaten çağ geçişinin darboğazı. `denge.js COCUK_SURE` tek ayardır; daha gerçekçi uzun çocukluk istenirse hedef turlar/geçiş nüfusları birlikte yeniden ayarlanmalı.
+- Kayıp sırası: önce çocuklar (açlık/hastalıkta iş gücü korunur) — bu yumuşatma kasıtlı; sert istenirse `halkCikar` sırası değişir.
+
 ## Bu görevde bilinçli yapılmayanlar (onay gerekli)
 - Çiftlik → "Gelişmiş Çiftlik": tabloda böyle bir bina yok → uydurulmadı. Bunun yerine veriye dayalı **Sulanan Tarla → Çiftlik** (2×2 → 3×3, yer uygunsa) eklendi.
-- Bireysel vatandaş / hane / yaş sistemi: `nufus` tek sayı, `atama` sayaç; kökten model değişikliği → ayrı onaylı tasarım.
+- Hane, yaşlanma/ölüm, isim ve vatandaş arayüzü: bkz. `docs/VATANDAS.md` (çocuk + defter kısmı uygulandı).
 - Gerçek zamanlı akış: kullanıcı kararıyla sıra tabanlı kalıyor.
