@@ -8,6 +8,7 @@ import { kale, VARYANT_ADET as KALE_VARYANT } from './tarifler/kale.js';
 import { manastir, VARYANT_ADET as MAN_VARYANT } from './tarifler/manastir.js';
 import { han, VARYANT_ADET as HAN_VARYANT } from './tarifler/han.js';
 import { demirci, eritmeFirini, dokumaAtolyesi, darphane, aletYapimcisi, VARYANT_ADET as ATL_VARYANT } from './tarifler/atolyeler.js';
+import { ciftlik, ambar, agil, tahilBahcesi, erzakCukuru, sulananTarla, bagBahce, kurutmaRafi, VARYANT_ADET as TAR_VARYANT } from './tarifler/ciftlik.js';
 import { stilAl, mimariCag } from './cag_stilleri.js';
 import { varyantSec } from './varyasyon.js';
 
@@ -23,6 +24,14 @@ const KAYIT = {
   dokuma_atolyesi: { varyant: ATL_VARYANT, yap: dokumaAtolyesi },
   darphane: { varyant: ATL_VARYANT, yap: darphane },
   alet_yapimcisi: { varyant: ATL_VARYANT, yap: aletYapimcisi },
+  ciftlik: { varyant: TAR_VARYANT, yap: ciftlik },
+  ambar: { varyant: TAR_VARYANT, yap: ambar },
+  agil: { varyant: TAR_VARYANT, yap: agil },
+  tahil_bahcesi: { varyant: TAR_VARYANT, yap: tahilBahcesi },
+  erzak_cukuru: { varyant: TAR_VARYANT, yap: erzakCukuru },
+  sulanan_tarla: { varyant: TAR_VARYANT, yap: sulananTarla },
+  bag_bahce: { varyant: TAR_VARYANT, yap: bagBahce },
+  kurutma_rafi: { varyant: TAR_VARYANT, yap: kurutmaRafi },
 };
 
 export const mimariKayitlar = () => Object.keys(KAYIT);

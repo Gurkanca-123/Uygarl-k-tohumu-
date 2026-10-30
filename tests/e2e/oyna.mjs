@@ -8,13 +8,16 @@ let playwright;
 try { playwright = gerek('playwright'); } catch { playwright = gerek(`${process.env.PLAYWRIGHT_DIR || '/node-tools/node_modules'}/playwright`); }
 const { chromium } = playwright;
 
-const PORT = 4173, URL = `http://localhost:${PORT}/`, EKRAN = 'docs/ekran';
+// MIMARI=yeni → tüm oyun senaryosu yeni mimari motor açıkken (?mimari=yeni) çalışır; yoksa eski motor. Kullanım: MIMARI=yeni npm run e2e
+const YENI = process.env.MIMARI === 'yeni';
+const PORT = Number(process.env.E2E_PORT || 4173), BASE = `http://localhost:${PORT}/`, URL = BASE + (YENI ? '?mimari=yeni' : ''), EKRAN = 'docs/ekran';
+console.log(`E2E motoru: ${YENI ? 'YENİ mimari motor (?mimari=yeni)' : 'eski (varsayılan)'}`);
 mkdirSync(EKRAN, { recursive: true });
 const sonuclar = [];
 const kontrol = (ad, ok, ek = '') => { sonuclar.push({ ad, ok }); console.log(`${ok ? 'GEÇTİ' : 'KALDI'}  ${ad}${ek ? ` — ${ek}` : ''}`); };
 
 const sunucu = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore' });
-const bekle = async () => { for (let i = 0; i < 50; i++) { try { if ((await fetch(URL)).ok) return; } catch { /* bekle */ } await new Promise((r) => setTimeout(r, 200)); } throw new Error('sunucu açılmadı'); };
+const bekle = async () => { for (let i = 0; i < 50; i++) { try { if ((await fetch(BASE)).ok) return; } catch { /* bekle */ } await new Promise((r) => setTimeout(r, 200)); } throw new Error('sunucu açılmadı'); };
 
 async function senaryo(tarayici, ad, secenek, ekranGoruntusu0) {
   const ekranGoruntusu = process.env.EKRAN_YAZ === '1' ? ekranGoruntusu0 : null; // varsayılan: docs/ekran dosyalarını ezme
@@ -412,7 +415,7 @@ try {
   await tehditSenaryosu(tarayici, 'tehdit 844×390', { width: 844, height: 390 }, 1, 'p844');
   if (!SADECE) { // ?stil=eski: eski düz görünüm (son işleme yok)
     const sayfa = await (await tarayici.newContext({ viewport: { width: 844, height: 390 } })).newPage();
-    await sayfa.goto(`${URL}?stil=eski`);
+    await sayfa.goto(`${BASE}?stil=eski${YENI ? '&mimari=yeni' : ''}`);
     await sayfa.waitForSelector('.menu');
     kontrol('?stil=eski: son işleme kurulmaz', (await sayfa.evaluate(() => window.__oyun.sahne.stil)) === null);
   }

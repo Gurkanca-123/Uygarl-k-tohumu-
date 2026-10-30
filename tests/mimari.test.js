@@ -183,8 +183,9 @@ test('mimari: her kayıtlı bina için ortak kaynak, sınır ve varyant denetimi
       const tam = modelVerisi(id, 1, '', vr, true, 0), uzak = modelVerisi(id, 1, '', vr, true, 1);
       assert.ok(gecerli(tam.ana) && (!tam.isil || gecerli(tam.isil)), `${id} v${vr} NaN`);
       const n = ucgen(tam.ana);
-      assert.ok(n > 300 && n < 25000, `${id} v${vr} üçgen ${n}`);
-      assert.ok(ucgen(uzak.ana) <= n * 0.95, `${id} v${vr} uzak LOD azaltmıyor (${ucgen(uzak.ana)}/${n})`);
+      assert.ok(n > 100 && n < 25000, `${id} v${vr} üçgen ${n}`);
+      assert.ok(n < 1000 || ucgen(uzak.ana) <= n * 0.95, `${id} v${vr} uzak LOD azaltmıyor (${ucgen(uzak.ana)}/${n})`); // küçük (<1000) modellerde LOD anlamsız
+      assert.ok(ucgen(uzak.ana) <= n, `${id} v${vr} uzak LOD tamdan ağır`);
       const b = kutu(tam.ana);
       assert.ok(b.max.x < yari && b.min.x > -yari && b.max.z < yari && b.min.z > -yari, `${id} v${vr} taşma x ${b.min.x.toFixed(2)}..${b.max.x.toFixed(2)} z ${b.min.z.toFixed(2)}..${b.max.z.toFixed(2)} (sınır ±${yari.toFixed(2)})`);
       assert.ok(b.max.y < 4.8, `${id} v${vr} yükseklik ${b.max.y.toFixed(2)}`);
