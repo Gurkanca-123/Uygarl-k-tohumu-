@@ -27,3 +27,11 @@ export function mimariAcik() {
   } catch { acik = false; }
   return acik;
 }
+
+// Kamera uzaklığına bağlı ayrıntı seviyesi: zoom eşiği (oyunda varsayılan 1.6, yakın 3.4). Titremeyi önlemek için histerezis.
+// 0 = tam ayrıntı, 1 = uzak (küçük ayrıntılar atılır, kiremit sıraları iriler; silüet ve ana mimari korunur).
+export const LOD_ESIK = 2.0, LOD_ARALIK = 0.12;
+export function mimariLod(zoom, onceki = 0) {
+  if (onceki === 1) return zoom > LOD_ESIK + LOD_ARALIK ? 0 : 1;
+  return zoom < LOD_ESIK - LOD_ARALIK ? 1 : 0;
+}

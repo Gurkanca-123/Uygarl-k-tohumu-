@@ -88,6 +88,10 @@ export function kapi(Y, S, o) {
   // kanat
   Y.prizma(kemerProfil(w, h, 6), 0.0, 0.026, 'z', x, 0, 0, 'tahta', S.kapi);
   // dikey tahta çizgileri ve demir bantlar
+  // kapı feneri: demir konsol + ışıklı cam (sağ söve yanında)
+  Y.kiris([x + w / 2 + 0.07, d * 0.82, 0.01], [x + w / 2 + 0.07, d * 0.82, 0.07], 0.008, 0.008, 'duz', S.demir);
+  Y.kutu(0.026, 0.04, 0.026, x + w / 2 + 0.07, d * 0.82 - 0.044, 0.07, 'duz', S.camIsik, { isil: true, arka: true });
+  Y.kutu(0.034, 0.008, 0.034, x + w / 2 + 0.07, d * 0.82 - 0.004, 0.07, 'duz', S.demir, { arka: true });
   if (Y.k.lod) return;
   for (const t of [-0.25, 0.25]) Y.kutu(0.005, d * 0.94, 0.006, x + t * w, 0.01, 0.028, 'kutuk', renkCarp(S.kapi, 0.62));
   for (const t of [0.22, 0.66]) {
@@ -175,6 +179,9 @@ export function baca(Y, S, o) {
   Y.kutu(w + 0.034, 0.014, w + 0.034, x, y + h + 0.012, z, 'tasBlok', S.tas);
   for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) Y.kutu(0.014, 0.026, 0.014, x + dx * w * 0.38, y + h + 0.026, z + dz * w * 0.38, 'tasBlok', S.tas);
   Y.kutu(w + 0.03, 0.01, w + 0.03, x, y + h + 0.052, z, 'tasBlok', S.tasAcik);
+  // taş çömlek (baca külahı)
+  Y.silindir(0.016, 0.02, 0.04, 7, x, y + h + 0.062, z, 'duz', S.kil);
+  Y.silindir(0.022, 0.016, 0.012, 7, x, y + h + 0.1, z, 'duz', S.kil);
   // sıva bandı gövdede
   Y.kutu(w + 0.01, 0.024, w + 0.01, x, y + h * 0.5, z, 'tasBlok', S.tasAcik);
   const p = Y.nokta(x, y + h + 0.07, z);

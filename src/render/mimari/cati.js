@@ -48,7 +48,9 @@ function kaplama(Y, o) {
       a = Math.max(a, x0 - L / 2); b = Math.min(b, x0 + L / 2);
       if (b - a < 0.02) continue;
       const eski = R() < 0.05; // yaşlanmış/yama dilim: bazı kiremitler belirgin koyu ya da soluk
-      const c = new THREE.Color(rastgeleRenk(R, renk)).multiplyScalar(ton * (0.96 + R() * 0.08) * (eski ? (R() < 0.5 ? 0.8 : 1.12) : 1));
+      const sakin = uzak ? 0.4 : 1; // uzak görünümde dilim rengi dalgalanması azalır: çatı daha temiz okunur
+      const c = new THREE.Color(rastgeleRenk(R, renk)).multiplyScalar(ton * (1 + (R() - 0.5) * 0.08 * sakin) * (eski && !uzak ? (R() < 0.5 ? 0.8 : 1.12) : 1));
+      if (!uzak && o.yosun && R() < 0.035) c.lerp(new THREE.Color(o.yosun), 0.55); // yosunlu dilim
       Y.ekle(dilimGeo(u, l, kalkik, a, b, nz, ny, dz / len, dy / len), 0, 0, 0, doku, c.getHex());
     }
   }
@@ -73,8 +75,8 @@ export function catiBesik(Y, o) {
   const sutun = o.sutun ?? Math.max(4, Math.round(L / 0.115));
   for (const s of [1, -1]) {
     const P = (p) => [z0 + s * p[0], p[1]];
-    kaplama(Y, { P: P(R0), Q: P(M0), kal, x0, L, renk, satir: satirUst, sutun, th, doku, kabukRenk });
-    kaplama(Y, { P: P(M0), Q: P(E0), kal, x0, L, renk, satir: satirAlt, sutun, th, doku, kabukRenk });
+    kaplama(Y, { P: P(R0), Q: P(M0), kal, x0, L, renk, satir: satirUst, sutun, th, doku, kabukRenk, yosun: o.yosun });
+    kaplama(Y, { P: P(M0), Q: P(E0), kal, x0, L, renk, satir: satirAlt, sutun, th, doku, kabukRenk, yosun: o.yosun });
     // saçak tahtası + alın kirişleri (rüzgârlık)
     Y.kiris([x0 - L / 2, E0[1] - kal * 0.5, z0 + s * (zE - 0.004)], [x0 + L / 2, E0[1] - kal * 0.5, z0 + s * (zE - 0.004)], 0.014, kal + 0.012, 'tahta', kabukRenk);
     for (const e of [-1, 1]) {

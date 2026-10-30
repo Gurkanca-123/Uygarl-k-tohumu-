@@ -8,6 +8,7 @@ import { takvim } from '../core/takvim.js';
 import { binaIsi, binaCalisir } from '../core/yardimci.js';
 import { HaritaCizim, MEVSIM_STIL } from './harita.js';
 import { binaModeli, modeliTemizle } from './binalar.js';
+import { mimariLod } from './mimari/index.js';
 import { KoyCizim } from './koy.js';
 import { ORTAK } from './malzeme.js';
 import { stilKur } from './stil.js';
@@ -27,6 +28,7 @@ export class Sahne {
     this.n = 64;
     this.hedef = new THREE.Vector3(32, 0, 32);
     this.durum = null;
+    this.lod = 0; // mimari motor ayrıntı seviyesi (kamera zoom'una bağlı; bkz. kameraGuncelle)
     this.anahtarlar = {};
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -229,7 +231,7 @@ export class Sahne {
           insa: isi === 'insa' ? 1 - b.insaKalan / Math.max(1, t.insaSuresi) : null,
           hasarli: b.hasarli, isi, kapali: isi !== 'insa' && !b.hasarli && kapali.includes(b.uid),
           bag: t.cevre ? maske.get(`${b.x},${b.y}`) : 0,
-        });
+        }, { lod: this.lod });
         model.position.set(b.x + t.boyut[0] / 2, 0, b.y + t.boyut[1] / 2);
         // çeşitlilik: kapı her zaman kameraya bakan iki yüzden birinde (+z / +x); çevre parçaları döndürülmez (kollar eksene hizalı)
         if (t.tur !== 'merkez' && !t.cevre && ((b.x * 7 + b.y * 13) & 1)) model.rotation.y = Math.PI / 2;
@@ -307,6 +309,12 @@ export class Sahne {
     this.gunes.target.position.copy(this.hedef);
     this.gunes.target.updateMatrixWorld();
     this.kirli = true;
+    // kamera uzaklığına göre bina ayrıntısı: eşik geçilince modeller önbellekteki geometrilerle yeniden kurulur
+    const lod = mimariLod(this.kamera.zoom, this.lod);
+    if (lod !== this.lod) {
+      this.lod = lod;
+      if (this.durum) { this.anahtarlar.bina = null; this.guncelle(this.durum); }
+    }
   }
 
   ekranZemin(px, py, hedef = new THREE.Vector3()) {

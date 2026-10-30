@@ -18,8 +18,10 @@ Eski modeller (`binalar.js` `M.*`) ve `Kurucu` aynen durur; yeni katman `Kurucu.
 - Önbellek anahtarı `id|seviye|durum|m<varyant>[u]`; varyant sayısı sınırlıdır (kontrolsüz benzersiz geometri yok). `u` = uzak ayrıntı (`lod`).
 - Koordinat/yön: karo birimi; ön cephe +z, ikinci görünür cephe +x. Cephe çerçevesinde arka/alt yüz atılır (kamera yukarıdan bakar).
 - Yeni bina eklemek: `tarifler/<id>.js` yaz → `index.js` `KAYIT`'a ekle → `tests/mimari.test.js`'e üçgen/varyant kontrolü ekle.
-- Üçgen: konut 3,5–4,7 bin (eski 0,9 bin); `lod` uzak ≈ %30 az. LOD'un `sahne.js` zoom'una bağlanması YAPILMADI.
+- LOD: `mimariLod(zoom, onceki)` (eşik 2.0, histerezis ±0.12); `sahne.js` `kameraGuncelle` eşik geçince bina modellerini önbellekteki geometrilerle yeniden kurar. Uzak: kiremit sıraları iri, küçük ayrıntı (çıta, konsol, çiçek, sarmaşık, demir bant) yok, dilim rengi sakin.
+- Üçgen: konut 3,7–4,9 bin tam, ≈ %30 az uzak (eski 0,9 bin). Testler: üçgen ≤ 6000, uzak ≤ %85, model başına bellek < 1,2 MB, taşma, kurulum süresi, LOD histerezisi.
+- Bellek notu: her (varyant × seviye × durum × LOD) ayrı geometridir (~0,8 MB); kullanım ihtiyaç anında dolar, boşaltma yok.
 
-## Ölçüm
+## Ölçüm (isteğe bağlı; kullanıcı kararıyla gerçek cihaz ölçümü yapılmıyor)
 - `olcum.html` (build'e dahil): eski/yeni/yeni-uzak × 30/80/160 konut; fps, ort/p95 ms, çağrı, üçgen, kurulum süresi, GPU adı. Yazılım çizimi (SwiftShader) algılanırsa uyarır: telefon sayısı değildir.
 - `karsilastir.html` (yalnız `npm run dev`): eski + varyantlar yan yana. `tests/e2e/mimari.mjs`: oyun sahnesinde eski/yeni köy ekran görüntüsü.

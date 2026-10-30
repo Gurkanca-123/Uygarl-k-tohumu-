@@ -71,3 +71,41 @@ test('mimari: altı çağ stil paketi tanımlı, oyun çağları eşleşir', () 
 test('mimari: oyun verisine dokunulmadı (beş çağ)', () => {
   assert.equal(new Set(BINALAR.map((b) => b.cag)).size, 5);
 });
+
+import { mimariLod, LOD_ESIK, LOD_ARALIK } from '../src/render/mimari/index.js';
+
+test('mimari LOD: zoom eşiği histerezisli, titremez', () => {
+  assert.equal(mimariLod(1.6, 0), 1, 'varsayılan zoom uzak ayrıntı');
+  assert.equal(mimariLod(3.4, 1), 0, 'yakın zoom tam ayrıntı');
+  assert.equal(mimariLod(LOD_ESIK, 0), 0, 'eşikte durum değişmez (tam kalır)');
+  assert.equal(mimariLod(LOD_ESIK, 1), 1, 'eşikte durum değişmez (uzak kalır)');
+  assert.equal(mimariLod(LOD_ESIK + LOD_ARALIK + 0.01, 1), 0);
+  assert.equal(mimariLod(LOD_ESIK - LOD_ARALIK - 0.01, 0), 1);
+  // ileri-geri küçük oynamada geçiş sayısı: eşik çevresinde salınım tek geçişten fazla olmamalı
+  let l = 0, gecis = 0;
+  for (let i = 0; i < 200; i++) { const z = LOD_ESIK + Math.sin(i / 3) * 0.08; const n = mimariLod(z, l); if (n !== l) gecis++; l = n; }
+  assert.equal(gecis, 0, 'histerezis bandı içinde salınım geçiş üretmemeli');
+});
+
+test('mimari kaynak: üçgen, bellek, kurulum süresi ve çizim çağrısı sınırları', () => {
+  const t0 = performance.now();
+  for (let vr = 0; vr < 4; vr++) {
+    const tam = modelVerisi('yari_ahsap_ev', 1, '', vr, true, 0);
+    const uzak = modelVerisi('yari_ahsap_ev', 1, '', vr, true, 1);
+    const nTam = ucgen(tam.ana), nUzak = ucgen(uzak.ana);
+    assert.ok(nTam <= 6000, `v${vr} tam ${nTam} üçgen`);
+    assert.ok(nUzak <= nTam * 0.85, `v${vr} uzak (${nUzak}) tamdan (${nTam}) yeterince hafif değil`);
+    // çizim çağrısı: ana + ışıltı = en çok 2 ağ
+    assert.ok(tam.ana && (tam.isil === null || tam.isil), 'ana + ışıltı');
+    // bellek: köşe başına konum+normal+uv+hücre+renk = 13 float
+    const bayt = (ucgen(tam.ana) + ucgen(tam.isil)) * 3 * 13 * 4;
+    assert.ok(bayt < 1.2 * 1024 * 1024, `v${vr} ${(bayt / 1048576).toFixed(2)} MB`);
+    assert.equal(tam.ana.getAttribute('position').count % 3, 0);
+    // bounding box makul: karo dışına taşmaz (ölçek 1.24 sonrası ±0.75'ten dar)
+    tam.ana.computeBoundingBox();
+    const b = tam.ana.boundingBox;
+    assert.ok(b.max.x < 0.8 && b.min.x > -0.8 && b.max.z < 0.8 && b.min.z > -0.8, `v${vr} taşma ${b.min.x.toFixed(2)}..${b.max.x.toFixed(2)}`);
+    assert.ok(b.max.y < 2.0, `v${vr} yükseklik ${b.max.y.toFixed(2)}`);
+  }
+  assert.ok(performance.now() - t0 < 3000, 'sekiz modelin kurulumu çok yavaş');
+});

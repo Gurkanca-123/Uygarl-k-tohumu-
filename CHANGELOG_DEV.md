@@ -1,5 +1,9 @@
 # CHANGELOG_DEV (yalnız son kayıtlar; eskiler `docs/CHANGELOG_ARSIV.md`)
 
+## 2026-10-30 — Ev prototipi 2. görsel geçiş + kamera LOD'u (Sonnet 5.5)
+- Ev: toprak tonlu çatı paleti (ocra/kahve karışımı, yosunlu dilim, yaşlı dilim), kapı feneri, taş taban kuşağı, baca çömleği, alçak bahçe çitleri, varyanta özgü iskelet deseni (carpraz/x/v/ince). Kullanıcı kararı: gerçek cihaz ölçümü yok; görsel kalite öncelikli.
+- LOD: `mimariLod` (zoom 2.0 eşiği, histerezis) + `sahne.js` bağlantısı (yalnız mimari motorlu binalar etkilenir). Testler 9 → 11 (kaynak sınırları, LOD).
+
 ## 2026-10-30 — Prosedürel mimari motor temeli + yarı ahşap ev prototipi (Sonnet 5.5)
 - Yeni `src/render/mimari/` (geometri, çatı, parçalar, çağ stilleri, varyasyon, `yari_ahsap_ev` 4 varyant); ayrıntı: `docs/MIMARI_URETIM.md`. Varsayılan KAPALI (`?mimari=yeni`). `binalar.js`'e yalnız kanca eklendi (`modelVerisi` dışa açık + `vr/yeni/lod` parametreleri); eski modeller değişmedi. Geri dönüş: dal `yedek/mimari-oncesi`.
 - Ölçüm/karşılaştırma: `olcum.html` (build'e dahil, `vite.config.js` iki girişli), `karsilastir.html` (dev), `tests/e2e/mimari.mjs`, `tests/mimari.test.js` (7 test). `npm test` 203/204 (+1 todo), e2e 111/111.

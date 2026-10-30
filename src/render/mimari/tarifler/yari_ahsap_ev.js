@@ -35,7 +35,7 @@ function kanat(Y, S, o) {
     W.prizma([[uz0 + 0.04, y2 - 0.01], [uz1 - 0.04, y2 - 0.01], [czU, y2 + H - 0.065]], sx > 0 ? px - 0.04 : px, sx > 0 ? px : px + 0.04, 'x', 0, 0, 0, 'duz', o.siva);
   }
   // çatı
-  const cati = catiBesik(W, { x0: cxU, z0: czU, w: wU, d: dU, y: y2, H, oh: 0.05, rake: 0.04, renk, doku, kabukRenk: kabuk, kuyruk: true });
+  const cati = catiBesik(W, { x0: cxU, z0: czU, w: wU, d: dU, y: y2, H, oh: 0.05, rake: 0.04, renk, doku, kabukRenk: kabuk, kuyruk: true, yosun: S.yosun });
 
   for (const [f, tanim] of Object.entries(yuz)) {
     const gw = f[0] === 'z' ? w : d, uw = f[0] === 'z' ? wU : dU;
@@ -46,6 +46,8 @@ function kanat(Y, S, o) {
     const dl = [];
     if (tanim.kapi) { const k = tanim.kapi; kapi(G, S, k); dl.push([k.x - k.w / 2, k.x + k.w / 2]); if (tanim.tente) tente(G, S, { x: k.x, y: k.h + 0.04, w: k.w + 0.1 }); }
     for (const p of tanim.zemin || []) pencere(G, S, { y: 0.075, w: 0.07, h: 0.085, tip: 'kemer', panjur: 'acik', ...p });
+    // taş taban kuşağı (yağmur/çamur sıçraması için koyu ve çıkıntılı)
+    G.kutu(gw + 0.012, 0.034, 0.012, 0, 0, 0.004, 'moloz', S.tas);
     // köşe taşları (dönüşümlü uzun/kısa) iki uçta
     for (const s of [-1, 1]) {
       for (let i = 0; i < Math.floor(h1 / 0.04); i++) {
@@ -83,6 +85,8 @@ function sokak(Y, S, k, R, dekor) {
   const f = Y;
   if (dekor.patika) for (let i = 0; i < 3; i++) f.kutu(0.085 + R() * 0.03, 0.012, 0.075, dekor.patika[0] + (R() - 0.5) * 0.03, 0, dekor.patika[1] + i * 0.095, 'tasBlok', R() < 0.5 ? S.tasAcik : S.tas, { ry: (R() - 0.5) * 0.4 });
 }
+// Alçak ahşap bahçe çiti (k.cit): ön/yan kenarı tanımlar, avluya kimlik verir.
+function citSira(Y, x0, z0, x1, z1, Z) { Y.k.cit(x0, z0, x1, z1, Z, 0x7a5a3a, 0.1); }
 function varil(Y, S, x, z, y, s = 1) {
   Y.silindir(0.052 * s, 0.047 * s, 0.12 * s, 9, x, y, z, 'tahta', 0x8a5a32);
   for (const t of [0.22, 0.78]) Y.silindir(0.056 * s, 0.056 * s, 0.012 * s, 9, x, y + 0.12 * s * t - 0.006 * s, z, 'duz', S.demir);
@@ -179,15 +183,16 @@ export function yariAhsapEv(k, c, vr = 0) {
       dorm: [{ x: -0.14, z: 0.3 }, ...(sv3 ? [{ x: 0.14, z: 0.3 }] : [])], baca: [{ x: 0.22, h: 0.17 }] });
     varil(Y, S, 0.33, 0.3, Z, 1);
     Y.k.odun(0.28, 0.44, Z, 0.15, 0.9);
+    citSira(Y, -0.44, 0.44, -0.3, 0.44, Z); citSira(Y, -0.44, -0.05, -0.44, 0.44, Z);
     cicekYatagi(Y, S, 0.0, 0.405, Z + 0.0, 0.2, 0.06);
     sarmasik(Y, 0.305, 0.215, Z, 0.2);
     sokak(Y, S, k, R, { patika: [-0.16, 0.2] });
   } else if (vr === 1) {
     // L PLANLI: arka ana kanat (mahya x) + öne uzanan çapraz kanat (mahya z); arduvaz çatı
-    const a1 = kanat(Y, S, { Z, w: 0.6, d: 0.36, h1: 0.22, h2: 0.23 * s, H: 0.24 * s, cx: -0.05, cz: -0.14, cikma: ['x+', 'z+'], renk: arduvaz, doku: 'arduvaz', siva,
+    const a1 = kanat(Y, S, { Z, w: 0.6, d: 0.36, h1: 0.22, h2: 0.23 * s, H: 0.24 * s, cx: -0.05, cz: -0.14, cikma: ['x+', 'z+'], desen: 'x', renk: arduvaz, doku: 'arduvaz', siva,
       yuz: { 'z+': { zemin: [{ x: -0.2 }], ust: [{ x: -0.2, w: 0.08 }, { x: -0.04, w: 0.08, tip: 'cift' }] } },
       dorm: [], baca: [{ x: -0.2, h: 0.15 }] });
-    ana = kanat(Y, S, { Z, w: 0.46, d: 0.34, h1: 0.23, h2: 0.25 * s, H: 0.235 * s, cx: 0.17, cz: 0.07, ry: -PI / 2, cikma: ['x+'], renk: arduvaz, doku: 'arduvaz', siva,
+    ana = kanat(Y, S, { Z, w: 0.46, d: 0.34, h1: 0.23, h2: 0.25 * s, H: 0.235 * s, cx: 0.17, cz: 0.07, ry: -PI / 2, cikma: ['x+'], desen: 'x', renk: arduvaz, doku: 'arduvaz', siva,
       yuz: {
         'x+': { kapi: { x: 0.0, w: 0.1, h: 0.19 }, tente: true, ust: [{ x: -0.07, w: 0.08, saksi: true }, { x: 0.075, w: 0.08, panjur: 'kapali' }], alinPencere: true },
         'z-': { zemin: [{ x: -0.1 }, { x: 0.12 }], ust: [{ x: -0.1, w: 0.08, saksi: true }, { x: 0.05, w: 0.085, tip: 'cift' }, { x: 0.18, w: 0.07 }] },
@@ -197,10 +202,11 @@ export function yariAhsapEv(k, c, vr = 0) {
     cicekYatagi(Y, S, -0.22, 0.2, Z, 0.16, 0.06);
     varil(Y, S, -0.34, 0.12, Z, 1);
     Y.k.odun(-0.22, 0.34, Z, 0.4, 0.9);
+    citSira(Y, -0.44, 0.45, -0.04, 0.45, Z);
     sokak(Y, S, k, R, { patika: [0.05, 0.3] });
   } else if (vr === 2) {
     // KULELİ: ana kanat + sağ-ön köşede merdiven kulesi (üç kademeli külah)
-    ana = kanat(Y, S, { Z, w: 0.56, d: 0.4, h1: 0.23, h2: 0.25 * s, H: 0.25 * s, cx: -0.06, cz: -0.02, cikma: ['z+'], renk: kirem, doku: S.catiDoku, siva,
+    ana = kanat(Y, S, { Z, w: 0.56, d: 0.4, h1: 0.23, h2: 0.25 * s, H: 0.25 * s, cx: -0.06, cz: -0.02, cikma: ['z+'], desen: 'v', renk: kirem, doku: S.catiDoku, siva,
       yuz: {
         'z+': { kapi: { x: -0.1, w: 0.1, h: 0.19 }, tente: true, zemin: [{ x: 0.1 }], ust: [{ x: -0.16, w: 0.085, saksi: true }, { x: 0.02, w: 0.085, tip: 'cift' }] },
         'x+': { zemin: [{ x: -0.08 }], ust: [{ x: 0.0, w: 0.085 }], alinPencere: true },
@@ -209,10 +215,11 @@ export function yariAhsapEv(k, c, vr = 0) {
     kule(Y, S, { Z, x: 0.3, z: 0.22, r: 0.1, h: 0.46 * s, renk: arduvaz });
     cicekYatagi(Y, S, -0.22, 0.34, Z, 0.16, 0.06);
     varil(Y, S, -0.36, 0.22, Z, 0.9);
+    citSira(Y, -0.44, -0.2, -0.44, 0.4, Z); citSira(Y, -0.44, 0.44, -0.32, 0.44, Z);
     sokak(Y, S, k, R, { patika: [-0.1, 0.22] });
   } else {
     // ATÖLYELİ: küçük ana ev + sağda tek katlı, tezgâhlı atölye eki; tabela, tente, varil
-    ana = kanat(Y, S, { Z, w: 0.5, d: 0.42, h1: 0.23, h2: 0.25 * s, H: 0.25 * s, cx: -0.1, cz: -0.02, cikma: ['z+', 'x+'], renk: kirem, doku: S.catiDoku, siva,
+    ana = kanat(Y, S, { Z, w: 0.5, d: 0.42, h1: 0.23, h2: 0.25 * s, H: 0.25 * s, cx: -0.1, cz: -0.02, cikma: ['z+', 'x+'], desen: 'ince', renk: kirem, doku: S.catiDoku, siva,
       yuz: {
         'z+': { kapi: { x: -0.1, w: 0.1, h: 0.19 }, tente: true, zemin: [{ x: 0.12 }], ust: [{ x: -0.14, w: 0.085, saksi: true }, { x: 0.07, w: 0.085, tip: 'cift', panjur: 'kapali' }] },
         'x+': { ust: [{ x: 0.0, w: 0.085 }], alinPencere: true },
@@ -221,6 +228,7 @@ export function yariAhsapEv(k, c, vr = 0) {
     atolyeEki(Y, S, { Z, x: 0.345, z: -0.04, w: 0.26, d: 0.36, h: 0.2, renk: kirem, siva });
     varil(Y, S, 0.4, 0.3, Z, 0.9);
     varil(Y, S, 0.33, 0.33, Z, 0.8);
+    citSira(Y, -0.44, 0.45, -0.2, 0.45, Z);
     sokak(Y, S, k, R, { patika: [-0.1, 0.22] });
   }
   // seviye süsleri
