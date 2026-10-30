@@ -23,11 +23,13 @@ export function surParca(Y, S, o) {
   if (mazgal) {
     const n = Math.max(2, Math.round(L / 0.16)), g = L / n;
     for (let i = 0; i < n; i += 1) if (i % 2 === 0 || Y.k.lod) W.kutu(g * (Y.k.lod ? 0.9 : 0.55), 0.07, 0.04, -L / 2 + g * (i + 0.5), y + h + 0.03, t / 2 + 0.015, 'tasBlok', S.tasAcik);
-    W.kutu(L, 0.035, 0.03, 0, y + h + 0.03, -t / 2 - 0.01, 'tasBlok', S.tas); // iç korkuluk
+    if (o.cift) { for (let i = 0; i < n; i += 1) if (i % 2 === 0 || Y.k.lod) W.kutu(g * (Y.k.lod ? 0.9 : 0.55), 0.07, 0.04, -L / 2 + g * (i + 0.5), y + h + 0.03, -t / 2 - 0.015, 'tasBlok', S.tasAcik); }
+    else W.kutu(L, 0.035, 0.03, 0, y + h + 0.03, -t / 2 - 0.01, 'tasBlok', S.tas); // iç korkuluk
   }
   if (ok && !Y.k.lod) {
     const n = Math.max(1, Math.floor(L / 0.45));
     for (let i = 0; i < n; i++) W.kutu(0.014, 0.065, 0.012, -L / 2 + (L * (i + 0.5)) / n, y + h * 0.5, t / 2 + 0.002, 'duz', 0x1c1814, { arka: true });
+    if (o.cift) for (let i = 0; i < n; i++) W.kutu(0.014, 0.065, 0.012, -L / 2 + (L * (i + 0.5)) / n, y + h * 0.5, -t / 2 - 0.002, 'duz', 0x1c1814, { arka: true });
   }
 }
 
@@ -111,7 +113,7 @@ export function donjon(Y, S, o) {
  * o: { x, z, y, w, h, kuleR }; z = sur düzlemi. Dönüş: tepe.
  */
 export function kaleKapisi(Y, S, o) {
-  const { x, z, y, w = 0.5, h = 0.64, kuleR = 0.17 } = o;
+  const { x, z, y, w = 0.5, h = 0.64, kuleR = 0.17, kopruBoy = 0.3 } = o;
   const G = Y.alt(x, z, 0); G.cephe = true;
   // gövde (kapı üstü kütle)
   G.kutu(w, h, 0.3, 0, y, 0, 'tasBlok', S.tas);
@@ -129,7 +131,7 @@ export function kaleKapisi(Y, S, o) {
     if (i % 2 === 0 && !Y.k.lod) G.kutu(0.05, 0.06, 0.07, -w / 2 + (w * (i + 0.5)) / n, y + h - 0.07, 0.17, 'tasBlok', S.tas);
   }
   // asma köprü: tahta tabliye + iki zincir
-  const bz = 0.3;
+  const bz = kopruBoy;
   G.kutu(0.2, 0.018, bz, 0, y + 0.0, 0.15 + bz / 2, 'tahta', 0x7a5634, { arka: true });
   for (let i = 0; i < 6 && !Y.k.lod; i++) G.kutu(0.2, 0.006, 0.008, 0, y + 0.02, 0.17 + i * 0.05, 'kutuk', S.kiris, { arka: true });
   for (const s of [-1, 1]) G.kiris([s * 0.09, y + h * 0.82, 0.16], [s * 0.09, y + 0.02, 0.15 + bz], 0.008, 0.008, 'duz', S.demir);

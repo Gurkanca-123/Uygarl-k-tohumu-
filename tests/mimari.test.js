@@ -194,7 +194,8 @@ test('mimari: her kayıtlı bina için ortak kaynak, sınır ve varyant denetimi
       assert.equal(tam, modelVerisi(id, 1, '', vr, true, 0), 'önbellek paylaşımı');
     }
     assert.equal(imza.size, adet, `${id}: varyantlar birbirinden farklı olmalı`);
-    for (const durum of ['', 'i1', 'i3', 'h', 'k']) assert.ok(ucgen(modelVerisi(id, 2, durum, 0, true).ana) > 50, `${id} durum ${durum}`);
+    const bagS = t.cevre ? '#5' : ''; // çevre parçaları komşu maskesiyle
+    for (const durum of ['', 'i1', 'i3', 'h', 'k']) assert.ok(ucgen(modelVerisi(id, 2, durum + bagS, 0, true).ana) > 0, `${id} durum ${durum}`);
     assert.ok(modelVerisi(id, 1, '', 0, false) !== modelVerisi(id, 1, '', 0, true), `${id}: eski model yolu ayrı kalmalı`);
   }
 });

@@ -10,6 +10,8 @@ import { han, VARYANT_ADET as HAN_VARYANT } from './tarifler/han.js';
 import { demirci, eritmeFirini, dokumaAtolyesi, darphane, aletYapimcisi, VARYANT_ADET as ATL_VARYANT } from './tarifler/atolyeler.js';
 import { ciftlik, ambar, agil, tahilBahcesi, erzakCukuru, sulananTarla, bagBahce, kurutmaRafi, VARYANT_ADET as TAR_VARYANT } from './tarifler/ciftlik.js';
 import { loncaBinasi, darussifa, VARYANT_ADET as KAMU_VARYANT } from './tarifler/kamu.js';
+import { surParcasi, cit, nobetCiti, gozcuDiregi, muhafizKulesi, kisla, VARYANT_ADET as SAV_VARYANT } from './tarifler/savunma.js';
+import { cadir, kulube, avciKulubesi, toplayiciBarinagi, oduncuKampi, totem, sifaciCadiri, tasOcagi, balikciSiginagi, magaraResmi, VARYANT_ADET as ILK_VARYANT } from './tarifler/ilkel.js';
 import { stilAl, mimariCag } from './cag_stilleri.js';
 import { varyantSec } from './varyasyon.js';
 
@@ -34,6 +36,22 @@ const KAYIT = {
   bag_bahce: { varyant: TAR_VARYANT, yap: bagBahce },
   lonca_binasi: { varyant: KAMU_VARYANT, yap: loncaBinasi },
   darussifa: { varyant: KAMU_VARYANT, yap: darussifa },
+  sur_parcasi: { varyant: SAV_VARYANT, yap: surParcasi },
+  cit: { varyant: SAV_VARYANT, yap: cit },
+  nobet_citi: { varyant: SAV_VARYANT, yap: nobetCiti },
+  gozcu_diregi: { varyant: SAV_VARYANT, yap: gozcuDiregi },
+  muhafiz_kulesi: { varyant: SAV_VARYANT, yap: muhafizKulesi },
+  kisla: { varyant: SAV_VARYANT, yap: kisla },
+  cadir: { varyant: ILK_VARYANT, yap: cadir },
+  kulube: { varyant: ILK_VARYANT, yap: kulube },
+  avci_kulubesi: { varyant: ILK_VARYANT, yap: avciKulubesi },
+  toplayici_barinagi: { varyant: ILK_VARYANT, yap: toplayiciBarinagi },
+  oduncu_kampi: { varyant: ILK_VARYANT, yap: oduncuKampi },
+  totem: { varyant: ILK_VARYANT, yap: totem },
+  sifaci_cadiri: { varyant: ILK_VARYANT, yap: sifaciCadiri },
+  tas_ocagi: { varyant: ILK_VARYANT, yap: tasOcagi },
+  balikci_siginagi: { varyant: ILK_VARYANT, yap: balikciSiginagi },
+  magara_resmi: { varyant: ILK_VARYANT, yap: magaraResmi },
   kurutma_rafi: { varyant: TAR_VARYANT, yap: kurutmaRafi },
 };
 

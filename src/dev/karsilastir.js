@@ -10,6 +10,7 @@ const bina = q.get('bina') || 'yari_ahsap_ev';
 const sv = Number(q.get('sv') || 1);
 const yy = Number(q.get('yy') || 1.05); // kamera yarım yüksekliği (dünya birimi); oyun: 8.5 / zoom
 const cy = Number(q.get('cy') || 0.62);
+const bag = Number(q.get('bag') || 0); // çevre parçaları (cit, sur_parcasi) komşu bağlantı maskesi
 
 const W = innerWidth, H = innerHeight;
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
@@ -43,7 +44,7 @@ const bilgi = [];
 hucreler.forEach((h, i) => {
   if (model) { sahne.remove(model); modeliTemizle(model); }
   const eski = h === 'eski';
-  model = binaModeli({ id: bina, seviye: sv, uid: 'x' }, {}, eski ? { mimari: 'eski' } : { mimari: 'yeni', varyant: Number(h) });
+  model = binaModeli({ id: bina, seviye: sv, uid: 'x' }, {}, eski ? { mimari: 'eski', bag } : { mimari: 'yeni', varyant: Number(h), bag });
   const os = 1.24 + 0.04 * (sv - 1); void os; // ölçek geometriye pişirilmiş
   sahne.add(model);
   model.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });

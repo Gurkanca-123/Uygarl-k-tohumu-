@@ -123,7 +123,7 @@ export function tezgah(Y, S, x, z, y, ry = 0) {
 }
 /** Dor sütun sırası + arşitrav + alınlık (tapınak cepheli). o: { x, z, y, w, h, adet = 4, derin } cephe +z */
 export function sutunCephe(Y, S, o) {
-  const { x, z, y, w, h, adet = 4, derin = 0.12 } = o;
+  const { x, z, y, w, h, adet = 4, derin = 0.12, alinlik = true } = o;
   const A = Y.alt(x, z, 0);
   A.kutu(w + 0.06, 0.04, derin + 0.08, 0, y, 0, 'mermer', S.tasKrem ?? S.tasAcik);
   const g = w / (adet - 1);
@@ -134,8 +134,8 @@ export function sutunCephe(Y, S, o) {
     A.kutu(0.06, 0.012, 0.06, px, y + 0.03, derin / 2, 'mermer', S.tasAcik);
   }
   A.kutu(w + 0.1, 0.04, derin + 0.04, 0, y + 0.06 + h, 0.0, 'mermer', S.tasAcik);
-  A.prizma([[-w / 2 - 0.05, 0], [w / 2 + 0.05, 0], [0, 0.1]], -derin / 2 - 0.02, derin / 2 + 0.02, 'z', 0, y + 0.1 + h, 0, 'mermer', S.tasAcik);
-  A.prizma([[-w / 2 - 0.01, 0], [w / 2 + 0.01, 0], [0, 0.08]], derin / 2 + 0.0, derin / 2 + 0.03, 'z', 0, y + 0.105 + h, 0, 'kerpic', S.kiremit[0]);
+  if (alinlik) A.prizma([[-w / 2 - 0.05, 0], [w / 2 + 0.05, 0], [0, 0.1]], -derin / 2 - 0.02, derin / 2 + 0.02, 'z', 0, y + 0.1 + h, 0, 'mermer', S.tasAcik);
+  if (alinlik) A.prizma([[-w / 2 - 0.01, 0], [w / 2 + 0.01, 0], [0, 0.08]], derin / 2 + 0.0, derin / 2 + 0.03, 'z', 0, y + 0.105 + h, 0, 'kerpic', S.kiremit[0]);
 }
 /** Deri barınak: eğik direkler + gerili deri örtü. o: { x, z, y, w, d, h, ry } */
 export function deriBarinak(Y, S, o) {
