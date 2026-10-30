@@ -12,6 +12,8 @@ import { ciftlik, ambar, agil, tahilBahcesi, erzakCukuru, sulananTarla, bagBahce
 import { loncaBinasi, darussifa, VARYANT_ADET as KAMU_VARYANT } from './tarifler/kamu.js';
 import { surParcasi, cit, nobetCiti, gozcuDiregi, muhafizKulesi, kisla, VARYANT_ADET as SAV_VARYANT } from './tarifler/savunma.js';
 import { cadir, kulube, avciKulubesi, toplayiciBarinagi, oduncuKampi, totem, sifaciCadiri, tasOcagi, balikciSiginagi, magaraResmi, VARYANT_ADET as ILK_VARYANT } from './tarifler/ilkel.js';
+import { kerpicEv, kilOcagi, madenOcagi, pazarYeri, kuyu as kuyuTarif, mabet, VARYANT_ADET as BRZ_VARYANT } from './tarifler/bronz.js';
+import { tasEv, mermerOcagi, liman, suKemeri, hamam, kutuphane, tiyatro, VARYANT_ADET as ANT_VARYANT } from './tarifler/antik.js';
 import { stilAl, mimariCag } from './cag_stilleri.js';
 import { varyantSec } from './varyasyon.js';
 
@@ -52,6 +54,19 @@ const KAYIT = {
   tas_ocagi: { varyant: ILK_VARYANT, yap: tasOcagi },
   balikci_siginagi: { varyant: ILK_VARYANT, yap: balikciSiginagi },
   magara_resmi: { varyant: ILK_VARYANT, yap: magaraResmi },
+  kerpic_ev: { varyant: BRZ_VARYANT, yap: kerpicEv },
+  kil_ocagi: { varyant: BRZ_VARYANT, yap: kilOcagi },
+  maden_ocagi: { varyant: BRZ_VARYANT, yap: madenOcagi },
+  pazar_yeri: { varyant: BRZ_VARYANT, yap: pazarYeri },
+  kuyu: { varyant: BRZ_VARYANT, yap: kuyuTarif },
+  mabet: { varyant: BRZ_VARYANT, yap: mabet },
+  tas_ev: { varyant: ANT_VARYANT, yap: tasEv },
+  mermer_ocagi: { varyant: ANT_VARYANT, yap: mermerOcagi },
+  liman: { varyant: ANT_VARYANT, yap: liman },
+  su_kemeri: { varyant: ANT_VARYANT, yap: suKemeri },
+  hamam: { varyant: ANT_VARYANT, yap: hamam },
+  kutuphane: { varyant: ANT_VARYANT, yap: kutuphane },
+  tiyatro: { varyant: ANT_VARYANT, yap: tiyatro },
   kurutma_rafi: { varyant: TAR_VARYANT, yap: kurutmaRafi },
 };
 
