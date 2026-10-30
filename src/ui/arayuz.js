@@ -30,6 +30,9 @@ const SEKMELER = [['insa', '🔨', 'İnşa', insaSekmesi], ['is', '👷', 'İş'
 const MEVSIM_SIMGE = ['🌱', '☀️', '🍂', '❄️'];
 const KALITELER = [['yuksek', 'Yüksek'], ['standart', 'Standart'], ['performans', 'Performans']];
 const ROZET_ZOOM = 1.0;
+// Ekranda toast olarak çıkan bildirim kodları (kalanı yalnız Günlük'e yazılır).
+const KRITIK_KOD = new Set(['zafer', 'cag_atlandi', 'tehdit_kusatma', 'onder_yarali', 'aclik']);
+const ONEMLI_KOD = new Set([...KRITIK_KOD, 'cag_hazir', 'bulus_tamam', 'tehdit_varis', 'tehdit_uyari', 'saldiri', 'yarali']);
 const SEVIYE_SIMGE = { iyi: '✔', uyari: '⚠', hata: '✖', bilgi: 'ℹ' };
 
 export class Arayuz {
@@ -38,7 +41,7 @@ export class Arayuz {
     const ui = depoOku('ut_ui', { sekme: 'insa', pencere: 'kapali' });
     this.sekme = SEKMELER.some((x) => x[0] === ui.sekme) ? ui.sekme : 'insa';
     this.pencere = ['kapali', 'acik', 'kucuk'].includes(ui.pencere) ? ui.pencere : 'kapali'; // sekme penceresi: kapali | acik | kucuk
-    this.ayar = depoOku('ut_ayar', { kalite: 'yuksek', ses: false });
+    this.ayar = depoOku('ut_ayar', { kalite: 'yuksek', ses: false, bildirim: 'onemli' });
     this.kartKucuk = false; this.kartAnahtar = null; this.modalAnahtar = null;
     this.insaKat = 'hepsi'; this.insaSadeceAcik = false;
     this.secim = null; this.yerlestirme = null; this.yikOnay = null; this.evrimOnay = null; this.kervanSecim = null; this.tehditAcik = false; this.tehditKucuk = false; this.sonTehditId = null;
@@ -117,20 +120,29 @@ export class Arayuz {
     else if (tip === 'hata') this.toast([{ metin: veri, seviye: 'hata' }], 'hata');
     else if (tip === 'tur') {
       this.yikOnay = null;
-      if (veri.bildirimler.length) this.toast(veri.bildirimler);
+      this.toast(this.bildirimSuz(veri.bildirimler));
       if (veri.bildirimler.some((b) => b.kod === 'zafer')) this.zaferGoster = true;
       if (this.yerlestirme) this.yerlestirmeBaslat(this.yerlestirme.binaId, true);
       this.yenile();
     } else if (tip === 'bildirim') {
-      this.toast(veri);
+      this.toast(this.bildirimSuz(veri));
       if (veri.some((b) => b.kod === 'zafer')) this.zaferGoster = true;
     }
   }
 
   hata(m) { this.toast([{ metin: m, seviye: 'hata' }], 'hata'); }
 
+  // Ekranda yalnız önemli bildirimler görünür; gerisi Günlük'te kalır (Ayarlar'dan değiştirilebilir).
+  bildirimSuz(liste) {
+    const kip = this.ayar.bildirim || 'onemli';
+    if (kip === 'hepsi') return liste;
+    if (kip === 'kapali') return liste.filter((b) => KRITIK_KOD.has(b.kod));
+    return liste.filter((b) => ONEMLI_KOD.has(b.kod));
+  }
+
   toast(liste, sev = null) {
-    const satirlar = liste.slice(0, 5);
+    if (!liste.length) return;
+    const satirlar = liste.slice(0, sev === 'hata' ? 5 : 3);
     const ek = liste.length - satirlar.length;
     const seviye = sev || (liste.some((b) => b.seviye === 'uyari') ? 'uyari' : liste.some((b) => b.seviye === 'iyi') ? 'iyi' : '');
     const simge = SEVIYE_SIMGE[sev || seviye || 'bilgi'] || 'ℹ';
@@ -138,9 +150,9 @@ export class Arayuz {
       h('span', { class: 'toast-sim' }, simge),
       h('div', { class: 'toast-gov' }, satirlar.map((b) => h('div', {}, b.metin)), ek > 0 ? h('div', { class: 'soluk kucuk' }, `…ve ${ek} bildirim daha (Günlük)`) : null));
     this.toastEl.append(el);
-    while (this.toastEl.querySelectorAll('.toast').length > 3) this.toastEl.querySelector('.toast').remove();
+    while (this.toastEl.querySelectorAll('.toast').length > 2) this.toastEl.querySelector('.toast').remove();
     this.toastTemizlikGuncelle();
-    setTimeout(() => { el.remove(); this.toastTemizlikGuncelle(); }, sev === 'hata' ? 4500 : 6500);
+    setTimeout(() => { el.remove(); this.toastTemizlikGuncelle(); }, sev === 'hata' ? 3500 : 4000);
   }
   toastTemizlikGuncelle() {
     this.toastEl.querySelector('.toast-temizle')?.remove();
@@ -681,6 +693,10 @@ export class Arayuz {
       h('div', { class: 'segment' }, KALITELER.map(([id, ad]) => h('button', {
         class: this.ayar.kalite === id ? 'secili' : '', onclick: () => { this.ayar = { ...this.ayar, kalite: id }; this.ayarYaz(); this.kaliteUygula(); this.yenile(); } }, ad))),
       h('div', { class: 'soluk kucuk' }, 'Performans yavaş telefonlar içindir. Seçim bu cihazda saklanır.'),
+      h('h4', {}, 'Ekran bildirimleri'),
+      h('div', { class: 'segment' }, [['onemli', 'Önemli'], ['hepsi', 'Hepsi'], ['kapali', 'Yalnız kritik']].map(([id, ad]) => h('button', {
+        class: (this.ayar.bildirim || 'onemli') === id ? 'secili' : '', onclick: () => { this.ayar = { ...this.ayar, bildirim: id }; this.ayarYaz(); this.yenile(); } }, ad))),
+      h('div', { class: 'soluk kucuk' }, 'Ekrandan elenen bildirimler her zaman Günlük\'te okunabilir.'),
       h('h4', {}, 'Ses'),
       h('div', { class: 'oge ses' }, h('span', {}, '🔊 Ses efektleri ve müzik'), h('span', { class: 'etiket' }, 'Yakında')),
       h('h4', {}, 'Yardım'),

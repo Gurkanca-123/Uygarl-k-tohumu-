@@ -18,6 +18,32 @@
 - `dogrula.js`: evrim hedefi doğrulaması. `render/binalar.js`: evrim sürerken yükseltme görünümü. `isdagit.js`: evrimdeki bina işçi alabilir.
 - Testler: `tests/evrim.test.js` (23), `tests/uzun_sim.test.js` (7); toplam 227 (226 geçer + 1 todo). `tests/yardimci/uzun_sim.js`: tüm çağlar botu + değişmez denetimi; `node tests/yardimci/uzun_sim.js <tohum> <gün> <zorluk> [çağ]`.
 - `docs/DENGE_BULGULARI.md`: ölçüm + 9 denge bulgusu (HİÇBİR SAYI DEĞİŞMEDİ).
+## 2026-10-30 — Kalan tüm binalar yeni mimari motorda: 55/55 (Sonnet 5.5)
+- Eklenen aileler: tarım (çiftlik, ambar, ağıl, tahıl bahçesi, erzak çukuru, sulanan tarla, bağ-bahçe, kurutma rafı), lonca binası, darüşşifa, savunma (sur parçası, çit, nöbet çiti, gözcü direği, muhafız kulesi, kışla), ilkel çağ (10), bronz (6), antik (7), merkezler (5). Hepsi 3 varyant; çevre parçaları (cit, sur_parcasi) komşu maskesiyle uyumlu.
+- Yeni parça modülleri: `parcalar_tarim/lonca/ilkel.js`. `tests/mimari.test.js` kayıtlı tüm binaları otomatik denetler. `tests/e2e/oyna.mjs`: `MIMARI=yeni npm run e2e` ile tam oyun yeni motor açıkken.
+- Oyun verisi/mekanik değişmedi; yeni motor hâlâ varsayılan KAPALI. Şehir geneli bütünlük (çatı rengi, ışık, LOD) bir sonraki ortak aşama.
+
+## 2026-10-30 — Kale, manastır, han ve atölyeler (Sonnet 5.5)
+- Yeni tarifler (her biri 3 varyant): `kale`, `manastir`, `han`, `demirci`, `eritme_firini`, `dokuma_atolyesi`, `darphane`, `alet_yapimcisi`. Ortak parça modülleri: `parcalar_kale/avlu/han/atolye.js`. `antik` ve `ilkel` stil paketleri kullanıma alındı.
+- `tests/mimari.test.js`: kayıtlı tüm binalar için ortak denetim (≥3 varyant, üçgen/bellek/taşma, LOD, durumlar). Denetim `yari_ahsap_ev` atölyeli varyantının karo dışına taştığını yakaladı; küçültüldü (görsel karakter korundu).
+- Oyun verisi/mekanik değişmedi; yeni motor varsayılan kapalı.
+
+## 2026-10-30 — Katedral + su değirmeni + ortak üretim sistemi (Sonnet 5.5)
+- `tarifler/katedral.js` (3 varyant, ~13 bin üçgen, vitray/gül pencere/uçan payanda/ikiz kule) ve `tarifler/degirmen.js` (3 varyant, dönen su çarkı ayrı geometri + kanal/savak/köprü). Ortak: `kanat.js` (evden çıkarıldı), `parcalar_anit.js`, `parcalar_su.js`, `Yerel` ölçeği.
+- `binalar.js`: pervane mesh'i `v.pervane.geo/ry` destekler (eski rüzgâr değirmeni aynen). Oyun mekaniği/veri dokunulmadı. Yeni motor yine varsayılan KAPALI.
+- KARAR/RAPOR: 'Değirmen' görseli rüzgâr değirmeninden SU değirmenine döndü (araştırma `su_degirmeni`; işlev aynı). Katedral tekil olduğundan varyant oyun başına tek. Sol/arka yüzler ayrıntısız (kamera sabit).
+
+## 2026-10-30 — Ev prototipi 2. görsel geçiş + kamera LOD'u (Sonnet 5.5)
+- Ev: toprak tonlu çatı paleti (ocra/kahve karışımı, yosunlu dilim, yaşlı dilim), kapı feneri, taş taban kuşağı, baca çömleği, alçak bahçe çitleri, varyanta özgü iskelet deseni (carpraz/x/v/ince). Kullanıcı kararı: gerçek cihaz ölçümü yok; görsel kalite öncelikli.
+- LOD: `mimariLod` (zoom 2.0 eşiği, histerezis) + `sahne.js` bağlantısı (yalnız mimari motorlu binalar etkilenir). Testler 9 → 11 (kaynak sınırları, LOD).
+
+## 2026-10-30 — Prosedürel mimari motor temeli + yarı ahşap ev prototipi (Sonnet 5.5)
+- Yeni `src/render/mimari/` (geometri, çatı, parçalar, çağ stilleri, varyasyon, `yari_ahsap_ev` 4 varyant); ayrıntı: `docs/MIMARI_URETIM.md`. Varsayılan KAPALI (`?mimari=yeni`). `binalar.js`'e yalnız kanca eklendi (`modelVerisi` dışa açık + `vr/yeni/lod` parametreleri); eski modeller değişmedi. Geri dönüş: dal `yedek/mimari-oncesi`.
+- Ölçüm/karşılaştırma: `olcum.html` (build'e dahil, `vite.config.js` iki girişli), `karsilastir.html` (dev), `tests/e2e/mimari.mjs`, `tests/mimari.test.js` (7 test). `npm test` 203/204 (+1 todo), e2e 111/111.
+- Konut üçgeni 3,5–4,7 bin (eski 0,87 bin) — gerçek telefonda ölçülmedi (yalnız SwiftShader). Çağ verisi (5 çağ) değişmedi; altı çağ stil paketi taslak.
+
+## 2026-10-29 — Ekran bildirimleri azaltıldı (Sonnet 5.5)
+- `arayuz.js`: toast yalnız önemli kodlar için (`ONEMLI_KOD`/`KRITIK_KOD`); inşaat bitti, iş dağıtımı, keşif, doğum, göçmen vb. yalnız Günlük'e düşer. En çok 2 toast, 3 satır, 4 sn. Ayarlar → "Ekran bildirimleri" (Önemli / Hepsi / Yalnız kritik), `ut_ayar.bildirim`. Testler geçti, build tamam; telefonda denenmedi.
 
 ## 2026-10-29 — Kalan yapıların ayrıntı geçişi (Sonnet 5.5)
 - `binalar.js` ekleri: kil ocağı (çömlek rafı, çanak istifi, çömlekçi çarkı), maden (lamba, renkli cevher, vinç), mermer ocağı (yatan sütun, yarı heykel, altın damar), bağ bahçe (asma çardağı, üzüm, fıçı), kulübe, nöbet çiti (meşale, sancak), mağara resmi (meşale, el izleri), kışla (mankenler, silah rafı, sancaklar), manastır (kuyu, rahipler), darüşşifa (şifalı ot bahçesi, çeşme), lonca (sancak, sandıklar), ağıl. Böylece 54 yapının tamamı bu seanstaki görsel turdan geçti. Telefonda/oyun içinde denenmedi (kullanıcı deneyecek).

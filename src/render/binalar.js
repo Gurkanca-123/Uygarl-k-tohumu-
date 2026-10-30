@@ -5,6 +5,7 @@ import { BINALAR } from '../data/binalar.js';
 import { CAGLAR } from '../data/caglar.js';
 import { DOKU, ATLAS_HUCRE } from './dokular.js';
 import { binaMat, isilMat, hayaletMat, taslakMat, cizgiMat } from './malzeme.js';
+import { mimariKayitli, mimariYap, mimariVaryant, mimariAcik } from './mimari/index.js';
 
 const BINA = Object.fromEntries(BINALAR.map((b) => [b.id, b]));
 const CAG_SIRA = Object.fromEntries(CAGLAR.map((c) => [c.id, c.sira]));
@@ -1782,16 +1783,19 @@ function iskele(k, g, tepe, kismi) {
 const geoOnbellek = new Map();
 const kenarOnbellek = new Map();
 
-function modelVerisi(id, sv, durumTam) {
-  const anahtar = `${id}|${sv}|${durumTam}`;
+// vr: mimari varyant (0..), yeni: mimari motor kullanılsın mı (kayıtlı bina için). İkisi de yoksa eski model, anahtar değişmez.
+// lod: 1 = uzak görünüm (yalnız mimari motor; küçük ayrıntılar atılır, silüet korunur).
+export function modelVerisi(id, sv, durumTam, vr = 0, yeni = false, lod = 0) {
+  const anahtar = yeni ? `${id}|${sv}|${durumTam}|m${vr}${lod ? 'u' : ''}` : `${id}|${sv}|${durumTam}`;
   const [durum, bagStr = '0'] = durumTam.split('#'); // çevre parçalarında "#<maske>": komşu bağlantıları
   let v = geoOnbellek.get(anahtar);
   if (v) return v;
   const t = BINA[id];
   const cag = CAG_SIRA[t.cag] ?? 0;
-  const k = new Kurucu(hash(id) + sv * 31);
+  const k = new Kurucu(hash(id) + sv * 31 + (yeni ? vr * 977 : 0));
   const c = { g: t.boyut[0], sv, s: 1 + 0.12 * (sv - 1), cag, bag: Number(bagStr) };
-  (M[id] || ((kk, cc) => sablon(kk, cc, t)))(k, c);
+  if (yeni) { k.lod = lod; mimariYap(id, k, c, vr, t.cag); }
+  else (M[id] || ((kk, cc) => sablon(kk, cc, t)))(k, c);
   const govdeTepe = Math.max(...k.parcalar.map((p) => p.max), TABAN_Y + 0.2);
   if (durum.startsWith('i')) {
     // inşaat: tamamlanan kısım (alt parçalar) + iskele; taslak ayrı malzemeyle tam modelden çizilir
@@ -1857,14 +1861,17 @@ export function binaModeli(b, durum = {}, secenek = {}) {
   const sv = Math.min(3, Math.max(1, b.seviye || 1));
   const kod = secenek.hayalet ? '' : durumKodu(durum);
   const bag = t.cevre ? `#${(secenek.bag ?? durum.bag) | 0}` : '';
-  const v = modelVerisi(b.id, sv, kod + bag);
+  const yeni = (secenek.mimari ? secenek.mimari === 'yeni' : mimariAcik()) && mimariKayitli(b.id);
+  const vr = yeni ? (secenek.varyant ?? mimariVaryant(b.id, b.uid)) : 0;
+  const lod = yeni && secenek.lod ? 1 : 0;
+  const v = modelVerisi(b.id, sv, kod + bag, vr, yeni, lod);
   const grup = new THREE.Group();
   const golge = !secenek.hayalet;
   if (secenek.hayalet) {
     const m = new THREE.Mesh(v.ana, hayaletMat(secenek.hayalet));
     m.renderOrder = 12;
     grup.add(m);
-    const kenarAnahtar = b.id + bag;
+    const kenarAnahtar = b.id + bag + (yeni ? `m${vr}${lod ? 'u' : ''}` : '');
     let kenar = kenarOnbellek.get(kenarAnahtar);
     if (!kenar) { kenar = new THREE.EdgesGeometry(v.ana, 40); kenarOnbellek.set(kenarAnahtar, kenar); }
     const cz = new THREE.LineSegments(kenar, cizgiMat(secenek.hayalet));
@@ -1876,7 +1883,7 @@ export function binaModeli(b, durum = {}, secenek = {}) {
     grup.add(m);
     if (v.isil) grup.add(new THREE.Mesh(v.isil, isilMat()));
     if (kod.startsWith('i')) {
-      const tam = modelVerisi(b.id, sv, bag);
+      const tam = modelVerisi(b.id, sv, bag, vr, yeni, lod);
       const taslak = new THREE.Mesh(tam.ana, taslakMat());
       taslak.renderOrder = 5;
       grup.add(taslak);
@@ -1884,8 +1891,9 @@ export function binaModeli(b, durum = {}, secenek = {}) {
   }
   let pv = null;
   if (v.pervane) {
-    pv = new THREE.Mesh(pervane(), secenek.hayalet ? hayaletMat(secenek.hayalet) : binaMat());
+    pv = new THREE.Mesh(v.pervane.geo || pervane(), secenek.hayalet ? hayaletMat(secenek.hayalet) : binaMat());
     pv.position.set(v.pervane.x, v.pervane.y, v.pervane.z);
+    if (v.pervane.ry) pv.rotation.y = v.pervane.ry; // dönen eksen yerel z; ry = yatay yön (mimari motor su çarkı)
     pv.scale.setScalar(v.pervane.r);
     grup.add(pv);
   }
