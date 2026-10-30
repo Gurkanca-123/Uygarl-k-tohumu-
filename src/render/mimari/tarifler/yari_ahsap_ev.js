@@ -147,15 +147,15 @@ export function yariAhsapEv(k, c, vr = 0) {
     sokak(Y, S, k, R, { patika: [-0.1, 0.22] });
   } else {
     // ATÖLYELİ: küçük ana ev + sağda tek katlı, tezgâhlı atölye eki; tabela, tente, varil
-    ana = kanat(Y, S, { Z, w: 0.5, d: 0.42, h1: 0.23, h2: 0.25 * s, H: 0.25 * s, cx: -0.1, cz: -0.02, cikma: ['z+', 'x+'], desen: 'ince', renk: kirem, doku: S.catiDoku, siva,
+    ana = kanat(Y, S, { Z, w: 0.5, d: 0.42, h1: 0.23, h2: 0.25 * s, H: 0.25 * s, cx: -0.14, cz: -0.02, cikma: ['z+', 'x+'], desen: 'ince', renk: kirem, doku: S.catiDoku, siva,
       yuz: {
         'z+': { kapi: { x: -0.1, w: 0.1, h: 0.19 }, tente: true, zemin: [{ x: 0.12 }], ust: [{ x: -0.14, w: 0.085, saksi: true }, { x: 0.07, w: 0.085, tip: 'cift', panjur: 'kapali' }] },
         'x+': { ust: [{ x: 0.0, w: 0.085 }], alinPencere: true },
       },
       dorm: [{ x: -0.1, z: 0.3 }], baca: [{ x: 0.12, h: 0.18 }] });
-    atolyeEki(Y, S, { Z, x: 0.345, z: -0.04, w: 0.26, d: 0.36, h: 0.2, renk: kirem, siva });
-    varil(Y, S, 0.4, 0.3, Z, 0.9);
-    varil(Y, S, 0.33, 0.33, Z, 0.8);
+    atolyeEki(Y, S, { Z, x: 0.3, z: -0.04, w: 0.24, d: 0.36, h: 0.2, renk: kirem, siva });
+    varil(Y, S, 0.36, 0.3, Z, 0.9);
+    varil(Y, S, 0.29, 0.34, Z, 0.8);
     citSira(Y, -0.44, 0.45, -0.2, 0.45, Z);
     sokak(Y, S, k, R, { patika: [-0.1, 0.22] });
   }

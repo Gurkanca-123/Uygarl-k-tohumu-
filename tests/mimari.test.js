@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { modelVerisi } from '../src/render/binalar.js';
-import { mimariKayitli, mimariVaryantAdet, mimariVaryant, mimariAcik } from '../src/render/mimari/index.js';
+import { mimariKayitlar, mimariKayitli, mimariVaryantAdet, mimariVaryant, mimariAcik } from '../src/render/mimari/index.js';
 import { varyantSec } from '../src/render/mimari/varyasyon.js';
 import { MIMARI_CAGLAR, CAG_STILLERI, mimariCag } from '../src/render/mimari/cag_stilleri.js';
 import { BINALAR } from '../src/data/binalar.js';
@@ -10,14 +10,15 @@ import { BINALAR } from '../src/data/binalar.js';
 const ucgen = (g) => (g ? g.getAttribute('position').count / 3 : 0);
 const gecerli = (g) => { for (const v of g.getAttribute('position').array) if (!Number.isFinite(v)) return false; return true; };
 
-test('mimari: varsayılan kapalı; ev, katedral, değirmen kayıtlı, diğerleri eski modelle', () => {
+test('mimari: varsayılan kapalı; kayıtlı binalar yeni motorla, diğerleri eski modelle', () => {
   assert.equal(mimariAcik(), false);
-  for (const id of ['yari_ahsap_ev', 'katedral', 'degirmen']) assert.equal(mimariKayitli(id), true, id);
-  assert.equal(mimariKayitli('kale'), false);
+  for (const id of ['yari_ahsap_ev', 'katedral', 'degirmen', 'kale']) assert.equal(mimariKayitli(id), true, id);
+  assert.equal(mimariKayitli('lonca_binasi'), false);
   assert.equal(mimariVaryantAdet('yari_ahsap_ev'), 4);
   assert.equal(mimariVaryantAdet('katedral'), 3);
   assert.equal(mimariVaryantAdet('degirmen'), 3);
-  assert.equal(mimariVaryantAdet('kale'), 1);
+  assert.equal(mimariVaryantAdet('kale'), 3);
+  assert.equal(mimariVaryantAdet('lonca_binasi'), 1);
 });
 
 test('mimari: varyant seçimi uid\'e göre sabit ve dağılımlı', () => {
@@ -166,5 +167,33 @@ test('mimari: aynı varyant önbellekten paylaşılır (üçgen sayısı kararl�
   for (const id of ['yari_ahsap_ev', 'katedral', 'degirmen']) {
     const a = modelVerisi(id, 1, '', 1, true), b = modelVerisi(id, 1, '', 1, true);
     assert.equal(a, b, id);
+  }
+});
+
+// ---------- tüm kayıtlı binalar için ortak denetim (yeni bina eklenince otomatik kapsanır) ----------
+test('mimari: her kayıtlı bina için ortak kaynak, sınır ve varyant denetimi', () => {
+  const BIN = Object.fromEntries(BINALAR.map((b) => [b.id, b]));
+  for (const id of mimariKayitlar()) {
+    const t = BIN[id], adet = mimariVaryantAdet(id);
+    assert.ok(t, `${id} bina verisinde yok`);
+    if (!t.anit) assert.ok(adet >= 3, `${id}: en az 3 varyant gerekir (${adet})`);
+    const yari = Math.max(t.boyut[0], t.boyut[1]) * 0.5 * (t.tur === 'merkez' ? 1.3 : 1.24) + 0.1; // karo yarısı × ölçek + pay
+    const imza = new Set();
+    for (let vr = 0; vr < adet; vr++) {
+      const tam = modelVerisi(id, 1, '', vr, true, 0), uzak = modelVerisi(id, 1, '', vr, true, 1);
+      assert.ok(gecerli(tam.ana) && (!tam.isil || gecerli(tam.isil)), `${id} v${vr} NaN`);
+      const n = ucgen(tam.ana);
+      assert.ok(n > 300 && n < 25000, `${id} v${vr} üçgen ${n}`);
+      assert.ok(ucgen(uzak.ana) <= n * 0.95, `${id} v${vr} uzak LOD azaltmıyor (${ucgen(uzak.ana)}/${n})`);
+      const b = kutu(tam.ana);
+      assert.ok(b.max.x < yari && b.min.x > -yari && b.max.z < yari && b.min.z > -yari, `${id} v${vr} taşma x ${b.min.x.toFixed(2)}..${b.max.x.toFixed(2)} z ${b.min.z.toFixed(2)}..${b.max.z.toFixed(2)} (sınır ±${yari.toFixed(2)})`);
+      assert.ok(b.max.y < 4.8, `${id} v${vr} yükseklik ${b.max.y.toFixed(2)}`);
+      assert.ok((ucgen(tam.ana) + ucgen(tam.isil)) * 3 * 13 * 4 < 4 * 1048576, `${id} v${vr} bellek`);
+      imza.add(`${n}|${b.max.y.toFixed(2)}|${b.max.x.toFixed(2)}`);
+      assert.equal(tam, modelVerisi(id, 1, '', vr, true, 0), 'önbellek paylaşımı');
+    }
+    assert.equal(imza.size, adet, `${id}: varyantlar birbirinden farklı olmalı`);
+    for (const durum of ['', 'i1', 'i3', 'h', 'k']) assert.ok(ucgen(modelVerisi(id, 2, durum, 0, true).ana) > 50, `${id} durum ${durum}`);
+    assert.ok(modelVerisi(id, 1, '', 0, false) !== modelVerisi(id, 1, '', 0, true), `${id}: eski model yolu ayrı kalmalı`);
   }
 });

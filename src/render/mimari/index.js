@@ -4,6 +4,8 @@
 import { yariAhsapEv, VARYANT_ADET as EV_VARYANT } from './tarifler/yari_ahsap_ev.js';
 import { katedral, VARYANT_ADET as KAT_VARYANT } from './tarifler/katedral.js';
 import { degirmen, VARYANT_ADET as DEG_VARYANT } from './tarifler/degirmen.js';
+import { kale, VARYANT_ADET as KALE_VARYANT } from './tarifler/kale.js';
+import { manastir, VARYANT_ADET as MAN_VARYANT } from './tarifler/manastir.js';
 import { stilAl, mimariCag } from './cag_stilleri.js';
 import { varyantSec } from './varyasyon.js';
 
@@ -11,8 +13,11 @@ const KAYIT = {
   yari_ahsap_ev: { varyant: EV_VARYANT, yap: yariAhsapEv },
   katedral: { varyant: KAT_VARYANT, yap: katedral },
   degirmen: { varyant: DEG_VARYANT, yap: degirmen },
+  kale: { varyant: KALE_VARYANT, yap: kale },
+  manastir: { varyant: MAN_VARYANT, yap: manastir },
 };
 
+export const mimariKayitlar = () => Object.keys(KAYIT);
 export const mimariKayitli = (id) => Object.prototype.hasOwnProperty.call(KAYIT, id);
 export const mimariVaryantAdet = (id) => KAYIT[id]?.varyant ?? 1;
 export const mimariVaryant = (id, uid) => varyantSec(uid, mimariVaryantAdet(id));
