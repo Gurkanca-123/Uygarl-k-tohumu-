@@ -2,11 +2,15 @@
 // Güvenlik: yeni motor varsayılan KAPALI. Açmak için adrese `?mimari=yeni` ya da `localStorage ut_mimari=yeni`.
 // Eski modeller (`binalar.js` içindeki `M.*`) olduğu gibi durur; kayıtlı olmayan binalar her zaman eskisiyle çizilir.
 import { yariAhsapEv, VARYANT_ADET as EV_VARYANT } from './tarifler/yari_ahsap_ev.js';
+import { katedral, VARYANT_ADET as KAT_VARYANT } from './tarifler/katedral.js';
+import { degirmen, VARYANT_ADET as DEG_VARYANT } from './tarifler/degirmen.js';
 import { stilAl, mimariCag } from './cag_stilleri.js';
 import { varyantSec } from './varyasyon.js';
 
 const KAYIT = {
   yari_ahsap_ev: { varyant: EV_VARYANT, yap: yariAhsapEv },
+  katedral: { varyant: KAT_VARYANT, yap: katedral },
+  degirmen: { varyant: DEG_VARYANT, yap: degirmen },
 };
 
 export const mimariKayitli = (id) => Object.prototype.hasOwnProperty.call(KAYIT, id);

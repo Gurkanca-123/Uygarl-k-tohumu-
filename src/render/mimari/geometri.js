@@ -69,25 +69,29 @@ export function kutuGeo(w, h, d, arkaAt = false) {
 }
 
 export class Yerel {
-  constructor(k, x = 0, y = 0, z = 0, ry = 0) { this.k = k; this.x = x; this.y = y; this.z = z; this.ry = ry; this.cephe = false; }
+  // s: tek biçimli ölçek (alt çerçeveler miras alır): yerel birimler dünyada s ile çarpılır, çerçeve başlangıcı sabit kalır.
+  constructor(k, x = 0, y = 0, z = 0, ry = 0, s = 1) { this.k = k; this.x = x; this.y = y; this.z = z; this.ry = ry; this.s = s; this.cephe = false; }
 
   // alt çerçeve: bu çerçevenin yerel (lx,lz) noktasında, ek ry dönüşüyle
   alt(lx, lz, ry = 0, ly = 0) {
     const n = this.nokta(lx, ly, lz);
-    return new Yerel(this.k, n[0], n[1], n[2], this.ry + ry);
+    return new Yerel(this.k, n[0], n[1], n[2], this.ry + ry, this.s);
   }
   nokta(lx, ly, lz) {
     const c = Math.cos(this.ry), s = Math.sin(this.ry);
-    return [this.x + lx * c + lz * s, this.y + ly, this.z - lx * s + lz * c];
+    const k = this.s;
+    return [this.x + (lx * c + lz * s) * k, this.y + ly * k, this.z + (-lx * s + lz * c) * k];
   }
 
   // geo: yerel koordinatlarda hazır geometri. o.rx/ry/rz: geometrinin kendi merkezi çevresinde ön dönüş.
   ekle(geo, lx, ly, lz, doku, renk, o = {}) {
-    const { rx, ry, rz, ...diger } = o;
+    const { rx, ry, rz, sx, sy, sz, ...diger } = o;
+    if (sx || sy || sz) geo.scale(sx || 1, sy || 1, sz || 1); // geometrinin kendi merkezinde ölçek
     if (rx) geo.rotateX(rx);
     if (rz) geo.rotateZ(rz);
     if (ry) geo.rotateY(ry);
     geo.translate(lx, ly, lz);
+    if (this.s !== 1) geo.scale(this.s, this.s, this.s);
     geo.rotateY(this.ry);
     geo.translate(this.x, this.y, this.z);
     return this.k.ekle(geo, { doku, renk, ...diger });

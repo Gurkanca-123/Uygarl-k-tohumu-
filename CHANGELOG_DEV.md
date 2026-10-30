@@ -1,5 +1,10 @@
 # CHANGELOG_DEV (yalnız son kayıtlar; eskiler `docs/CHANGELOG_ARSIV.md`)
 
+## 2026-10-30 — Katedral + su değirmeni + ortak üretim sistemi (Sonnet 5.5)
+- `tarifler/katedral.js` (3 varyant, ~13 bin üçgen, vitray/gül pencere/uçan payanda/ikiz kule) ve `tarifler/degirmen.js` (3 varyant, dönen su çarkı ayrı geometri + kanal/savak/köprü). Ortak: `kanat.js` (evden çıkarıldı), `parcalar_anit.js`, `parcalar_su.js`, `Yerel` ölçeği.
+- `binalar.js`: pervane mesh'i `v.pervane.geo/ry` destekler (eski rüzgâr değirmeni aynen). Oyun mekaniği/veri dokunulmadı. Yeni motor yine varsayılan KAPALI.
+- KARAR/RAPOR: 'Değirmen' görseli rüzgâr değirmeninden SU değirmenine döndü (araştırma `su_degirmeni`; işlev aynı). Katedral tekil olduğundan varyant oyun başına tek. Sol/arka yüzler ayrıntısız (kamera sabit).
+
 ## 2026-10-30 — Ev prototipi 2. görsel geçiş + kamera LOD'u (Sonnet 5.5)
 - Ev: toprak tonlu çatı paleti (ocra/kahve karışımı, yosunlu dilim, yaşlı dilim), kapı feneri, taş taban kuşağı, baca çömleği, alçak bahçe çitleri, varyanta özgü iskelet deseni (carpraz/x/v/ince). Kullanıcı kararı: gerçek cihaz ölçümü yok; görsel kalite öncelikli.
 - LOD: `mimariLod` (zoom 2.0 eşiği, histerezis) + `sahne.js` bağlantısı (yalnız mimari motorlu binalar etkilenir). Testler 9 → 11 (kaynak sınırları, LOD).

@@ -1891,8 +1891,9 @@ export function binaModeli(b, durum = {}, secenek = {}) {
   }
   let pv = null;
   if (v.pervane) {
-    pv = new THREE.Mesh(pervane(), secenek.hayalet ? hayaletMat(secenek.hayalet) : binaMat());
+    pv = new THREE.Mesh(v.pervane.geo || pervane(), secenek.hayalet ? hayaletMat(secenek.hayalet) : binaMat());
     pv.position.set(v.pervane.x, v.pervane.y, v.pervane.z);
+    if (v.pervane.ry) pv.rotation.y = v.pervane.ry; // dönen eksen yerel z; ry = yatay yön (mimari motor su çarkı)
     pv.scale.setScalar(v.pervane.r);
     grup.add(pv);
   }

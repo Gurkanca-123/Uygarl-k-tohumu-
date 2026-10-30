@@ -11,6 +11,7 @@ const ORTAK = {
   camIsik: 0xffcf7a, camKoyu: 0x34281f, demir: 0x2e2a28, altin: 0xe0b04a,
   cicek: [0xd04a5a, 0xe8b84a, 0xf2eee4, 0x9a6ad0, 0xe27a3a],
   saksi: 0x7a4a2e, hazir: false,
+  tasKrem: 0xd9d1bf, arduvazUst: 0x7e8a9c, kapiKoyu: 0x4a2e1c,
 };
 
 export const CAG_STILLERI = {

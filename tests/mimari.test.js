@@ -10,12 +10,14 @@ import { BINALAR } from '../src/data/binalar.js';
 const ucgen = (g) => (g ? g.getAttribute('position').count / 3 : 0);
 const gecerli = (g) => { for (const v of g.getAttribute('position').array) if (!Number.isFinite(v)) return false; return true; };
 
-test('mimari: varsayılan kapalı, yalnız yari_ahsap_ev kayıtlı', () => {
+test('mimari: varsayılan kapalı; ev, katedral, değirmen kayıtlı, diğerleri eski modelle', () => {
   assert.equal(mimariAcik(), false);
-  assert.equal(mimariKayitli('yari_ahsap_ev'), true);
-  assert.equal(mimariKayitli('katedral'), false);
+  for (const id of ['yari_ahsap_ev', 'katedral', 'degirmen']) assert.equal(mimariKayitli(id), true, id);
+  assert.equal(mimariKayitli('kale'), false);
   assert.equal(mimariVaryantAdet('yari_ahsap_ev'), 4);
-  assert.equal(mimariVaryantAdet('katedral'), 1);
+  assert.equal(mimariVaryantAdet('katedral'), 3);
+  assert.equal(mimariVaryantAdet('degirmen'), 3);
+  assert.equal(mimariVaryantAdet('kale'), 1);
 });
 
 test('mimari: varyant seçimi uid\'e göre sabit ve dağılımlı', () => {
@@ -108,4 +110,61 @@ test('mimari kaynak: üçgen, bellek, kurulum süresi ve çizim çağrısı sın
     assert.ok(b.max.y < 2.0, `v${vr} yükseklik ${b.max.y.toFixed(2)}`);
   }
   assert.ok(performance.now() - t0 < 3000, 'sekiz modelin kurulumu çok yavaş');
+});
+
+// ---------- katedral ve su değirmeni ----------
+const kutu = (g) => { g.computeBoundingBox(); return g.boundingBox; };
+
+test('katedral: üç varyant geçerli, farklı, sınırlar içinde; uzak LOD belirgin hafif', () => {
+  const imza = new Set();
+  for (let vr = 0; vr < 3; vr++) {
+    const tam = modelVerisi('katedral', 1, '', vr, true, 0), uzak = modelVerisi('katedral', 1, '', vr, true, 1);
+    assert.ok(gecerli(tam.ana) && gecerli(tam.isil), `v${vr} NaN`);
+    const n = ucgen(tam.ana);
+    assert.ok(n > 8000 && n < 24000, `v${vr} üçgen ${n}`);
+    assert.ok(ucgen(uzak.ana) <= n * 0.7, `v${vr} uzak yeterince hafif değil (${ucgen(uzak.ana)}/${n})`);
+    assert.ok(ucgen(tam.isil) > 500, 'vitray/pencere ışıltısı yok');
+    const b = kutu(tam.ana);
+    assert.ok(b.max.x < 1.9 && b.min.x > -1.9 && b.max.z < 1.9 && b.min.z > -1.9, `v${vr} taşma x ${b.min.x.toFixed(2)}..${b.max.x.toFixed(2)} z ${b.min.z.toFixed(2)}..${b.max.z.toFixed(2)}`);
+    assert.ok(b.max.y > 2.2 && b.max.y < 4.2, `v${vr} yükseklik ${b.max.y.toFixed(2)}`);
+    assert.ok(!tam.pervane, 'katedralde dönen parça olmamalı');
+    imza.add(`${n}|${b.max.y.toFixed(2)}`);
+    const bayt = (ucgen(tam.ana) + ucgen(tam.isil)) * 3 * 13 * 4;
+    assert.ok(bayt < 3 * 1024 * 1024, `v${vr} ${(bayt / 1048576).toFixed(2)} MB`);
+  }
+  assert.equal(imza.size, 3, 'varyantlar özdeş');
+  for (const durum of ['', 'i1', 'i3', 'h', 'k']) assert.ok(ucgen(modelVerisi('katedral', 1, durum, 1, true).ana) > 100, durum);
+});
+
+test('değirmen: üç varyant, dönen su çarkı ayrı geometri olarak tanımlı', () => {
+  const imza = new Set();
+  for (let vr = 0; vr < 3; vr++) {
+    const tam = modelVerisi('degirmen', 1, '', vr, true, 0), uzak = modelVerisi('degirmen', 1, '', vr, true, 1);
+    assert.ok(gecerli(tam.ana), `v${vr} NaN`);
+    const n = ucgen(tam.ana);
+    assert.ok(n > 2500 && n < 9000, `v${vr} üçgen ${n}`);
+    assert.ok(ucgen(uzak.ana) <= n * 0.8, `v${vr} uzak yeterince hafif değil`);
+    const p = tam.pervane;
+    assert.ok(p && p.geo && Number.isFinite(p.x + p.y + p.z + p.r), 'çark tanımsız');
+    assert.ok(p.r > 0.25 && p.r < 0.6, `çark yarıçapı ${p.r}`);
+    assert.ok(gecerli(p.geo) && ucgen(p.geo) > 300 && ucgen(p.geo) < 2000, `çark üçgen ${ucgen(p.geo)}`);
+    const bc = kutu(p.geo);
+    assert.ok(bc.max.x <= 1.06 && bc.min.x >= -1.06 && bc.max.y <= 1.06 && bc.min.y >= -1.06, 'çark birim yarıçap dışında');
+    const b = kutu(tam.ana);
+    assert.ok(b.max.x < 1.4 && b.min.x > -1.4 && b.max.z < 1.4 && b.min.z > -1.4, `v${vr} taşma`);
+    imza.add(`${n}|${p.x.toFixed(2)}|${p.ry}`);
+  }
+  assert.equal(imza.size, 3, 'varyantlar özdeş');
+  assert.ok(!modelVerisi('degirmen', 1, 'i2', 0, true).pervane, 'inşaat sırasında çark yok');
+  for (const durum of ['h', 'k']) assert.ok(modelVerisi('degirmen', 1, durum, 0, true).pervane, `durum ${durum}: çark (eski davranış) kalır`);
+  // eski model: rüzgâr değirmeni, özel çark geometrisi yok
+  const eski = modelVerisi('degirmen', 1, '', 0, false);
+  assert.ok(eski.pervane && !eski.pervane.geo, 'eski değirmen değişmemeli');
+});
+
+test('mimari: aynı varyant önbellekten paylaşılır (üçgen sayısı kararlı)', () => {
+  for (const id of ['yari_ahsap_ev', 'katedral', 'degirmen']) {
+    const a = modelVerisi(id, 1, '', 1, true), b = modelVerisi(id, 1, '', 1, true);
+    assert.equal(a, b, id);
+  }
 });

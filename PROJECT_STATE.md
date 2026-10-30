@@ -29,7 +29,7 @@ Sıra tabanlı (tur = gün, mevsim 5 gün, yıl 20 gün), 5 çağ, Önder eylemi
 - Köprü yok (su/dağ geçilmez). Keşfet yön seçmez (UI'da yön seçimi eklenebilir).
 - Yönelim/tam ekran: `dom.js` (`donusPerdesiKur`, `tamEkranAcKapa`); dikeyde örtü, ⛶ düğmeleri, `ut_tam` öneri bayrağı; `public/manifest.webmanifest` (display fullscreen). Gerçek cihazda denenmedi.
 
-- **Mimari motor (2026-10-30, prototip):** `src/render/mimari/` + `docs/MIMARI_URETIM.md`; `?mimari=yeni` ile yalnız `yari_ahsap_ev` (4 varyant). Kullanıcı onayı olmadan katedral/değirmen/diğer binalara GEÇME. Gerçek cihaz ölçümü: `olcum.html`.
+- **Mimari motor (2026-10-30, prototip):** `src/render/mimari/` + `docs/MIMARI_URETIM.md`; `?mimari=yeni` ile `yari_ahsap_ev`(4), `katedral`(3), `degirmen`(3 su değirmeni). Kullanıcı kararı: sırayla devam, gerçek cihaz ölçümü yok, görsel kalite öncelikli; büyük kararlar raporlanır.
 
 ## Yol haritası (kullanıcı sırası, 2026-10-26)
 1) görsel stil: BD seçildi ve varsayılan (bina modelleri oynanış onayından sonra) · 2) dış tehditler: 5 çağın hepsinde çalışıyor + arayüz bağlı (`docs/TEHDIT.md` §12–14) · 3) aksiyon: `docs/AKSIYON.md` (sefer/kahraman/komşu/savaş/hedefler) taslak, 6 karar kullanıcıda · 4) çağ genişletme (kullanıcı düşünüyor): Sanayi ve Modern çağlar eklenebilir (7 çağ?); veri tabloları + çekirdek varsayımları önce tasarım belgesinde ele alınacak, şimdi uygulanmaz. Stil adayı D = referans konsept sanat (`?stil=d`).

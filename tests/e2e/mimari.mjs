@@ -16,6 +16,7 @@ const { chromium } = playwright;
 const PORT = 4176, URL = `http://localhost:${PORT}/`, CIKTI = process.env.MIMARI_CIKTI || 'docs/ekran';
 mkdirSync(CIKTI, { recursive: true });
 
+let OZEL = {};
 function koy() {
   let d = yeniOyun(7);
   while (d.cag !== 'tasdevri' || d.binalar.length < 10) d = botTuru(d).durum;
@@ -27,6 +28,12 @@ function koy() {
   const ornek = d.binalar[0].uid;
   const yeniUid = () => (typeof ornek === 'number' ? uid++ : `b${uid++}`);
   for (const b of d.binalar) if (b.id === 'cadir' || b.id === 'kulube') b.id = 'yari_ahsap_ev';
+  const ozel = {};
+  for (const id of ['katedral', 'degirmen']) {
+    const yer = uygunYerler(d, id)[0];
+    if (yer) { d.binalar.push({ uid: yeniUid(), id, x: yer[0], y: yer[1], seviye: 1, insaKalan: 0, hasarli: false }); ozel[id] = yer; }
+  }
+  OZEL = ozel;
   for (const id of ['pazar_yeri', 'yari_ahsap_ev', 'kuyu', 'yari_ahsap_ev', 'ambar', 'yari_ahsap_ev', 'yari_ahsap_ev', 'yari_ahsap_ev', 'yari_ahsap_ev', 'yari_ahsap_ev']) {
     const yer = uygunYerler(d, id)[0];
     if (yer) d.binalar.push({ uid: yeniUid(), id, x: yer[0], y: yer[1], seviye: 1, insaKalan: 0, hasarli: false });
@@ -36,6 +43,7 @@ function koy() {
   return d;
 }
 const durum = koy();
+const ozel = OZEL;
 const merkez = merkezNokta(durum);
 const durumG = kesfet(durum, merkez, 14).durum;
 const sunucu = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore' });
@@ -60,6 +68,15 @@ try {
       await sayfa.screenshot({ path: yol });
       const bilgi = await sayfa.evaluate(() => { const i = window.__oyun.sahne.stil?.bilgi || window.__oyun.sahne.renderer.info.render; return `${i.cagri ?? i.calls} çağrı, ${(((i.ucgen ?? i.triangles)) / 1000).toFixed(0)} bin üçgen`; });
       console.log(`${yol}  [${bilgi}]${hatalar.length ? ' HATA: ' + hatalar[0] : ''}`);
+    }
+    // yapı odaklı kareler (katedral/değirmen): zoom 2.6, yapının ortasına
+    for (const [id, yer] of Object.entries(ozel)) {
+      const bs = id === 'katedral' ? 3 : 2;
+      await sayfa.evaluate(({ z, x, y }) => { const s = window.__oyun.sahne; s.kamera.zoom = z; s.kamera.updateProjectionMatrix(); s.odakla(x, y); }, { z: id === 'katedral' ? 2.2 : 3.0, x: yer[0] + bs / 2, y: yer[1] + bs / 2 });
+      await sayfa.waitForTimeout(2200);
+      const yol = `${CIKTI}/mimari-${mod}-${id}.png`;
+      await sayfa.screenshot({ path: yol });
+      console.log(`${yol}${hatalar.length ? ' HATA: ' + hatalar[0] : ''}`);
     }
     await ctx.close();
   }
