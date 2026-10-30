@@ -1,6 +1,6 @@
 # Prosedürel mimari üretim katmanı (`src/render/mimari/`)
 
-Durum: **varsayılan KAPALI** (`?mimari=yeni` ya da `localStorage ut_mimari=yeni`). Kayıtlı (15 bina): `yari_ahsap_ev` (4 varyant), `katedral`, `degirmen` (su değirmeni), `kale`, `manastir`, `han`, `demirci`, `eritme_firini`, `dokuma_atolyesi`, `darphane`, `alet_yapimcisi` (her biri 3); kalan bina eski modelle çizilir. Kayıt listesi: `index.js` `KAYIT`.
+Durum: **varsayılan KAPALI** (`?mimari=yeni` ya da `localStorage ut_mimari=yeni`). Kayıtlı: **55/55 bina** (oyundaki tüm bina türleri), hepsi ≥3 varyant (anıt/tekil: katedral 3, ev 4). Aileler: tarım (`ciftlik.js`), kamu (`kamu.js`: lonca, darüşşifa), savunma (`savunma.js`), ilkel çağ (`ilkel.js`), bronz (`bronz.js`), antik (`antik.js`), merkezler (`merkez.js`), atölyeler, han, kale, manastır, katedral, değirmen, ev. Kayıt listesi: `index.js` `KAYIT`.
 Eski modeller (`binalar.js` `M.*`) ve `Kurucu` aynen durur; yeni katman `Kurucu.ekle` ile aynı birleştirme/önbellek hattını kullanır.
 
 ## Katmanlar
@@ -19,6 +19,8 @@ Eski modeller (`binalar.js` `M.*`) ve `Kurucu` aynen durur; yeni katman `Kurucu.
 | `parcalar_han.js` | ahşap galeri, tabela direği, kemerli arabalık geçidi, yalak, bağlama kirişi, küçük kubbe |
 | `parcalar_atolye.js` | ocak+baca, örs, körük, kil fırın, gerdirme çerçevesi, boya kazanı, dokuma tezgâhı, dor sütunlu alınlık, deri barınak, çakmaktaşı |
 | `tarifler/kale.js`, `manastir.js`, `han.js`, `atolyeler.js` | kale (3: şato/yuvarlak donjon/höyük), manastır (3), han (3), 5 atölye (demirci, eritme fırını, dokuma, darphane, alet yapımcısı; her biri 3) |
+| `parcalar_tarim.js`, `parcalar_lonca.js`, `parcalar_ilkel.js` | hayvan/tarla/silo/yüksek ambar/ahır/samanlık/çardak · kademeli alınlık/kemer sırası/saat kulesi/flama · tipi/yurt/yuvarlak kulübe/totem/balık ağı/kaya yüzü |
+| `tarifler/ciftlik.js`, `kamu.js`, `savunma.js`, `ilkel.js`, `bronz.js`, `antik.js`, `merkez.js` | tarım ailesi (8 bina) · lonca+darüşşifa · 6 savunma yapısı · 10 ilkel çağ yapısı · 6 bronz · 7 antik · 5 merkez |
 | `tarifler/yari_ahsap_ev.js` | 4 varyant: klasik, L planlı, kuleli, atölyeli |
 | `tarifler/katedral.js` | haç planlı gotik; 3 varyant: ikiz piramit, sekizgen külahlı, asimetrik |
 | `tarifler/degirmen.js` | su değirmeni; 3 varyant: yan çark, üstten akışlı oluklu, ön çark + ambar |

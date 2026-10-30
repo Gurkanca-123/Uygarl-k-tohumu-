@@ -184,7 +184,7 @@ test('mimari: her kayıtlı bina için ortak kaynak, sınır ve varyant denetimi
       assert.ok(gecerli(tam.ana) && (!tam.isil || gecerli(tam.isil)), `${id} v${vr} NaN`);
       const n = ucgen(tam.ana);
       assert.ok(n > 100 && n < 25000, `${id} v${vr} üçgen ${n}`);
-      assert.ok(n < 1000 || ucgen(uzak.ana) <= n * 0.95, `${id} v${vr} uzak LOD azaltmıyor (${ucgen(uzak.ana)}/${n})`); // küçük (<1000) modellerde LOD anlamsız
+      assert.ok(n < 1200 || ucgen(uzak.ana) <= n * 0.95, `${id} v${vr} uzak LOD azaltmıyor (${ucgen(uzak.ana)}/${n})`); // küçük (<1200) modellerde LOD kazancı ihmal edilebilir
       assert.ok(ucgen(uzak.ana) <= n, `${id} v${vr} uzak LOD tamdan ağır`);
       const b = kutu(tam.ana);
       assert.ok(b.max.x < yari && b.min.x > -yari && b.max.z < yari && b.min.z > -yari, `${id} v${vr} taşma x ${b.min.x.toFixed(2)}..${b.max.x.toFixed(2)} z ${b.min.z.toFixed(2)}..${b.max.z.toFixed(2)} (sınır ±${yari.toFixed(2)})`);

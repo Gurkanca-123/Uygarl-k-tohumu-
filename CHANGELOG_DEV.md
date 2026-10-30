@@ -1,5 +1,10 @@
 # CHANGELOG_DEV (yalnız son kayıtlar; eskiler `docs/CHANGELOG_ARSIV.md`)
 
+## 2026-10-30 — Kalan tüm binalar yeni mimari motorda: 55/55 (Sonnet 5.5)
+- Eklenen aileler: tarım (çiftlik, ambar, ağıl, tahıl bahçesi, erzak çukuru, sulanan tarla, bağ-bahçe, kurutma rafı), lonca binası, darüşşifa, savunma (sur parçası, çit, nöbet çiti, gözcü direği, muhafız kulesi, kışla), ilkel çağ (10), bronz (6), antik (7), merkezler (5). Hepsi 3 varyant; çevre parçaları (cit, sur_parcasi) komşu maskesiyle uyumlu.
+- Yeni parça modülleri: `parcalar_tarim/lonca/ilkel.js`. `tests/mimari.test.js` kayıtlı tüm binaları otomatik denetler. `tests/e2e/oyna.mjs`: `MIMARI=yeni npm run e2e` ile tam oyun yeni motor açıkken.
+- Oyun verisi/mekanik değişmedi; yeni motor hâlâ varsayılan KAPALI. Şehir geneli bütünlük (çatı rengi, ışık, LOD) bir sonraki ortak aşama.
+
 ## 2026-10-30 — Kale, manastır, han ve atölyeler (Sonnet 5.5)
 - Yeni tarifler (her biri 3 varyant): `kale`, `manastir`, `han`, `demirci`, `eritme_firini`, `dokuma_atolyesi`, `darphane`, `alet_yapimcisi`. Ortak parça modülleri: `parcalar_kale/avlu/han/atolye.js`. `antik` ve `ilkel` stil paketleri kullanıma alındı.
 - `tests/mimari.test.js`: kayıtlı tüm binalar için ortak denetim (≥3 varyant, üçgen/bellek/taşma, LOD, durumlar). Denetim `yari_ahsap_ev` atölyeli varyantının karo dışına taştığını yakaladı; küçültüldü (görsel karakter korundu).

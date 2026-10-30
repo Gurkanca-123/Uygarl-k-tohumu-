@@ -14,6 +14,7 @@ import { surParcasi, cit, nobetCiti, gozcuDiregi, muhafizKulesi, kisla, VARYANT_
 import { cadir, kulube, avciKulubesi, toplayiciBarinagi, oduncuKampi, totem, sifaciCadiri, tasOcagi, balikciSiginagi, magaraResmi, VARYANT_ADET as ILK_VARYANT } from './tarifler/ilkel.js';
 import { kerpicEv, kilOcagi, madenOcagi, pazarYeri, kuyu as kuyuTarif, mabet, VARYANT_ADET as BRZ_VARYANT } from './tarifler/bronz.js';
 import { tasEv, mermerOcagi, liman, suKemeri, hamam, kutuphane, tiyatro, VARYANT_ADET as ANT_VARYANT } from './tarifler/antik.js';
+import { kampAtesi, ocakMeydani, koyMeydani, agora, sehirMeydani, VARYANT_ADET as MRK_VARYANT } from './tarifler/merkez.js';
 import { stilAl, mimariCag } from './cag_stilleri.js';
 import { varyantSec } from './varyasyon.js';
 
@@ -67,6 +68,11 @@ const KAYIT = {
   hamam: { varyant: ANT_VARYANT, yap: hamam },
   kutuphane: { varyant: ANT_VARYANT, yap: kutuphane },
   tiyatro: { varyant: ANT_VARYANT, yap: tiyatro },
+  kamp_atesi: { varyant: MRK_VARYANT, yap: kampAtesi },
+  ocak_meydani: { varyant: MRK_VARYANT, yap: ocakMeydani },
+  koy_meydani: { varyant: MRK_VARYANT, yap: koyMeydani },
+  agora: { varyant: MRK_VARYANT, yap: agora },
+  sehir_meydani: { varyant: MRK_VARYANT, yap: sehirMeydani },
   kurutma_rafi: { varyant: TAR_VARYANT, yap: kurutmaRafi },
 };
 
