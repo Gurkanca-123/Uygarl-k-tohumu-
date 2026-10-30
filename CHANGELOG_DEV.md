@@ -1,5 +1,10 @@
 # CHANGELOG_DEV (yalnız son kayıtlar; eskiler `docs/CHANGELOG_ARSIV.md`)
 
+## 2026-10-30 — Prosedürel mimari motor temeli + yarı ahşap ev prototipi (Sonnet 5.5)
+- Yeni `src/render/mimari/` (geometri, çatı, parçalar, çağ stilleri, varyasyon, `yari_ahsap_ev` 4 varyant); ayrıntı: `docs/MIMARI_URETIM.md`. Varsayılan KAPALI (`?mimari=yeni`). `binalar.js`'e yalnız kanca eklendi (`modelVerisi` dışa açık + `vr/yeni/lod` parametreleri); eski modeller değişmedi. Geri dönüş: dal `yedek/mimari-oncesi`.
+- Ölçüm/karşılaştırma: `olcum.html` (build'e dahil, `vite.config.js` iki girişli), `karsilastir.html` (dev), `tests/e2e/mimari.mjs`, `tests/mimari.test.js` (7 test). `npm test` 203/204 (+1 todo), e2e 111/111.
+- Konut üçgeni 3,5–4,7 bin (eski 0,87 bin) — gerçek telefonda ölçülmedi (yalnız SwiftShader). Çağ verisi (5 çağ) değişmedi; altı çağ stil paketi taslak.
+
 ## 2026-10-29 — Ekran bildirimleri azaltıldı (Sonnet 5.5)
 - `arayuz.js`: toast yalnız önemli kodlar için (`ONEMLI_KOD`/`KRITIK_KOD`); inşaat bitti, iş dağıtımı, keşif, doğum, göçmen vb. yalnız Günlük'e düşer. En çok 2 toast, 3 satır, 4 sn. Ayarlar → "Ekran bildirimleri" (Önemli / Hepsi / Yalnız kritik), `ut_ayar.bildirim`. Testler geçti, build tamam; telefonda denenmedi.
 

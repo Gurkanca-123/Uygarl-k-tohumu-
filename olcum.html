@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Mimari performans ölçümü</title>
+<style>
+html,body{margin:0;height:100%;background:#1c1a17;color:#ece3d0;font:14px/1.4 system-ui,sans-serif;overflow:hidden}
+canvas{position:fixed;inset:0;width:100%;height:100%}
+#panel{position:fixed;left:8px;top:8px;right:8px;max-width:30rem;background:rgba(20,17,13,.88);border:1px solid #5a4a38;border-radius:10px;padding:10px 12px;max-height:calc(100% - 16px);overflow:auto}
+h1{font-size:15px;margin:0 0 6px} button{font:inherit;padding:10px 14px;border-radius:8px;border:1px solid #8a6a40;background:#3a2c1c;color:#ffe9c0;margin:4px 6px 4px 0;min-height:44px}
+table{border-collapse:collapse;width:100%;font-size:12.5px;margin-top:6px} td,th{padding:3px 6px;border-bottom:1px solid #3a3228;text-align:right} th:first-child,td:first-child{text-align:left}
+.uyari{color:#ffb070} .soluk{color:#a89a82;font-size:12px} textarea{width:100%;height:5.5rem;background:#120f0c;color:#cfc4ae;border:1px solid #3a3228;font-size:11px}
+</style></head>
+<body><div id="panel"><h1>Mimari performans ölçümü (eski, yeni, yeni-uzak konut)</h1><div id="durum" class="soluk">Hazır.</div><div id="cikti"></div></div>
+<script type="module" src="/src/dev/olcum.js"></script></body></html>
