@@ -12,9 +12,9 @@ import {
 import { ISDAGIT_ONCELIKLER } from '../data/denge.js';
 import {
   KAYNAK, BINA, BULUS, CAG, kaynakAcik, cagAcik, issizSayisi, evsizSayisi, barinmaKapasitesi, isciYuvasi, binaIsi, kuruluSayisi,
-  kaynakYeter, eksikMetni, yaraliSayisi, mevcutCag, binaIscisi,
+  kaynakYeter, eksikMetni, yaraliSayisi, mevcutCag, binaIscisi, cocukSayisi, calismaGucu,
 } from '../core/yardimci.js';
-import { maliyetHesapla, yukseltmeMaliyeti, onarimMaliyeti, insaEdilebilirMi, insaatSinirDolu } from '../core/insa.js';
+import { maliyetHesapla, yukseltmeMaliyeti, onarimMaliyeti, insaEdilebilirMi, insaatSinirDolu, evrimEdilebilirMi, evrimMaliyeti } from '../core/insa.js';
 import { hamUretimHesapla } from '../core/uretim.js';
 import { arastirilabilirMi, bilgiUretimi } from '../core/arastirma.js';
 import { eylemUygunMu } from '../core/eylem.js';
@@ -163,7 +163,7 @@ export function isSekmesi(a) {
   const yuvalar = d.binalar.filter((b) => isciYuvasi(b) > 0).map((b) => {
     const t = BINA[b.id], isi = binaIsi(d, b);
     const n = d.atama[b.uid] || 0, yuva = isciYuvasi(b);
-    const aktif = !isi && !b.hasarli;
+    const aktif = (!isi || isi === 'evrim') && !b.hasarli;
     return { tip: 'bina', b, t, anahtar: b.uid, ad: t.ad, n, yuva, aktif, grup: grupDe(t),
       alt: isi === 'insa' ? 'inşaatta (işçi önceden atanabilir)' : b.hasarli ? 'hasarlı' : Object.keys(t.uretim || {}).length ? `kişi başı ${uretimMetni(t.uretim)}` : t.isciBilgi ? `kişi başı +${t.isciBilgi}💡` : 'çalışıyor' };
   });
@@ -176,7 +176,8 @@ export function isSekmesi(a) {
   const eksikBina = yuvalar.filter((y) => y.tip === 'bina' && y.aktif && y.n < y.yuva).length;
 
   const ust = h('div', { class: `oge ozet${issiz > 0 ? ' dikkat' : ''}` },
-    h('div', { class: 'baslik' }, h('span', {}, issiz > 0 ? `👥 ${issiz} kişi boşta` : '✓ Herkesin işi var'), h('span', { class: 'soluk kucuk' }, `${calisan}/${d.nufus} çalışıyor`)),
+    h('div', { class: 'baslik' }, h('span', {}, issiz > 0 ? `👥 ${issiz} kişi boşta` : '✓ Herkesin işi var'), h('span', { class: 'soluk kucuk' }, `${calisan}/${calismaGucu(d)} çalışıyor`)),
+    cocukSayisi(d) > 0 ? h('div', { class: 'soluk kucuk', 'data-cocuk': 'say' }, `👶 ${cocukSayisi(d)} çocuk (büyüyene dek çalışamaz, yiyecek tüketir)`) : null,
     issiz > 0 ? h('div', { class: 'neden' }, 'İşsizler huzuru düşürür. Aşağıdan iş ver ya da otomatik dağıt.') : null,
     eksikBina ? h('div', { class: 'soluk kucuk' }, `${eksikBina} binanın yuvası eksik.`) : null,
     yaraliSayisi(d) ? h('div', { class: 'soluk kucuk' }, `Yaralı: ${yaraliSayisi(d)}`) : null,
@@ -325,7 +326,8 @@ export function cagSekmesi(a) {
     h('div', { class: 'oge' },
       h('div', { class: 'baslik' }, h('span', {}, 'Çağ atlama ilerlemesi'), h('b', {}, `${tamam}/${satirlar.length}`)),
       h('div', { class: `cubuk buyuk${s.uygun ? ' tam' : ''}` }, h('i', { style: `width:${(100 * tamam) / satirlar.length}%` })),
-      satirlar.map((x) => ilerlemeSatiri(...x))),
+      satirlar.map((x) => ilerlemeSatiri(...x)),
+      s.ipuclari.map((m) => h('div', { class: 'neden', 'data-ipucu': 'cag' }, `💡 ${m}`))),
     h('button', { class: `tam-genislik${s.uygun ? ' vurgu' : ''}`, disabled: !s.uygun, onclick: () => a.cagAtla() }, s.uygun ? `Çağ atla → ${s.sonraki.ad}` : 'Şartlar eksik: yukarıdaki kırmızı satırlar'),
     h('div', { class: 'soluk kucuk', style: 'margin-top:6px' }, 'Çağ atlayınca kaynak maliyeti ödenir, yerleşim sınırı büyür, yeni bina ve buluşlar açılır.'));
 }
@@ -373,13 +375,30 @@ export function binaKarti(a, b) {
   const isi = binaIsi(d, b);
   const kapali = d.istatistik?.sonTur?.kapali?.includes(b.uid);
   const insaatta = isi === 'insa' || isi === 'yukselt' || isi === 'onar';
-  const durum = isi === 'insa' ? `İnşaat: ${b.insaKalan} gün kaldı` : isi === 'yukselt' ? `Yükseltiliyor: ${b.insaKalan} gün` : isi === 'onar' ? `Onarılıyor: ${b.insaKalan} gün`
+  const evrimde = isi === 'evrim' ? BINA[d.istatistik?.evrim?.[b.uid]?.hedef] : null;
+  const durum = isi === 'evrim' ? `Evrim sürüyor${evrimde ? ` → ${evrimde.ad}` : ''}: ${b.insaKalan} gün (çalışmaya devam ediyor)` : isi === 'insa' ? `İnşaat: ${b.insaKalan} gün kaldı` : isi === 'yukselt' ? `Yükseltiliyor: ${b.insaKalan} gün` : isi === 'onar' ? `Onarılıyor: ${b.insaKalan} gün`
     : b.hasarli ? 'Hasarlı (üretmez)' : kapali ? 'Bakım ödenmedi (çalışmıyor)' : 'Çalışıyor';
   const durumSinif = insaatta ? 'bekle' : b.hasarli || kapali ? 'kotu' : 'iyi';
   const yuva = isciYuvasi(b);
   const ykl = yukselt(d, b.uid), onr = onar(d, b.uid);
   const dugmeler = [];
+  // Evrim (yerinde dönüşüm): hedef, maliyet (%70), eksik şart; oyuncu onayı olmadan başlamaz.
+  const evrimHedef = t.evrim && t.tur !== 'merkez' ? BINA[t.evrim] : null;
+  const evrimNeden = evrimHedef ? evrimEdilebilirMi(d, b.uid) : null;
+  const evrimMal = evrimHedef ? evrimMaliyeti(d, evrimHedef.id) : null;
+  const evrimYok = evrimNeden || (evrimMal && !kaynakYeter(d, evrimMal) ? `Kaynak yetersiz: ${eksikMetni(d, evrimMal)} eksik.` : null);
+  const topluUid = evrimHedef ? d.binalar.filter((x) => x.id === b.id && !evrimEdilebilirMi(d, x.uid)).map((x) => x.uid) : [];
   if (t.tur !== 'merkez') {
+    if (evrimHedef) {
+      const onayE = a.evrimOnay === b.uid;
+      dugmeler.push(h('button', { class: onayE ? 'vurgu' : '', 'data-evrim': 'tek', disabled: !!evrimYok, onclick: () => (onayE ? a.evrimBaslat(b.uid) : a.evrimOnayla(b.uid)) },
+        onayE ? `Onayla: ${evrimHedef.ad}'e dönüştür` : `🔄 Evrim → ${evrimHedef.ad}`));
+      if (topluUid.length > 1) {
+        const anahtar = `toplu:${b.id}`, onayT = a.evrimOnay === anahtar;
+        dugmeler.push(h('button', { 'data-evrim': 'toplu', onclick: () => (onayT ? a.evrimTopluBaslat(topluUid) : a.evrimOnayla(anahtar)) },
+          onayT ? `Onayla: ${topluUid.length} yapıyı dönüştür` : `🔄 Tüm ${t.ad} (${topluUid.length}) → ${evrimHedef.ad}`));
+      }
+    }
     if (t.maxSeviye > 1) dugmeler.push(h('button', { disabled: !!ykl.hata, onclick: () => a.islem(yukselt, b.uid) }, `⬆ Yükselt (Sv${b.seviye + 1})`));
     if (b.hasarli) dugmeler.push(h('button', { class: 'vurgu', disabled: !!onr.hata, onclick: () => a.islem(onar, b.uid) }, '🔧 Onar'));
     if (!t.cevre) dugmeler.push(h('button', { disabled: !!isi, onclick: () => a.tasimaBaslat(b.uid) }, '↔ Taşı'));
@@ -396,6 +415,8 @@ export function binaKarti(a, b) {
     t.huzur ? h('div', { class: 'satir' }, `😊 Huzur +${t.huzur}`) : null,
     t.savunma ? h('div', { class: 'satir' }, `🛡 Savunma +${t.savunma}`) : null,
     Object.keys(t.bakim || {}).length ? h('div', { class: 'satir soluk kucuk' }, `Bakım: ${uretimMetni(t.bakim).replace(/\+/g, '')}/gün`) : null,
+    evrimHedef ? h('div', { class: 'satir kucuk', 'data-evrim': 'bilgi' }, `Evrim → ${evrimHedef.ad} (${CAG[evrimHedef.cag].ad}), seviye ${Math.max(1, b.seviye - 1)}: `, maliyetChips(d, evrimMal)) : null,
+    evrimHedef && evrimYok ? h('div', { class: 'neden' }, `⚠ ${evrimYok}`) : null,
     b.seviye < t.maxSeviye && t.tur !== 'merkez' ? h('div', { class: 'satir kucuk' }, 'Yükseltme: ', maliyetChips(d, yukseltmeMaliyeti(b))) : null,
     ykl.hata && t.maxSeviye > 1 && t.tur !== 'merkez' ? h('div', { class: 'neden' }, `⚠ ${ykl.hata}`) : null,
     b.hasarli ? h('div', { class: 'satir kucuk' }, 'Onarım: ', maliyetChips(d, onarimMaliyeti(b))) : null,

@@ -17,7 +17,7 @@ function hazir() {
 }
 
 test('(e) çağ atlama şartları: nüfus, binalar, buluş, maliyet; eksikler Türkçe listelenir', () => {
-  assert.deepEqual(cagSartlari(hazir()), { uygun: true, eksikler: [], sonraki: cagSartlari(hazir()).sonraki });
+  assert.deepEqual(cagSartlari(hazir()), { uygun: true, eksikler: [], ipuclari: [], sonraki: cagSartlari(hazir()).sonraki });
   const s = cagSartlari(durum());
   assert.equal(s.uygun, false);
   assert.ok(s.eksikler.includes('Nüfus 3/8'));

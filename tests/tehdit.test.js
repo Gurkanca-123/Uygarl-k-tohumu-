@@ -180,7 +180,7 @@ test('komutlar: tavır, haraç, tahkimat, bekçi, zorluk; hatalar Türkçe ve du
   const az = { ...d, atama: { 'serbest:toplayici': 1 } };
   assert.equal(bekciAta(az, 2).durum.atama['serbest:bekci'], 2);
   assert.equal(savunmaHesapla(bekciAta(az, 2).durum) - savunmaHesapla(az), 1);
-  assert.match(bekciAta(d, 2).hata, /Yeterli kişi yok/);
+  assert.match(bekciAta(d, 2).hata, /Yeterli/);
   assert.equal(zorlukAyarla(d, 'barisci').durum.zorluk, 'barisci');
   assert.equal(zorlukAyarla(d, 'barisci').durum.tehdit.aktif.id, 'kurt_surusu'); // yırtıcı kalır
   assert.match(zorlukAyarla({ ...d, zorluk: 'barisci' }, 'normal').hata, /yeni oyunda/);

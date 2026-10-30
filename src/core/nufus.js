@@ -5,10 +5,10 @@
 // doğum için huzur ≥ DOGUM_HUZUR_MIN (40).
 import {
   NUFUS_MIN, KAYIP_PENCERE, KAYIP_ORAN, ACLIK_OLUM_TUR, GOC_HUZUR_ESIK, GOC_OLASILIK,
-  DOGUM_HUZUR_MIN, DOGUM_YIYECEK_KISI, DOGUM_NUFUS_BOLEN,
+  DOGUM_HUZUR_MIN, DOGUM_YIYECEK_KISI, DOGUM_NUFUS_BOLEN, COCUK_SURE,
 } from '../data/denge.js';
 import {
-  BINA, kopya, mevcutCag, sonTur, bildir, zar, atamaDuzelt, kisiEkle, barinmaKapasitesi, binaBul,
+  BINA, kopya, mevcutCag, sonTur, bildir, zar, atamaDuzelt, kisiEkle, halkCikar, calismaGucu, cocukSayisi, barinmaKapasitesi, binaBul,
   isciYuvasi, SERBEST, SERBEST_ONEK, olayKilitli, OLAY_KILIDI, hataDon,
 } from './yardimci.js';
 
@@ -30,6 +30,7 @@ export function kayipUygula(d, istenen, neden, bildirimler) {
   const n = Math.min(istenen, kayipHakki(d));
   if (n > 0) {
     d.nufus -= n;
+    halkCikar(d, n);
     d.kayiplar = [...d.kayiplar.filter((k) => k.tur > d.tur - KAYIP_PENCERE), { tur: d.tur, adet: n }];
     atamaDuzelt(d);
     bildir(bildirimler, 'kayip', `${n} kişi kaybedildi (${neden}).`, 'uyari', { adet: n, neden });
@@ -78,8 +79,8 @@ export function adimNufus(durum, bildirimler = []) {
   if (dogumTuruMu(d)) {
     const s = dogumSartlari(d);
     if (s.uygun && s.adet > 0) {
-      kisiEkle(d, s.adet);
-      bildir(bildirimler, 'dogum', `${s.adet} çocuk doğdu.`, 'iyi', { adet: s.adet });
+      kisiEkle(d, s.adet, true);
+      bildir(bildirimler, 'dogum', `${s.adet} çocuk doğdu (${COCUK_SURE} tur çalışamaz).`, 'iyi', { adet: s.adet });
     }
   }
   return d;
@@ -102,7 +103,7 @@ export function isAta(durum, hedef, adet) {
     if (adet > yuva) return hataDon(durum, `${t.ad} en çok ${yuva} işçi alır.`);
   }
   const toplam = Object.entries(durum.atama).reduce((a, [k, n]) => a + (k === hedef ? 0 : n), 0) + adet;
-  if (toplam > durum.nufus) return hataDon(durum, `Yeterli kişi yok (nüfus ${durum.nufus}).`);
+  if (toplam > calismaGucu(durum)) return hataDon(durum, `Yeterli çalışabilir kişi yok (${calismaGucu(durum)}; ${cocukSayisi(durum)} çocuk çalışamaz).`);
   const d = kopya(durum);
   if (adet === 0) delete d.atama[hedef];
   else d.atama[hedef] = adet;

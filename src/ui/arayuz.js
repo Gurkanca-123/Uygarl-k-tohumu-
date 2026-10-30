@@ -3,12 +3,12 @@ import { KAYNAKLAR } from '../data/kaynaklar.js';
 import { BINALAR } from '../data/binalar.js';
 import { OLAYLAR } from '../data/olaylar.js';
 import { insaEt, insaEtCok, olayCoz, cagAtla } from '../core/komutlar.js';
-import { yik, tasi } from '../core/komutlar.js';
+import { yik, tasi, evrimYap, evrimCok } from '../core/komutlar.js';
 import { tasimaZemini, tasimaMaliyeti } from '../core/insa.js';
 import { secenekUygunMu } from '../core/olay.js';
 import { bilgiUretimi } from '../core/arastirma.js';
 import { takvim } from '../core/takvim.js';
-import { kaynakAcik, depoTavani, mevcutCag, binaBul, barinmaKapasitesi, issizSayisi, isciYuvasi, binaIsi } from '../core/yardimci.js';
+import { kaynakAcik, depoTavani, mevcutCag, binaBul, barinmaKapasitesi, issizSayisi, isciYuvasi, binaIsi, cocukSayisi } from '../core/yardimci.js';
 import { maliyetHesapla } from '../core/insa.js';
 import { yerUygunMu, uygunYerler, yerBaglami } from '../world/yerlestir.js';
 import { cevreDurumu } from '../world/cevre.js';
@@ -41,7 +41,7 @@ export class Arayuz {
     this.ayar = depoOku('ut_ayar', { kalite: 'yuksek', ses: false });
     this.kartKucuk = false; this.kartAnahtar = null; this.modalAnahtar = null;
     this.insaKat = 'hepsi'; this.insaSadeceAcik = false;
-    this.secim = null; this.yerlestirme = null; this.yikOnay = null; this.kervanSecim = null; this.tehditAcik = false; this.tehditKucuk = false; this.sonTehditId = null;
+    this.secim = null; this.yerlestirme = null; this.yikOnay = null; this.evrimOnay = null; this.kervanSecim = null; this.tehditAcik = false; this.tehditKucuk = false; this.sonTehditId = null;
     this.menuAcik = false; this.menuSayfa = 'ana'; this.yeniOnay = false; this.gunlukAcik = false; this.zaferGoster = null;
     this.scrollTop = {}; this.sonSekme = null; this.kapaliBolum = new Set();
     this.ogretici = new Ogretici(this);
@@ -150,10 +150,25 @@ export class Arayuz {
   }
 
   islem(fn, ...args) {
-    this.yikOnay = null;
+    this.yikOnay = null; this.evrimOnay = null;
     return this.oyun.komut(fn, ...args);
   }
   yik(uid) { this.yikOnay = null; const r = this.oyun.komut(yik, uid); if (!r.hata) this.secimiKaldir(); }
+  // Evrim: iki dokunuş (önce onay, sonra başlat); onay 3,5 sn sonra kendiliğinden kalkar. anahtar = uid ya da 'toplu:<binaId>'.
+  evrimOnayla(anahtar) {
+    this.evrimOnay = anahtar; this.yenile();
+    setTimeout(() => { if (this.evrimOnay === anahtar) { this.evrimOnay = null; this.yenile(); } }, 3500);
+  }
+  evrimBaslat(uid) {
+    this.evrimOnay = null;
+    const r = this.oyun.komut(evrimYap, uid);
+    if (!r.hata) this.toast([{ metin: 'Evrim başladı; bina çalışmaya devam ediyor.', seviye: 'iyi' }]);
+  }
+  evrimTopluBaslat(uidler) {
+    this.evrimOnay = null;
+    const r = this.oyun.komut(evrimCok, uidler);
+    if (!r.hata) this.toast([{ metin: `${r.yapilan.length} yapı için evrim başladı${r.atlanan.length ? ` (${r.atlanan.length} atlandı)` : ''}.`, seviye: 'iyi' }]);
+  }
   yikOnayla(uid) { this.yikOnay = uid; this.yenile(); setTimeout(() => { if (this.yikOnay === uid) { this.yikOnay = null; this.yenile(); } }, 3500); }
   cagAtla() { const r = this.oyun.komut(cagAtla); if (!r.hata) this.toast([{ metin: 'Yeni çağa geçildi!', seviye: 'iyi' }]); }
   yenile() { this.cizim(); }
@@ -166,7 +181,7 @@ export class Arayuz {
   // kart zaten 44px+ düğmeler, üretim önizlemesi ve nedenleri gösterir.
   rozetKur(d) {
     const sec = this.secim?.tip === 'bina' ? this.secim.uid : null;
-    const liste = this.yerlestirme || d.olay.aktif ? [] : d.binalar.filter((b) => b.uid === sec && isciYuvasi(b) > 0 && !binaIsi(d, b)); // yalnız seçili bina: tüm binalara rozet haritayı doldurup üst üste biniyordu (boşta işçi: üst çubuktaki 👥 çipi İş sekmesini açar)
+    const liste = this.yerlestirme || d.olay.aktif ? [] : d.binalar.filter((b) => b.uid === sec && isciYuvasi(b) > 0 && (!binaIsi(d, b) || binaIsi(d, b) === 'evrim')); // yalnız seçili bina: tüm binalara rozet haritayı doldurup üst üste biniyordu (boşta işçi: üst çubuktaki 👥 çipi İş sekmesini açar)
     const anahtar = JSON.stringify([liste.map((b) => [b.uid, d.atama[b.uid] || 0, isciYuvasi(b), b.hasarli]), sec, issizSayisi(d)]);
     if (anahtar === this.rozetAnahtar) return;
     this.rozetAnahtar = anahtar;
@@ -452,7 +467,7 @@ export class Arayuz {
     const durumlar = [
       h('div', { class: 'chip bp', title: 'Bilgi Puanı' }, h('span', { class: 'sim' }, '💡'), h('b', {}, `+${yuvarla(bilgiUretimi(d))}`), h('small', {}, 'BP/gün')),
       h('div', { class: `chip huzur ${huzurSinif}`, title: 'Huzur', style: `--oran:${Math.max(0, Math.min(100, d.huzur))}%` }, h('span', { class: 'sim' }, '😊'), h('b', {}, Math.round(d.huzur))),
-      h('div', { class: `chip nufus${d.nufus > bar ? ' uyari' : ''}${isz > 0 ? ' tikla' : ''}`, title: `Nüfus / barınak${isz > 0 ? ` · ${isz} işsiz (İş sekmesini açar)` : ''}`, onclick: () => { if (isz > 0) { this.sekme = 'is'; this.pencere = 'acik'; this.kaydetUi(); this.yenile(); } } }, h('span', { class: 'sim' }, '👥'), h('b', {}, d.nufus), h('small', {}, `/${bar}`),
+      h('div', { class: `chip nufus${d.nufus > bar ? ' uyari' : ''}${isz > 0 ? ' tikla' : ''}`, title: `Nüfus / barınak${cocukSayisi(d) > 0 ? ` · ${cocukSayisi(d)} çocuk` : ''}${isz > 0 ? ` · ${isz} işsiz (İş sekmesini açar)` : ''}`, onclick: () => { if (isz > 0) { this.sekme = 'is'; this.pencere = 'acik'; this.kaydetUi(); this.yenile(); } } }, h('span', { class: 'sim' }, '👥'), h('b', {}, d.nufus), h('small', {}, `/${bar}`),
         isz > 0 ? h('span', { class: 'azl' }, `${isz} boşta`) : null),
     ];
     const tc = tehditCipi(d, () => this.tehditTikla());

@@ -12,6 +12,7 @@
 //   savunması src/world/cevre.js ile hesaplanır), yanabilir, maliyetSabit (adet çarpanı yok), insaatSinirDisi (eşzamanlı sınıra sayılmaz).
 // Aşama 3 (harita/keşif): gorus (bina tamamlanınca kendi çevresinde açtığı yarıçap), kesifYaricap (Keşfet eylemine ek yarıçap).
 //   TODO(tasarim): gorus/kesifYaricap sayıları belgede yok; varsayım (Gözcü 8/+1, Muhafız Kulesi 9, Kale 10).
+// Evrim: `evrim: '<hedefBinaId>'` = bu bina yerinde hedefe dönüşebilir (core/insa.js evrimYap; maliyet = hedef × EVRIM_MALIYET).
 // `bitisiklik[].hedef` tek dizgi ya da dizi olabilir (dizi: hedeflerden herhangi biri, ortak `max`).
 // Merkez binaların huzur/depo/BP/eşzamanlı inşaat değerleri CAGLAR tablosundan okunur (tek kaynak).
 import { KAYNAKLAR } from './kaynaklar.js';
@@ -44,7 +45,7 @@ export const BINALAR = [
     aciklama: 'Orta Çağ merkezi.' }),
 
   // ---------- §4.1 Göçebe Çağı ----------
-  bina({ id: 'cadir', ad: 'Çadır', cag: 'gocebe', tur: 'konut', boyut: [1, 1], maliyet: { odun: 5, deri: 2 }, insaSuresi: 1,
+  bina({ id: 'cadir', evrim: 'kulube', ad: 'Çadır', cag: 'gocebe', tur: 'konut', boyut: [1, 1], maliyet: { odun: 5, deri: 2 }, insaSuresi: 1,
     kapasite: 3, isinma: 1, mvp: true, aciklama: '3 kişi barındırır.' }),
   bina({ id: 'avci_kulubesi', ad: 'Avcı Kulübesi', cag: 'gocebe', tur: 'uretim', boyut: [1, 1], maliyet: { odun: 8 }, insaSuresi: 1,
     isci: 2, uretim: { yiyecek: 1.5, deri: 0.75 }, mevsimEtiketi: 'avcilik',
@@ -55,7 +56,7 @@ export const BINALAR = [
   bina({ id: 'oduncu_kampi', ad: 'Oduncu Kampı', cag: 'gocebe', tur: 'uretim', boyut: [1, 1], maliyet: { odun: 6 }, insaSuresi: 1,
     isci: 2, uretim: { odun: 2 },
     bitisiklik: [{ hedef: ORMAN, etki: { uretim: 0.25 }, max: 2 }], mvp: true, aciklama: 'Odun keser.' }),
-  bina({ id: 'kurutma_rafi', ad: 'Kurutma Rafı', cag: 'gocebe', tur: 'depo', boyut: [1, 1], maliyet: { odun: 6, deri: 2 }, insaSuresi: 1,
+  bina({ id: 'kurutma_rafi', evrim: 'erzak_cukuru', ad: 'Kurutma Rafı', cag: 'gocebe', tur: 'depo', boyut: [1, 1], maliyet: { odun: 6, deri: 2 }, insaSuresi: 1,
     gereksinim: { bulus: 'deri_isleme' }, depo: { yiyecek: 20 }, bozulmaAzaltma: 0.01, mvp: true,
     aciklama: 'Yiyecek deposunu artırır, bozulmayı azaltır.' }),
   bina({ id: 'totem', ad: 'Totem', cag: 'gocebe', tur: 'huzur', boyut: [1, 1], maliyet: { odun: 4, tas: 4 }, insaSuresi: 2,
@@ -66,7 +67,7 @@ export const BINALAR = [
     tehditGozcu: true, aciklama: 'Nöbetçi yaklaşan tehlikeyi görür.' }),
   // Çevre parçası (TEHDIT.md §12, kullanıcı isteği "köyü çitle çevirebilmeliyim"): ucuz, 1 günde biter, eşzamanlı inşaat sınırına
   // sayılmaz, maliyeti adetle büyümez; komşu parçalar zincir, merkez çevresinde kapalı halka bonus verir. Yanabilir (baskında yanar).
-  bina({ id: 'cit', ad: 'Çit', cag: 'gocebe', tur: 'savunma', boyut: [1, 1], maliyet: { odun: 1 }, insaSuresi: 1, maxSeviye: 1,
+  bina({ id: 'cit', evrim: 'sur_parcasi', ad: 'Çit', cag: 'gocebe', tur: 'savunma', boyut: [1, 1], maliyet: { odun: 1 }, insaSuresi: 1, maxSeviye: 1,
     savunma: 0.25, cevre: true, yanabilir: true, maliyetSabit: true, insaatSinirDisi: true,
     aciklama: 'Kazık çit. Köyü kapalı bir halkayla çevirirsen savunma bonusu verir.' }),
   // TODO(tasarim): "+0,3 BP" sabit mi, işçi başına mı? Sabit (bilgi) varsayıldı; işçisiz çalışır mı belirsiz.
@@ -74,11 +75,12 @@ export const BINALAR = [
     isci: 1, bilgi: 0.3, huzur: 3, hastalikKayipCarpani: 0.5, aciklama: 'Hastalık olaylarında kayıplar yarıya iner. (Sürüm 0.2)' }),
 
   // ---------- §4.2 Taş Devri ----------
-  bina({ id: 'kulube', ad: 'Kulübe', cag: 'tasdevri', tur: 'konut', boyut: [1, 1], maliyet: { odun: 8, tas: 4 }, insaSuresi: 2,
+  bina({ id: 'kulube', evrim: 'kerpic_ev', ad: 'Kulübe', cag: 'tasdevri', tur: 'konut', boyut: [1, 1], maliyet: { odun: 8, tas: 4 }, insaSuresi: 2,
     kapasite: 4, isinma: 0.5, mvp: true, aciklama: '4 kişi barındırır.' }),
   bina({ id: 'tas_ocagi', ad: 'Taş Ocağı', cag: 'tasdevri', tur: 'uretim', boyut: [2, 2], maliyet: { odun: 12 }, insaSuresi: 3,
-    gereksinim: { karoBitisik: 'tasli' }, isci: 3, uretim: { tas: 1.5 }, mvp: true, aciklama: 'Taşlığa bitişik kurulur.' }),
-  bina({ id: 'alet_yapimcisi', ad: 'Alet Yapımcısı', cag: 'tasdevri', tur: 'donusum', etiketler: ['atolye'], boyut: [1, 1],
+    gereksinim: { karoBitisik: 'tasli' }, isci: 3, uretim: { tas: 1.5 },
+    bitisiklik: [{ hedef: 'karo:tasli', etki: { uretim: 0.25 }, max: 2 }], mvp: true, aciklama: 'Taşlığa bitişik kurulur.' }),
+  bina({ id: 'alet_yapimcisi', evrim: 'demirci', ad: 'Alet Yapımcısı', cag: 'tasdevri', tur: 'donusum', etiketler: ['atolye'], boyut: [1, 1],
     maliyet: { odun: 10, tas: 8 }, insaSuresi: 2, isci: 2, girdi: { tas: 1, odun: 0.5 }, uretim: { alet: 0.5 }, mvp: true,
     aciklama: 'Taş ve odundan alet yapar.' }),
   bina({ id: 'erzak_cukuru', ad: 'Erzak Çukuru', cag: 'tasdevri', tur: 'depo', boyut: [1, 1], maliyet: { odun: 8, tas: 6 }, insaSuresi: 1,
@@ -88,7 +90,7 @@ export const BINALAR = [
   bina({ id: 'balikci_siginagi', ad: 'Balıkçı Sığınağı', cag: 'tasdevri', tur: 'uretim', boyut: [1, 1], maliyet: { odun: 10, alet: 2 }, insaSuresi: 2,
     gereksinim: { bulus: 'balikcilik', karoBitisik: 'su' }, isci: 2, uretim: { yiyecek: 2.5 }, mevsimEtiketi: 'balik',
     aciklama: 'Suya bitişik kurulur.' }),
-  bina({ id: 'tahil_bahcesi', ad: 'Tahıl Bahçesi', cag: 'tasdevri', tur: 'uretim', etiketler: ['tarim'], boyut: [2, 2],
+  bina({ id: 'tahil_bahcesi', evrim: 'sulanan_tarla', ad: 'Tahıl Bahçesi', cag: 'tasdevri', tur: 'uretim', etiketler: ['tarim'], boyut: [2, 2],
     maliyet: { odun: 10, alet: 2 }, insaSuresi: 2, gereksinim: { bulus: 'tohum_ekme' }, isci: 2, uretim: { yiyecek: 3 },
     mevsimEtiketi: 'tarim', bitisiklik: [{ hedef: 'karo:verimli', etki: { uretim: 0.25 }, max: 2 }], aciklama: 'İlk tarım.' }),
   bina({ id: 'agil', ad: 'Ağıl', cag: 'tasdevri', tur: 'uretim', boyut: [2, 2], maliyet: { odun: 15, tas: 5 }, insaSuresi: 2,
@@ -98,7 +100,7 @@ export const BINALAR = [
     gereksinim: { tekil: true }, isci: 1, huzur: 8, bilgi: 1, isciBilgi: 0.5, aciklama: 'Atalara ve avlara adanmış duvarlar.' }),
 
   // ---------- §4.3 Bronz/Demir Çağı ----------
-  bina({ id: 'kerpic_ev', ad: 'Kerpiç Ev', cag: 'bronz', tur: 'konut', boyut: [1, 1], maliyet: { odun: 6, kil: 10 }, insaSuresi: 2,
+  bina({ id: 'kerpic_ev', evrim: 'tas_ev', ad: 'Kerpiç Ev', cag: 'bronz', tur: 'konut', boyut: [1, 1], maliyet: { odun: 6, kil: 10 }, insaSuresi: 2,
     kapasite: 5, isinma: 0.5, aciklama: '5 kişi barındırır.' }),
   bina({ id: 'kil_ocagi', ad: 'Kil Ocağı', cag: 'bronz', tur: 'uretim', boyut: [1, 1], maliyet: { odun: 10, alet: 4 }, insaSuresi: 1,
     gereksinim: { karoBitisik: 'kil' }, isci: 2, uretim: { kil: 2 }, aciklama: 'Kil yatağına (su kenarı) bitişik kurulur.' }),
@@ -110,7 +112,7 @@ export const BINALAR = [
   bina({ id: 'demirci', ad: 'Demirci', cag: 'bronz', tur: 'donusum', etiketler: ['atolye'], boyut: [1, 1], maliyet: { kil: 15, metal: 5 },
     insaSuresi: 2, gereksinim: { bulus: 'tunc_dokum' }, isci: 2, girdi: { metal: 0.5, odun: 0.5 }, uretim: { alet: 1 },
     aciklama: 'Metalden alet döver.' }),
-  bina({ id: 'sulanan_tarla', ad: 'Sulanan Tarla', cag: 'bronz', tur: 'uretim', etiketler: ['tarim'], boyut: [2, 2],
+  bina({ id: 'sulanan_tarla', evrim: 'ciftlik', ad: 'Sulanan Tarla', cag: 'bronz', tur: 'uretim', etiketler: ['tarim'], boyut: [2, 2],
     maliyet: { odun: 10, kil: 15, alet: 4 }, insaSuresi: 2, gereksinim: { bulus: 'sulama' }, isci: 3, uretim: { yiyecek: 4 },
     mevsimEtiketi: 'tarim', bitisiklik: [{ hedef: SU, etki: { uretim: 0.25 }, max: 1, mesafe: 2 }],
     aciklama: '2 karo içinde su varsa verim artar.' }),
@@ -128,7 +130,7 @@ export const BINALAR = [
     aciklama: 'Rahipler bilgi biriktirir.' }),
 
   // ---------- §4.4 Antik Çağ ----------
-  bina({ id: 'tas_ev', ad: 'Taş Ev', cag: 'antik', tur: 'konut', boyut: [1, 1], maliyet: { tas: 15, kil: 5, metal: 2 }, insaSuresi: 3,
+  bina({ id: 'tas_ev', evrim: 'yari_ahsap_ev', ad: 'Taş Ev', cag: 'antik', tur: 'konut', boyut: [1, 1], maliyet: { tas: 15, kil: 5, metal: 2 }, insaSuresi: 3,
     kapasite: 6, isinma: 0.5, aciklama: '6 kişi barındırır.' }),
   bina({ id: 'mermer_ocagi', ad: 'Mermer Ocağı', cag: 'antik', tur: 'uretim', boyut: [2, 2], maliyet: { odun: 30, tas: 20, alet: 10 }, insaSuresi: 3,
     gereksinim: { karoUstu: 'mermer' }, isci: 3, uretim: { mermer: 1 }, aciklama: 'Mermer yatağı üstüne kurulur.' }),

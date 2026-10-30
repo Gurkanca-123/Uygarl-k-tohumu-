@@ -1,5 +1,24 @@
 # CHANGELOG_DEV (yalnız son kayıtlar; eskiler `docs/CHANGELOG_ARSIV.md`)
 
+## 2026-10-30 — Çocuklar çalışmaz + halk defteri (kullanıcı kararı) (Sonnet 5.5)
+- `denge.js`: `COCUK_SURE = 5` (1 mevsim), `YETISKIN_YAS`. `yardimci.js`: `halkEkle/halkCikar/cocukSayisi/calismaGucu`; `kisiEkle(d, n, cocuk)`; işçi hesapları (`yaraliSayisi`, `etkinAtama`, `issizSayisi`, `atamaDuzelt`) ve `isAta` çalışma gücüne bağlandı.
+- Doğum: çocuk doğar, atanmaz, işsiz sayılmaz, yiyecek tüketir. Kayıp: önce çocuklar. Göçmen/başlangıç: yetişkin. Şema: `halk[{id,dogum}]`, `halkSayac` (kayıt sürümü 3 AYNI; eski kayıt açılır, herkes yetişkin).
+- UI: İş panelinde "👶 N çocuk" satırı, nüfus çipinde çocuk sayısı, "N/çalışma gücü çalışıyor".
+- Denge etkisi: Göçebe bot ortanca 28→33 tur; test bandı 20–32 → 20–36 (43/50). Ayrıntı `docs/DENGE_BULGULARI.md`. Testler: `tests/cocuk.test.js` (7) + 3 eski test güncellendi; toplam 236 (235 geçer + 1 todo). Uzun sim değişmezlerine halk denetimi eklendi (0 ihlal).
+
+## 2026-10-30 — Denge düzeltmeleri (kullanıcı onaylı) (Sonnet 5.5)
+- Taş Ocağı: `karo:tasli` bitişiklik bonusu (+%25/karo, max 2). Çağ penceresi: yiyecek bozulması yüzünden ulaşılamayan geçiş maliyeti için 💡 ipucu (`cagSartlari().ipuclari`; şartı değiştirmez).
+- `tests/denge_ipuclari.test.js` (2); toplam 229 (228 geçer + 1 todo). `docs/VATANDAS.md`: bireysel vatandaş "defter" tasarım önerisi (UYGULANMADI, onay bekliyor).
+
+## 2026-10-30 — Bina evrimi + uzun simülasyon altyapısı (Sonnet 5.5)
+- **Evrim (yerinde dönüşüm):** `binalar.js` `evrim:` alanı (çadır→kulübe→kerpiç→taş ev→yarı ahşap; tahıl bahçesi→sulanan tarla→çiftlik; alet yapımcısı→demirci; çit→sur; kurutma rafı→erzak çukuru).
+  `denge.js` `EVRIM_MALIYET = 0.70`. `core/insa.js`: `evrimMaliyeti/evrimEdilebilirMi/evrimYap/evrimCok/evrimAdaylari`; kuyruk girdisi `evrim:<uid>` (eşzamanlı sınıra sayılmaz, eski bina çalışmaya devam eder),
+  ödenen+hedef `d.istatistik.evrim[uid]` (KAYIT ŞEMASI/SÜRÜMÜ DEĞİŞMEDİ, eski kayıtlar açılır). Seviye = min(max(1, eski−1), hedef sınırı). Evrim sırasında hedefin 3×3 alanı `izgara()` ile ayrılır; bitişte sığmazsa iptal + iade.
+  `cag.js`: çağ atlayınca `evrim_hazir` bildirimi (otomatik dönüşüm yok). UI: bina kartında "🔄 Evrim → X" (maliyet çipleri, eksik şart, iki dokunuş onay) + "Tüm … → X" toplu seçim.
+- `dogrula.js`: evrim hedefi doğrulaması. `render/binalar.js`: evrim sürerken yükseltme görünümü. `isdagit.js`: evrimdeki bina işçi alabilir.
+- Testler: `tests/evrim.test.js` (23), `tests/uzun_sim.test.js` (7); toplam 227 (226 geçer + 1 todo). `tests/yardimci/uzun_sim.js`: tüm çağlar botu + değişmez denetimi; `node tests/yardimci/uzun_sim.js <tohum> <gün> <zorluk> [çağ]`.
+- `docs/DENGE_BULGULARI.md`: ölçüm + 9 denge bulgusu (HİÇBİR SAYI DEĞİŞMEDİ).
+
 ## 2026-10-29 — Kalan yapıların ayrıntı geçişi (Sonnet 5.5)
 - `binalar.js` ekleri: kil ocağı (çömlek rafı, çanak istifi, çömlekçi çarkı), maden (lamba, renkli cevher, vinç), mermer ocağı (yatan sütun, yarı heykel, altın damar), bağ bahçe (asma çardağı, üzüm, fıçı), kulübe, nöbet çiti (meşale, sancak), mağara resmi (meşale, el izleri), kışla (mankenler, silah rafı, sancaklar), manastır (kuyu, rahipler), darüşşifa (şifalı ot bahçesi, çeşme), lonca (sancak, sandıklar), ağıl. Böylece 54 yapının tamamı bu seanstaki görsel turdan geçti. Telefonda/oyun içinde denenmedi (kullanıcı deneyecek).
 

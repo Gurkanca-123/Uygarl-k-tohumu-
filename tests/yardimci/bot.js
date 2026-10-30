@@ -25,6 +25,8 @@ import { beklenenSonuc, haracMaliyeti, TEHDIT, bekciAta, haracOde, tehditTavir }
 import { bekciDegeri } from '../../src/core/savunma.js';
 import { MEVSIM_TUR, YORGUNLUK_MAX } from '../../src/data/denge.js';
 
+// Göçebe hedef bandı üst sınırı: 32 idi; çocukların çalışmaması (COCUK_SURE, 2026-10-30) süreyi uzattığı için 36.
+export const GOCEBE_BAND_UST = 36;
 const KAYNAKLAR = ['yiyecek', 'odun', 'tas', 'deri'];
 const BULUS_YOLU = ['tas_yontma', 'mizrak_ucu', 'deri_isleme', 'yerlesik_hayat', 'hayvan_izleri'];
 const UFUK = 5;
@@ -56,7 +58,7 @@ function sonucDegeri(d, s) {
   for (const o of s.olasilik || []) v += o.p * sonucDegeri(d, o.sonuc);
   return v;
 }
-function olaySec(d) {
+export function olaySec(d) {
   const o = OLAY[d.olay.aktif.id];
   let enIyi = -1, deger = -Infinity;
   o.secenekler.forEach((s, i) => {
@@ -81,7 +83,7 @@ function bitisikPuan(d, binaId, x, y) {
   }
   return p;
 }
-function yerBul(d, binaId) {
+export function yerBul(d, binaId) {
   const yerler = uygunYerler(d, binaId).slice(0, 40);
   if (!yerler.length) return null;
   let enIyi = yerler[0], puan = -Infinity;
@@ -173,7 +175,7 @@ function onderSec(d) {
 // Varıştan önceki son oyuncu evresinde (kalan 1): eksik savunmayı bekçiyle kapat (en çok nüfusun yarısı); olmuyorsa
 // yiyecek bolsa haraç, değilse yine kısmiye yetecek kadar bekçi. Bekçi serbest işlerden (en kalabalığından) alınır.
 // strateji 'pasif': hiçbir şey yapmaz (varsayılan tavır Savun).
-function tehditHazirla(d, strateji) {
+export function tehditHazirla(d, strateji) {
   const a = d.tehdit?.aktif;
   if (strateji === 'pasif' || !a || a.kalan > 1) return d;
   const b = beklenenSonuc(d);
@@ -243,7 +245,7 @@ export function botOzeti(tohumlar, secenek = {}) {
     sonuclar,
     tamamSayisi: tamam.length,
     min: tamam[0], max: tamam[tamam.length - 1], ortanca: tamam[Math.floor(tamam.length / 2)],
-    aralikta: tamam.filter((t) => t >= 20 && t <= 32).length,
+    aralikta: tamam.filter((t) => t >= 20 && t <= GOCEBE_BAND_UST).length,
     minNufus: Math.min(...sonuclar.map((s) => s.minNufus)),
     tehdit: sonuclar.flatMap((s) => s.son.tehdit?.gecmis || []).reduce((a, g) => ({ ...a, [g.sonuc]: (a[g.sonuc] || 0) + 1 }), {}),
   };
@@ -254,6 +256,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const strateji = process.argv[3] || 'hazirlikli';
   const oz = botOzeti(Array.from({ length: n }, (_, i) => i + 1), { tehditStrateji: strateji, zorluk: process.argv[4] || 'normal' });
   console.log(`Tohum: ${n} · bitiren: ${oz.tamamSayisi} · tur min/ortanca/max: ${oz.min}/${oz.ortanca}/${oz.max}`
-    + ` · 20–32 aralığında: ${oz.aralikta} · en düşük nüfus: ${oz.minNufus} · tehdit (${strateji}): ${JSON.stringify(oz.tehdit)}`);
+    + ` · 20–36 aralığında: ${oz.aralikta} · en düşük nüfus: ${oz.minNufus} · tehdit (${strateji}): ${JSON.stringify(oz.tehdit)}`);
   for (const s of oz.sonuclar.filter((x) => !x.tamam).slice(0, 5)) console.log(`  tohum ${s.tohum}: bitiremedi —`, s.eksikler.join('; '));
 }

@@ -42,6 +42,9 @@ export const DURUM_SEMASI = S.nesne({
   arastirma: S.nesne({ id: S.metin({ izinli: idler(BULUSLAR) }), ilerleme: S.sayi() }, { bos: true }),
   buluslar: { tur: 'metinDizi', izinli: idler(BULUSLAR) },
   nufus: S.sayi(),
+  // Halk defteri (çocuklar; kayıt sürümü DEĞİŞMEZ — eksikse yeniOyun'un başlangıç defteri gelir, kayıtsız kişiler yetişkin sayılır).
+  halk: S.dizi(S.nesne({ id: S.sayi(), dogum: S.sayi() })),
+  halkSayac: S.sayi(),
   atama: { tur: 'sozlukSayi' },
   huzur: S.sayi(),
   acTur: S.sayi(),

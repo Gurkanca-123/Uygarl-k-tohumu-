@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   adimAclik, adimNufus, kayipHakki, kayipSiniri, kayipUygula, dogumSartlari, dogumTuruMu, isAta,
 } from '../src/core/nufus.js';
-import { etkinAtama, issizSayisi } from '../src/core/yardimci.js';
+import { etkinAtama, issizSayisi, calismaGucu, cocukSayisi } from '../src/core/yardimci.js';
 import { rngBaslat } from '../src/core/rng.js';
 import { durum, binaEkle, K } from './yardimci/durum.js';
 
@@ -54,7 +54,9 @@ test('doğum: her 4 turda; boş barınak, yiyecek ≥ 2×nüfus, huzur ≥ 40, a
   assert.equal(dogumSartlari(temel).uygun, true);
   const d = adimNufus(temel);
   assert.equal(d.nufus, 4);
-  assert.equal(d.atama['serbest:toplayici'], 4);
+  assert.equal(d.atama['serbest:toplayici'], 3); // doğan çocuk çalışmaz: atanmaz
+  assert.equal(cocukSayisi(d), 1);
+  assert.equal(calismaGucu(d), 3);
   assert.equal(adimNufus({ ...temel, huzur: 39 }).nufus, 3);
   assert.equal(adimNufus({ ...temel, huzur: 40 }).nufus, 4);
   assert.equal(adimNufus({ ...temel, kaynaklar: { yiyecek: 5.9 } }).nufus, 3);
@@ -85,7 +87,7 @@ test('isAta: yuva sınırı, nüfus sınırı, bilinmeyen yuva; geçersiz komut 
   assert.equal(isAta(d, 'k', 3).durum, d);
   assert.match(isAta(d, 'b2', 1).hata, /işçi almaz/);
   assert.match(isAta(d, 'serbest:yok', 1).hata, /serbest iş/);
-  assert.match(isAta(d, 'k', 1).hata, /Yeterli kişi yok/);
+  assert.match(isAta(d, 'k', 1).hata, /Yeterli çalışabilir kişi yok/);
   const r = isAta(isAta(d, 'serbest:toplayici', 1).durum, 'k', 2);
   assert.equal(r.hata, undefined);
   assert.deepEqual(r.durum.atama, { 'serbest:toplayici': 1, k: 2 });

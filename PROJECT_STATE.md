@@ -1,7 +1,7 @@
 # PROJECT_STATE (kısa; ayrıntı: `docs/MIMARI.md`, tasarım: `docs/TASARIM.md`)
 
 **Durum (2026-10-28):** Ana oyun = ŞEHİR KURMA odaklı (tehdit/çit/iş dağıtımı dahil). Sefer, kahraman, komşu, ayı/tapınak (harabe) görevleri, mevsim görev kartları ve görsel savaş **ana daldan çıkarıldı**, `yan/savas-aksiyon` dalında duruyor (kullanıcı kararı: şehir kurmaya odaklan, bitince tekrar düşünülecek). Sıradaki: şehir kurma derinliği (bina/çağ içeriği, denge, bina modelleri).
-Testler: 196 (195 geçer + 1 `todo`). Tarayıcı testi: `npm run build && npm run e2e` (163 kontrol, `npm test`'e dahil değil). Varsayılan görünüm = stil BD (`?stil=eski` eski render; `?stil=a|b|c|d`).
+Testler: 236 (235 geçer + 1 `todo`). Tarayıcı testi: `npm run build && npm run e2e` (163 kontrol, `npm test`'e dahil değil). Varsayılan görünüm = stil BD (`?stil=eski` eski render; `?stil=a|b|c|d`).
 
 ## Oyun (özet)
 Sıra tabanlı (tur = gün, mevsim 5 gün, yıl 20 gün), 5 çağ, Önder eylemi/tur, yenilgi yok, zafer sonrası serbest kip. 64×64 harita, keşif sisi.
@@ -14,12 +14,14 @@ Sıra tabanlı (tur = gün, mevsim 5 gün, yıl 20 gün), 5 çağ, Önder eylemi
 
 ## Çekirdek API (UI'nın kullanacağı)
 - `yeniOyun(tohum)`, `turIlerlet(durum)` → `{ durum, bildirimler, hata? }`, `mevsimSonunaIlerlet`.
-- Komutlar (`src/core/komutlar.js`, `insa.js`): `isAta, insaEt, yukselt, onar, yik, tasi, ormanTemizle, yolYap, yolKaldir, arastirmaSec,
-  onderEylemiSec, olayCoz, cagAtla, vergiAyarla, takasYap` → `{ durum, hata? }` (hata Türkçe, durum değişmez).
+- Komutlar (`src/core/komutlar.js`, `insa.js`): `isAta, insaEt, yukselt, evrimYap, evrimCok, onar, yik, tasi, ormanTemizle, yolYap, yolKaldir, arastirmaSec,
+  onderEylemiSec, olayCoz, cagAtla, vergiAyarla, takasYap, evrimYap, evrimCok` → `{ durum, hata? }` (hata Türkçe, durum değişmez).
 - Okuma: `src/world/` (`gorunurKaro`, `uygunYerler`, `yerUygunMu`, `kesifli`), `takvim(tur)`.
 - Bekleyen olay varken `olayCoz` dışı komutlar kilitli.
 
 ## Kısıtlar / bilinenler
+- **Bina evrimi** (yerinde dönüşüm, %70, `evrim:<uid>` kuyruğu, `d.istatistik.evrim`): ayrıntı `docs/MIMARI.md`. Denge bulguları: `docs/DENGE_BULGULARI.md`. Uzun sim: `tests/yardimci/uzun_sim.js`.
+- Karar (2026-10-30): oyun SIRA TABANLI kalır. ÇOCUKLAR ÇALIŞMAZ: `d.halk` defteri, `COCUK_SURE`=5 tur, çalışma gücü = nüfus − çocuk (`calismaGucu`). Hane/yaşlanma/ölüm/isim BEKLİYOR (`docs/VATANDAS.md`).
 - Arayüz durumu doğrudan değiştirmez; `Oyun.komut(fn, ...)` çekirdek komutunu çağırır, her başarılı komut + tur sonu otomatik kayıt (`save/kayit.js`).
 - Eksik (UI): takas arayüzü yok, Keşfet'te yön seçimi yok, kayıt tek yuva, ses yok; Ayarlar'daki grafik kalitesi (Yüksek/Standart/Performans) `sahne.kaliteAyarla`'ya bağlı; Önder/Araştırma sekmeleri eski düzende; açık tema denenmedi.
 - Render: GPU'lu telefonda fps ölçülmedi (SwiftShader'da dolu köy 220–300 ms/kare; bütçe 70 çizim çağrısı, 155 bin üçgen); WebGL1 yedeği yok (`textureGrad`).

@@ -158,6 +158,16 @@ export function dogrula(v) {
     }
     if (b.etkiAlani && !etiketler.has(b.etkiAlani.hedefEtiket)) hata(`${y}.etkiAlani: bilinmeyen etiket`);
     if (b.kuresel && !etiketler.has(b.kuresel.hedefEtiket)) hata(`${y}.kuresel: bilinmeyen etiket`);
+    if (b.evrim) {
+      const hedef = (v.BINALAR || []).find((x) => x.id === b.evrim);
+      if (!hedef) hata(`${y}.evrim: bilinmeyen bina "${b.evrim}"`);
+      else {
+        if (hedef.tur !== b.tur) hata(`${y}.evrim: hedef farklı türde (${b.tur} → ${hedef.tur})`);
+        if (sira(hedef.cag) < sira(b.cag)) hata(`${y}.evrim: hedef daha eski çağda`);
+        if (hedef.gereksinim?.tekil) hata(`${y}.evrim: tekil bina evrim hedefi olamaz`);
+        if (hedef.id === b.id) hata(`${y}.evrim: kendisine`);
+      }
+    }
   }
 
   // --- 4. buluşlar (başvurular + döngü) ---
