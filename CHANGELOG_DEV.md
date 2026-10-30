@@ -1,5 +1,9 @@
 # CHANGELOG_DEV (yalnız son kayıtlar; eskiler `docs/CHANGELOG_ARSIV.md`)
 
+## 2026-10-30 — Şehir geneli bütünlük: ışık, çatı rengi, döndürme (Sonnet 5.5)
+- `malzeme.js`: `binaMatM` (gölge dolgulu, yalnız mimari motor). `sahne.js`: mimari motor binaları döndürülmez. Antik kiremit doygunluğu düşürüldü, `tasKrem` sıcaklaştı. Oyun sahnesinde eski motorda siyah çatılar vardı; yeni motorda okunur/uyumlu. Ayrıntı: `docs/MIMARI_URETIM.md`.
+- Eski motor görünümü ve veri/mekanik değişmedi; yeni motor varsayılan kapalı.
+
 ## 2026-10-30 — Kalan tüm binalar yeni mimari motorda: 55/55 (Sonnet 5.5)
 - Eklenen aileler: tarım (çiftlik, ambar, ağıl, tahıl bahçesi, erzak çukuru, sulanan tarla, bağ-bahçe, kurutma rafı), lonca binası, darüşşifa, savunma (sur parçası, çit, nöbet çiti, gözcü direği, muhafız kulesi, kışla), ilkel çağ (10), bronz (6), antik (7), merkezler (5). Hepsi 3 varyant; çevre parçaları (cit, sur_parcasi) komşu maskesiyle uyumlu.
 - Yeni parça modülleri: `parcalar_tarim/lonca/ilkel.js`. `tests/mimari.test.js` kayıtlı tüm binaları otomatik denetler. `tests/e2e/oyna.mjs`: `MIMARI=yeni npm run e2e` ile tam oyun yeni motor açıkken.

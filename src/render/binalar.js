@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { BINALAR } from '../data/binalar.js';
 import { CAGLAR } from '../data/caglar.js';
 import { DOKU, ATLAS_HUCRE } from './dokular.js';
-import { binaMat, isilMat, hayaletMat, taslakMat, cizgiMat } from './malzeme.js';
+import { binaMat, binaMatM, isilMat, hayaletMat, taslakMat, cizgiMat } from './malzeme.js';
 import { mimariKayitli, mimariYap, mimariVaryant, mimariAcik } from './mimari/index.js';
 
 const BINA = Object.fromEntries(BINALAR.map((b) => [b.id, b]));
@@ -1878,7 +1878,7 @@ export function binaModeli(b, durum = {}, secenek = {}) {
     cz.renderOrder = 13;
     grup.add(cz);
   } else {
-    const m = new THREE.Mesh(v.ana, binaMat());
+    const m = new THREE.Mesh(v.ana, yeni ? binaMatM() : binaMat());
     m.castShadow = golge; m.receiveShadow = true;
     grup.add(m);
     if (v.isil) grup.add(new THREE.Mesh(v.isil, isilMat()));
@@ -1891,13 +1891,13 @@ export function binaModeli(b, durum = {}, secenek = {}) {
   }
   let pv = null;
   if (v.pervane) {
-    pv = new THREE.Mesh(v.pervane.geo || pervane(), secenek.hayalet ? hayaletMat(secenek.hayalet) : binaMat());
+    pv = new THREE.Mesh(v.pervane.geo || pervane(), secenek.hayalet ? hayaletMat(secenek.hayalet) : (yeni ? binaMatM() : binaMat()));
     pv.position.set(v.pervane.x, v.pervane.y, v.pervane.z);
     if (v.pervane.ry) pv.rotation.y = v.pervane.ry; // dönen eksen yerel z; ry = yatay yön (mimari motor su çarkı)
     pv.scale.setScalar(v.pervane.r);
     grup.add(pv);
   }
-  grup.userData = { tepe: v.tepe, duman: v.duman, ates: v.ates, pervane: pv, g: t.boyut[0], durum: kod };
+  grup.userData = { tepe: v.tepe, duman: v.duman, ates: v.ates, pervane: pv, g: t.boyut[0], durum: kod, mimari: yeni };
   return grup;
 }
 

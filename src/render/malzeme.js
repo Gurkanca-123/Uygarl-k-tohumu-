@@ -12,7 +12,7 @@ export const ORTAK = {
 // Dünya normali (kar için) + isteğe bağlı rüzgâr / dalga / atlas / yan toprak rengi.
 // sec: { kar: 0..1 katsayı, ruzgar: bool (aSallan özniteliği), dalga: bool, atlas: bool (aHucre), yan: THREE.Color|null, yanK }
 export function yamala(mat, sec = {}) {
-  const anahtar = JSON.stringify({ k: sec.kar ?? 1, r: !!sec.ruzgar, d: !!sec.dalga, a: !!sec.atlas, ak: sec.atlasK ?? 1, y: !!sec.yan });
+  const anahtar = JSON.stringify({ k: sec.kar ?? 1, r: !!sec.ruzgar, d: !!sec.dalga, a: !!sec.atlas, ak: sec.atlasK ?? 1, y: !!sec.yan, dg: sec.dolgu ?? 0 });
   mat.customProgramCacheKey = () => anahtar;
   mat.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, ORTAK);
@@ -96,6 +96,9 @@ ${sec.yan ? 'uniform vec3 uYanRenk; uniform float uYanK;' : ''}
     renk += `
   diffuseColor.rgb = mix(diffuseColor.rgb, uKarRenk, uKar * ${karK} * smoothstep(0.5, 0.85, vDN.y));`;
     f = f.replace('#include <color_fragment>', `#include <color_fragment>${renk}`);
+    // gölge dolgusu: ışık bandının karanlık yüzünde (özellikle koyu çatılar) kendi renginin bir kısmı kalır; şehirde siyah yüzey oluşmaz.
+    if (sec.dolgu) f = f.replace('#include <lights_fragment_end>', `#include <lights_fragment_end>
+  reflectedLight.indirectDiffuse += (diffuseColor.rgb * ${sec.dolgu.toFixed(3)} + vec3(0.085, 0.095, 0.120) * (0.4 + 0.6 * (1.0 - clamp(vDN.y, 0.0, 1.0)))) * (0.65 + 0.35 * (1.0 - clamp(vDN.y, 0.0, 1.0)));`);
     sh.vertexShader = v;
     sh.fragmentShader = f;
   };
@@ -107,6 +110,8 @@ const onbellek = new Map();
 function al(anahtar, yap) { let m = onbellek.get(anahtar); if (!m) { m = yap(); onbellek.set(anahtar, m); } return m; }
 
 export const binaMat = () => al('bina', () => yamala(new THREE.MeshLambertMaterial({ map: binaAtlasi(), vertexColors: true }), { atlas: true, atlasK: 0.28 }));
+// mimari motor binaları: gölge dolgusu açık (koyu çatılar siyaha düşmez); eski motor malzemesi (binaMat) değişmez
+export const binaMatM = () => al('binaM', () => yamala(new THREE.MeshLambertMaterial({ map: binaAtlasi(), vertexColors: true }), { atlas: true, atlasK: 0.28, dolgu: 0.45 }));
 // ışıltı: ateş, pencere, kor (ışıktan bağımsız, ton eşlemesiz parlak)
 export const isilMat = () => al('isil', () => new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false }));
 // hayalet (yerleştirme önizlemesi): gerçek doku, yarı saydam, renk tonlu

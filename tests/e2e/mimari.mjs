@@ -36,7 +36,8 @@ function koy() {
     if (yer) { d.binalar.push({ uid: yeniUid(), id, x: yer[0], y: yer[1], seviye: 1, insaKalan: 0, hasarli: false }); ozel[id] = yer; }
   }
   OZEL = ozel;
-  for (const id of ['pazar_yeri', 'yari_ahsap_ev', 'kuyu', 'yari_ahsap_ev', 'ambar', 'yari_ahsap_ev', 'yari_ahsap_ev', 'yari_ahsap_ev', 'yari_ahsap_ev', 'yari_ahsap_ev']) {
+  const LISTE = process.env.MIMARI_SEHIR === 'dolu' ? ['pazar_yeri', 'yari_ahsap_ev', 'kuyu', 'yari_ahsap_ev', 'ambar', 'yari_ahsap_ev', 'han', 'yari_ahsap_ev', 'demirci', 'yari_ahsap_ev', 'dokuma_atolyesi', 'yari_ahsap_ev', 'degirmen', 'ciftlik', 'lonca_binasi', 'darussifa', 'manastir', 'yari_ahsap_ev', 'sur_parcasi', 'kisla', 'yari_ahsap_ev', 'eritme_firini', 'mabet', 'yari_ahsap_ev'] : ['pazar_yeri', 'yari_ahsap_ev', 'kuyu', 'yari_ahsap_ev', 'ambar', 'yari_ahsap_ev', 'yari_ahsap_ev', 'yari_ahsap_ev', 'yari_ahsap_ev', 'yari_ahsap_ev'];
+  for (const id of LISTE) {
     const yer = uygunYerler(d, id)[0];
     if (yer) d.binalar.push({ uid: yeniUid(), id, x: yer[0], y: yer[1], seviye: 1, insaKalan: 0, hasarli: false });
   }
@@ -47,7 +48,7 @@ function koy() {
 const durum = koy();
 const ozel = OZEL;
 const merkez = merkezNokta(durum);
-const durumG = kesfet(durum, merkez, 14).durum;
+const durumG = kesfet(durum, merkez, process.env.MIMARI_SEHIR === 'dolu' ? 22 : 14).durum;
 const sunucu = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore' });
 const bekle = async () => { for (let i = 0; i < 50; i++) { try { if ((await fetch(URL)).ok) return; } catch { /* bekle */ } await new Promise((r) => setTimeout(r, 200)); } throw new Error('sunucu açılmadı'); };
 const YAKIN = { uzak: 1.6, orta: 2.6, yakin: 3.4 };

@@ -234,7 +234,8 @@ export class Sahne {
         }, { lod: this.lod });
         model.position.set(b.x + t.boyut[0] / 2, 0, b.y + t.boyut[1] / 2);
         // çeşitlilik: kapı her zaman kameraya bakan iki yüzden birinde (+z / +x); çevre parçaları döndürülmez (kollar eksene hizalı)
-        if (t.tur !== 'merkez' && !t.cevre && ((b.x * 7 + b.y * 13) & 1)) model.rotation.y = Math.PI / 2;
+        // mimari motor modelleri döndürülmez: yalnız +z/+x cepheleri ayrıntılıdır (kamera sabit); çeşitlilik varyantlardan gelir
+        if (t.tur !== 'merkez' && !t.cevre && !model.userData.mimari && ((b.x * 7 + b.y * 13) & 1)) model.rotation.y = Math.PI / 2;
         this.binaGrup.add(model);
         this.binaModelleri.push({ b, model });
       }

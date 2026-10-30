@@ -39,3 +39,10 @@ Eski modeller (`binalar.js` `M.*`) ve `Kurucu` aynen durur; yeni katman `Kurucu.
 ## Ölçüm (isteğe bağlı; kullanıcı kararıyla gerçek cihaz ölçümü yapılmıyor)
 - `olcum.html` (build'e dahil): eski/yeni/yeni-uzak × 30/80/160 konut; fps, ort/p95 ms, çağrı, üçgen, kurulum süresi, GPU adı. Yazılım çizimi (SwiftShader) algılanırsa uyarır: telefon sayısı değildir.
 - `karsilastir.html` (yalnız `npm run dev`): eski + varyantlar yan yana. `tests/e2e/mimari.mjs`: oyun sahnesinde eski/yeni köy ekran görüntüsü.
+
+## Şehir geneli bütünlük (2026-10-30)
+- **Gölge dolgusu** (`malzeme.js` `binaMatM`, yalnız mimari motor): cel ışık bandının karanlık yüzünde kendi renginin %45'i + serin sabit dolgu (≈ `vec3(.085,.095,.12)`) kalır → koyu arduvaz çatılar siyaha düşmez. Eski motor malzemesi (`binaMat`) değişmedi.
+- **Döndürme kapalı** (`sahne.js`): eski binalar rastgele π/2 döner (kapı +x'e geçer). Mimari motor binalarında yalnız +z/+x cepheleri ayrıntılı olduğundan döndürme yapılmaz; çeşitlilik varyantlardan gelir (`userData.mimari`).
+- **Palet:** antik kiremit paketi doygunluğu düşürüldü (oyunun doygunluk +%12 geçişinde parlak kırmızıya kaçıyordu); `tasKrem` sıcaklaştı.
+- Ölçüm aracı: `MIMARI_SEHIR=dolu node tests/e2e/mimari.mjs` (24 binalı Orta Çağ şehri, eski/yeni uzak-orta-yakın).
+- Açık: LOD tek eşikli (zoom 2.0); çok uzak (zoom < 1.1) için ikinci seviye yok.
