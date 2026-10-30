@@ -19,6 +19,7 @@ import { hamUretimHesapla } from '../core/uretim.js';
 import { arastirilabilirMi, bilgiUretimi } from '../core/arastirma.js';
 import { eylemUygunMu } from '../core/eylem.js';
 import { cagSartlari } from '../core/cag.js';
+import { dogumSartlari } from '../core/nufus.js';
 import { gorunurKaro } from '../world/kesif.js';
 import { h, yuvarla } from './dom.js';
 
@@ -156,6 +157,11 @@ function grupDe(t) {
   return 'diger';
 }
 
+// Doğum olmuyorsa nedenini gösterir (barınak, yiyecek/depo tavanı, huzur, açlık).
+function dogumIpucu(d) {
+  const s = dogumSartlari(d);
+  return s.uygun ? null : h('div', { class: 'soluk kucuk' }, `👶 Doğum yok: ${s.eksik.join(', ')}.`);
+}
 export function isSekmesi(a) {
   const d = a.d;
   const issiz = issizSayisi(d);
@@ -181,7 +187,8 @@ export function isSekmesi(a) {
     issiz > 0 ? h('div', { class: 'neden' }, 'İşsizler huzuru düşürür. Aşağıdan iş ver ya da otomatik dağıt.') : null,
     eksikBina ? h('div', { class: 'soluk kucuk' }, `${eksikBina} binanın yuvası eksik.`) : null,
     yaraliSayisi(d) ? h('div', { class: 'soluk kucuk' }, `Yaralı: ${yaraliSayisi(d)}`) : null,
-    evsizSayisi(d) ? h('div', { class: 'neden' }, `Evsiz: ${evsizSayisi(d)} (konut kur)`) : null);
+    evsizSayisi(d) ? h('div', { class: 'neden' }, `Evsiz: ${evsizSayisi(d)} (konut kur)`) : null,
+    dogumIpucu(d));
 
   const oncelikler = h('div', { class: 'is-oncelik', role: 'group', 'aria-label': 'Dağıtım önceliği' },
     ISDAGIT_ONCELIKLER.filter((o) => o === 'dengeli' || kaynakAcik(d, o)).map((o) => h('button', {

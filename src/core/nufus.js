@@ -9,7 +9,7 @@ import {
 } from '../data/denge.js';
 import {
   BINA, kopya, mevcutCag, sonTur, bildir, zar, atamaDuzelt, kisiEkle, halkCikar, calismaGucu, cocukSayisi, barinmaKapasitesi, binaBul,
-  isciYuvasi, SERBEST, SERBEST_ONEK, olayKilitli, OLAY_KILIDI, hataDon,
+  isciYuvasi, SERBEST, SERBEST_ONEK, olayKilitli, OLAY_KILIDI, hataDon, depoTavani,
 } from './yardimci.js';
 
 // Penceredeki kayıplar: tur > d.tur − KAYIP_PENCERE (bu tur dahil son 3 tur).
@@ -64,7 +64,11 @@ export function dogumSartlari(d) {
   const bos = Math.max(0, barinmaKapasitesi(d) - d.nufus);
   const eksik = [];
   if (bos < 1) eksik.push('boş barınak yok');
-  if ((d.kaynaklar.yiyecek || 0) < d.nufus * DOGUM_YIYECEK_KISI) eksik.push(`yiyecek < ${d.nufus * DOGUM_YIYECEK_KISI}`);
+  const gereken = d.nufus * DOGUM_YIYECEK_KISI;
+  if ((d.kaynaklar.yiyecek || 0) < gereken) {
+    const tavan = depoTavani(d, 'yiyecek');
+    eksik.push(gereken > tavan ? `yiyecek ${gereken} gerekli ama depo tavanı ${Math.floor(tavan)} (depo/ambar ekle)` : `yiyecek < ${gereken}`);
+  }
   if (d.huzur < DOGUM_HUZUR_MIN) eksik.push(`huzur < ${DOGUM_HUZUR_MIN}`);
   if (d.acTur !== 0) eksik.push('açlık sürüyor');
   return { uygun: eksik.length === 0, eksik, adet: Math.min(1 + Math.floor(d.nufus / DOGUM_NUFUS_BOLEN), bos) };

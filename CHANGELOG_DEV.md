@@ -76,6 +76,8 @@
 - UI: `src/ui/aksiyon.js` (Seferler penceresi: Sefer/Yolda/Kahraman/Komşu/Hedef), harita işaretleri, 6. gün kahraman teklifi, 🎯 hedef rozeti.
 - Denge: `SEFER_SANS` [0,3;1,4], eşikler/ödül çarpanı, zorluklar yükseltildi; r=1 → büyük %35/başarı %30/kısmi %17/başarısız %18. Bot ölçümünde (kahramanlar hep ekipte) büyük başarı ~%49: telefonda gerçek oynanışla ayarlanacak. Seferli bot Göçebe 41/50 hedefte, ayı destanı 43/50.
 - Testler 233 (232+1 todo), e2e 292/292. Gerçek cihaz denenmedi.
+## 2026-10-28 — Doğum ipucu (Sonnet 5.5)
+- Orta Çağ'da nüfus durması: yiyecek şartı (nüfus×2) depo tavanını (300) aşıyordu; ek depo/ambar gerekiyor. `dogumSartlari` yiyecek mesajı tavanı da söyler; İş sekmesi özetine "👶 Doğum yok: …" satırı eklendi. Testler 196 (195+1 todo); derleme/e2e bu ortamda denenmedi (vite yok).
 
 ## 2026-10-27 — Tehditler 5 çağda + arayüz bağlantısı (Opus 5.5 çekirdek, Sonnet 5.5 UI) + aksiyon tasarımı
 - Çekirdek: 10 tehdit tanımı, çağ başına 2–6 aday, gerginlik/darbe artışı, kuşatma evresi (3 tur, surla aşınma), `silahDagit`, `kusatmaKarar`, Önder eylemleri `nobet_tut`/`elci_gonder`. Pasif oyun ölçümü: çağ başına 1/2/3/4,85/5,65 tehdit, kayıp ~%9–15; nüfus ≥2 korunur. Kayıt sürümü 3 aynı.
