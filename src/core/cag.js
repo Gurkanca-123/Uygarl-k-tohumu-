@@ -6,6 +6,7 @@ import { CAGLAR } from '../data/caglar.js';
 import { KAROLAR } from '../data/karolar.js';
 import { kesifli, yonAdi } from '../world/kesif.js';
 import { karoAt, merkezNokta } from '../world/harita.js';
+import { evrimAdaylari } from './insa.js';
 import { TEHDIT_CAG_SINIR, TEHDIT_CAG_NEFES } from '../data/denge.js';
 import {
   BINA, BULUS, CAG, kopya, mevcutCag, kuruluSayisi, kaynakYeter, eksikMetni, kaynakUygula, bildir,
@@ -51,6 +52,14 @@ export function cagAtla(durum) {
   const bildirimler = [];
   bildir(bildirimler, 'cag_atlandi', `${s.sonraki.ad} başladı! Merkez: ${BINA[s.sonraki.merkez].ad}.`, 'iyi', { cag: d.cag });
   yeniGorunenler(d, bildirimler);
+  // Bina evrimi: yeni çağda yerinde dönüştürülebilen binalar (otomatik dönüşüm yok; oyuncu bina kartından seçer).
+  const adaylar = evrimAdaylari(d);
+  if (adaylar.length) {
+    const say = {};
+    for (const b of d.binalar) if (adaylar.includes(b.uid)) say[BINA[b.id].ad] = (say[BINA[b.id].ad] || 0) + 1;
+    const ozet = Object.entries(say).map(([ad, n]) => `${n} ${ad}`).join(', ');
+    bildir(bildirimler, 'evrim_hazir', `Dönüştürülebilir yapılar: ${ozet}. Bina kartından "Evrim" ile yıkmadan yükselt.`, 'bilgi', { uidler: adaylar });
+  }
   return { durum: d, bildirimler };
 }
 

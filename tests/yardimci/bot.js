@@ -56,7 +56,7 @@ function sonucDegeri(d, s) {
   for (const o of s.olasilik || []) v += o.p * sonucDegeri(d, o.sonuc);
   return v;
 }
-function olaySec(d) {
+export function olaySec(d) {
   const o = OLAY[d.olay.aktif.id];
   let enIyi = -1, deger = -Infinity;
   o.secenekler.forEach((s, i) => {
@@ -81,7 +81,7 @@ function bitisikPuan(d, binaId, x, y) {
   }
   return p;
 }
-function yerBul(d, binaId) {
+export function yerBul(d, binaId) {
   const yerler = uygunYerler(d, binaId).slice(0, 40);
   if (!yerler.length) return null;
   let enIyi = yerler[0], puan = -Infinity;
@@ -173,7 +173,7 @@ function onderSec(d) {
 // Varıştan önceki son oyuncu evresinde (kalan 1): eksik savunmayı bekçiyle kapat (en çok nüfusun yarısı); olmuyorsa
 // yiyecek bolsa haraç, değilse yine kısmiye yetecek kadar bekçi. Bekçi serbest işlerden (en kalabalığından) alınır.
 // strateji 'pasif': hiçbir şey yapmaz (varsayılan tavır Savun).
-function tehditHazirla(d, strateji) {
+export function tehditHazirla(d, strateji) {
   const a = d.tehdit?.aktif;
   if (strateji === 'pasif' || !a || a.kalan > 1) return d;
   const b = beklenenSonuc(d);

@@ -74,13 +74,14 @@ export function zarAgirlikli(d, ogeler, agirlikFn) {
 }
 
 // ---------- Bina durumu ----------
-// insaatSirasi girdileri: '<uid>' (yeni inşaat) · 'yukselt:<uid>' · 'onar:<uid>'.
+// insaatSirasi girdileri: '<uid>' (yeni inşaat) · 'yukselt:<uid>' · 'onar:<uid>' · 'evrim:<uid>' (eski bina çalışmaya devam eder; ayrıntı d.istatistik.evrim[uid]).
 export const binaBul = (d, uid) => d.binalar.find((b) => b.uid === uid);
 export const binaKurulu = (d, b) => !d.insaatSirasi.includes(b.uid);
 export function binaIsi(d, b) {
   if (d.insaatSirasi.includes(b.uid)) return 'insa';
   if (d.insaatSirasi.includes(`yukselt:${b.uid}`)) return 'yukselt';
   if (d.insaatSirasi.includes(`onar:${b.uid}`)) return 'onar';
+  if (d.insaatSirasi.includes(`evrim:${b.uid}`)) return 'evrim';
   return null;
 }
 // Çalışır = kurulu, hasarsız ve bu turun bakımı ödenmiş (§1.2 c, §3.2).

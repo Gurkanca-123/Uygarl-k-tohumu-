@@ -29,7 +29,10 @@ export function izgara(d) {
   const n = d.harita.boyut;
   const hucre = new Array(n * n).fill(null);
   for (const b of d.binalar) {
-    for (const [x, y] of binaHucreleri(b)) if (icinde(n, x, y)) hucre[y * n + x] = b.uid;
+    // Evrim sürerken hedefin (daha büyük olabilir) alanı baştan ayrılır; inşaat bitince alan çakışması olamaz.
+    const hedef = d.istatistik?.evrim?.[b.uid]?.hedef;
+    const kapsam = hedef && BINA[hedef] ? { ...b, id: hedef } : b;
+    for (const [x, y] of binaHucreleri(kapsam)) if (icinde(n, x, y)) hucre[y * n + x] = b.uid;
   }
   return hucre;
 }

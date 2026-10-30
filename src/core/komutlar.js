@@ -8,7 +8,7 @@ import {
 
 export { isAta } from './nufus.js';
 export { isDagit, isDagitimAyarla } from './isdagit.js';
-export { insaEt, insaEtCok, yukselt, onar, yik, tasi, ormanTemizle, yolYap, yolKaldir } from './insa.js';
+export { insaEt, insaEtCok, yukselt, evrimYap, evrimCok, onar, yik, tasi, ormanTemizle, yolYap, yolKaldir } from './insa.js';
 export { tehditTavir, tehditTavirSec, haracOde, tahkimatYap, bekciAta, zorlukAyarla, silahDagit, kusatmaKarar } from './tehdit.js';
 export { arastirmaSec } from './arastirma.js';
 export { onderEylemiSec } from './eylem.js';

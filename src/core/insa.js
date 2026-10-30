@@ -1,11 +1,11 @@
 // İnşaat (TASARIM §3.2, §3.5, §7.2): maliyet, yerleşim denetimi, süre, işçi yuvası, bakım; adımlar b (inşaat) ve c (bakım).
-// Komutlar: insaEt, yukselt, onar, yik → { durum, hata? }. Geçersiz komut durumu değiştirmez.
+// Komutlar: insaEt, yukselt, evrimYap, evrimCok, onar, yik → { durum, hata? }. Geçersiz komut durumu değiştirmez.
 import {
-  MALIYET_K, MALIYET_K_KONUT, YUKSELTME_MALIYET, YIKIM_IADE, TASIMA_MALIYET, ONARIM, ONARIM_SURE, YOL_MALIYET, YOL_ZEMIN, YOL_CAG,
+  MALIYET_K, MALIYET_K_KONUT, YUKSELTME_MALIYET, EVRIM_MALIYET, YIKIM_IADE, TASIMA_MALIYET, ONARIM, ONARIM_SURE, YOL_MALIYET, YOL_ZEMIN, YOL_CAG,
 } from '../data/denge.js';
 import {
   BINA, CAG, BULUS, KARO, KAYNAK, kopya, cagSira, mevcutCag, cagAcik, binaBul, binaKurulu, binaIsi, bildir, sonTur,
-  kaynakYeter, eksikMetni, kaynakUygula, atamaDuzelt, olayKilitli, OLAY_KILIDI, hataDon, bulusEtkileri, etkinDegistiriciler,
+  kaynakYeter, eksikMetni, kaynakUygula, atamaDuzelt, isciYuvasi, olayKilitli, OLAY_KILIDI, hataDon, bulusEtkileri, etkinDegistiriciler,
 } from './yardimci.js';
 import { izgara, icinde } from '../world/izgara.js';
 import { yerUygunMu, uygunYerler } from '../world/yerlestir.js';
@@ -40,6 +40,7 @@ export function onarimMaliyeti(b, d = null) {
 // Çevre parçaları (`insaatSinirDisi`: Çit, Sur) sınıra sayılmaz: sürükleyerek çok parça çizilebilsin (TEHDIT.md §12).
 function sinirSayilir(d, s) {
   if (s.startsWith('onar:')) return false;
+  if (s.startsWith('evrim:')) return false; // evrim eşzamanlı inşaat sınırını tüketmez (eski bina çalışmayı sürdürür)
   if (s.startsWith(TEMIZLE_ONEK)) return true;
   const b = binaBul(d, s.includes(':') ? s.split(':')[1] : s);
   return !(b && BINA[b.id].insaatSinirDisi);
@@ -141,6 +142,92 @@ export function yukselt(durum, uid) {
   return { durum: d };
 }
 
+// ---------- Bina evrimi (yerinde dönüşüm) ----------
+// Tablo: BINALAR[].evrim = hedef bina id'si. Maliyet = hedefin normal inşa maliyeti × EVRIM_MALIYET (tek merkez: evrimMaliyeti).
+// Süreç: maliyet anında düşer, `evrim:<uid>` kuyruğa girer (eşzamanlı sınıra SAYILMAZ), eski bina çalışmayı sürdürür
+// (konut barınak vermeye devam eder → evsiz kalma yok). Bitince id hedefe döner; uid, konum, işçi ataması korunur,
+// seviye = min(max(1, eski − 1), hedefin sınırı). Ödenen tutar ve hedef d.istatistik.evrim[uid]'de tutulur (şema değişmez).
+export const evrimHedefi = (b) => BINA[b.id]?.evrim || null;
+export function evrimMaliyeti(d, hedefId) {
+  const m = maliyetHesapla(d, hedefId);
+  return Object.fromEntries(Object.entries(m).map(([r, x]) => [r, x > 0 ? Math.max(1, Math.round(x * EVRIM_MALIYET)) : 0]));
+}
+// Dönüş: Türkçe neden ya da null (evrim başlatılabilir).
+export function evrimEdilebilirMi(d, uid) {
+  const b = binaBul(d, uid);
+  if (!b) return 'Böyle bir bina yok.';
+  const t = BINA[b.id];
+  const hedefId = t.evrim;
+  if (!hedefId) return `${t.ad} evrimleşmez.`;
+  if (binaIsi(d, b)) return `${t.ad} üzerinde süren bir iş var.`;
+  if (b.hasarli) return `${t.ad} hasarlı; önce onar.`;
+  const h1 = insaEdilebilirMi(d, hedefId);
+  if (h1) return h1;
+  const h2 = yerUygunMu(tasimaZemini(d, uid), hedefId, b.x, b.y);
+  if (h2) return `${BINA[hedefId].ad} bu yere sığmaz: ${h2}`;
+  return null;
+}
+export function evrimYap(durum, uid) {
+  if (olayKilitli(durum)) return hataDon(durum, OLAY_KILIDI);
+  const h = evrimEdilebilirMi(durum, uid);
+  if (h) return hataDon(durum, h);
+  const b = binaBul(durum, uid);
+  const hedefId = BINA[b.id].evrim;
+  const maliyet = evrimMaliyeti(durum, hedefId);
+  if (!kaynakYeter(durum, maliyet)) return hataDon(durum, `Kaynak yetersiz: ${eksikMetni(durum, maliyet)} eksik.`);
+  const d = kopya(durum);
+  kaynakUygula(d, Object.fromEntries(Object.entries(maliyet).map(([r, m]) => [r, -m])));
+  binaBul(d, uid).insaKalan = Math.max(1, BINA[hedefId].insaSuresi);
+  d.insaatSirasi = [...d.insaatSirasi, `evrim:${uid}`];
+  d.istatistik = { ...d.istatistik, evrim: { ...d.istatistik?.evrim, [uid]: { hedef: hedefId, odenen: maliyet } } };
+  return { durum: d };
+}
+// Toplu evrim: YALNIZ verilen uid'ler denenir (oyuncunun seçimi); kaynak bitince kalanlar atlanır, uygun olmayan atlanıp devam edilir.
+// Hiçbiri başlatılamazsa hata döner ve durum değişmez. Dönüş: { durum, yapilan: [uid], atlanan: [{ uid, hata }], hata? }
+export function evrimCok(durum, uidler) {
+  if (olayKilitli(durum)) return { ...hataDon(durum, OLAY_KILIDI), yapilan: [], atlanan: [] };
+  if (!Array.isArray(uidler) || !uidler.length) return { ...hataDon(durum, 'Bina seçilmedi.'), yapilan: [], atlanan: [] };
+  let d = durum;
+  const yapilan = [], atlanan = [];
+  let kaynakBitti = null;
+  for (const uid of new Set(uidler)) {
+    if (kaynakBitti) { atlanan.push({ uid, hata: kaynakBitti }); continue; }
+    const r = evrimYap(d, uid);
+    if (r.hata) {
+      if (r.hata.startsWith('Kaynak yetersiz')) kaynakBitti = r.hata;
+      atlanan.push({ uid, hata: r.hata });
+      continue;
+    }
+    d = r.durum;
+    yapilan.push(uid);
+  }
+  if (!yapilan.length) return { durum, yapilan, atlanan, hata: atlanan[0]?.hata || 'Hiçbir bina dönüştürülemedi.' };
+  return { durum: d, yapilan, atlanan };
+}
+// Çağ atlayınca bildirim için: şu an evrim başlatılabilecek (kaynaktan bağımsız) bina uid'leri.
+export const evrimAdaylari = (d) => d.binalar.filter((b) => BINA[b.id].evrim && !evrimEdilebilirMi(d, b.uid)).map((b) => b.uid);
+
+// Adım b içinde: bitmiş evrimi uygular (kopya üstünde). Başarısızsa evrim iptal edilir ve ödenen tutar iade edilir.
+function evrimBitir(d, b, bildirimler, bitenler) {
+  const kayit = d.istatistik?.evrim?.[b.uid];
+  const eskiAd = BINA[b.id].ad;
+  b.insaKalan = 0;
+  if (!kayit || !BINA[kayit.hedef]) return; // bozuk kayıt: kuyruk girdisi düşer, bina olduğu gibi kalır
+  delete d.istatistik.evrim[b.uid];
+  const hedef = BINA[kayit.hedef];
+  const sigmaz = yerUygunMu(tasimaZemini(d, b.uid), hedef.id, b.x, b.y);
+  if (sigmaz) {
+    kaynakUygula(d, kayit.odenen || {}, { kirp: false });
+    bildir(bildirimler, 'insaat_bitti', `${eskiAd} dönüşümü iptal edildi (${sigmaz}); harcanan kaynak iade edildi.`, 'uyari', { uid: b.uid });
+    return;
+  }
+  b.id = hedef.id;
+  b.seviye = Math.min(Math.max(1, b.seviye - 1), hedef.maxSeviye, enYuksekSeviye(d, hedef.id));
+  const yuva = isciYuvasi(b);
+  if ((d.atama[b.uid] || 0) > yuva) { if (yuva > 0) d.atama[b.uid] = yuva; else delete d.atama[b.uid]; }
+  bitenler.push({ uid: b.uid, eskiAd, hedef: hedef.id });
+}
+
 export function onar(durum, uid) {
   if (olayKilitli(durum)) return hataDon(durum, OLAY_KILIDI);
   const b = binaBul(durum, uid);
@@ -166,7 +253,8 @@ export function yik(durum, uid) {
   const d = kopya(durum);
   kaynakUygula(d, Object.fromEntries(Object.entries(t.maliyet).map(([r, m]) => [r, Math.floor(m * YIKIM_IADE)])));
   d.binalar = d.binalar.filter((x) => x.uid !== uid);
-  d.insaatSirasi = d.insaatSirasi.filter((s) => s !== uid && s !== `yukselt:${uid}` && s !== `onar:${uid}`);
+  d.insaatSirasi = d.insaatSirasi.filter((s) => s !== uid && s !== `yukselt:${uid}` && s !== `onar:${uid}` && s !== `evrim:${uid}`);
+  if (d.istatistik?.evrim) delete d.istatistik.evrim[uid];
   delete d.atama[uid];
   atamaDuzelt(d);
   return { durum: d };
@@ -213,6 +301,7 @@ export function adimInsaat(durum, bildirimler = []) {
   const d = kopya(durum);
   const kalan = [];
   const cevreBitti = {}; // çit/sur parçaları tek bildirimde toplanır (sürükleyerek onlarca parça kurulabilir)
+  const evrimBitenler = [];
   for (const s of d.insaatSirasi) {
     if (s.startsWith(TEMIZLE_ONEK)) {
       const t = temizlemeCoz(s);
@@ -226,7 +315,9 @@ export function adimInsaat(durum, bildirimler = []) {
     b.insaKalan = Math.max(0, b.insaKalan - 1);
     if (b.insaKalan > 0) { kalan.push(s); continue; }
     const ad = BINA[b.id].ad;
-    if (tur === 'yukselt') {
+    if (tur === 'evrim') {
+      evrimBitir(d, b, bildirimler, evrimBitenler);
+    } else if (tur === 'yukselt') {
       b.seviye += 1;
       bildir(bildirimler, 'insaat_bitti', `${ad} seviye ${b.seviye} oldu.`, 'iyi', { uid });
     } else if (tur === 'onar') {
@@ -243,6 +334,12 @@ export function adimInsaat(durum, bildirimler = []) {
         for (const bul of r.bulgular) bildir(bildirimler, 'kesif_bulgu', bul.metin, 'iyi', { karo: bul.karo, x: bul.x, y: bul.y });
       }
     }
+  }
+  const evrimGrup = {};
+  for (const e of evrimBitenler) (evrimGrup[e.hedef] ||= []).push(e);
+  for (const [hid, liste] of Object.entries(evrimGrup)) {
+    const metin = liste.length === 1 ? `${liste[0].eskiAd}, ${BINA[hid].ad} oldu.` : `${liste.length} yapı ${BINA[hid].ad} oldu.`;
+    bildir(bildirimler, 'insaat_bitti', metin, 'iyi', { id: hid, adet: liste.length, uidler: liste.map((e) => e.uid) });
   }
   for (const [id, n] of Object.entries(cevreBitti)) {
     bildir(bildirimler, 'insaat_bitti', n === 1 ? `${BINA[id].ad} tamamlandı.` : `${n} ${BINA[id].ad.toLowerCase()} parçası tamamlandı.`, 'iyi', { id, adet: n });

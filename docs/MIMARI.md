@@ -90,3 +90,10 @@ Sıradaki: aşama 4 (MODEL_PLANI'na göre). Denge ayarı aşama 7 (bot sonucu a�
 - Yerleştirme: İnşa kartı → `uygunYerler` yeşil işaretler, dokunma ile hayalet taşınır, `yerUygunMu` hatası kırmızı + metin, "İnşa et" → `insaEt`.
 - Olay penceresi bekleyen olayda tüm arayüzü kilitler (perde); seçenek gereksinimi `gereksinimMetni` ile Türkçe.
 - Çekirdek API gözlemleri (değiştirilmedi): `insaEt` başarıda `uid` döner (UI kullanıyor); başlangıç kaynakları hiçbir binaya yetmiyor (yukarı bkz.).
+
+## Bina evrimi (2026-10-30)
+- Veri: `BINALAR[].evrim = hedefId`. Maliyet tek merkez `evrimMaliyeti(d, hedef)` = `maliyetHesapla × EVRIM_MALIYET`.
+- Durum: kuyruk `evrim:<uid>`; `d.istatistik.evrim[uid] = { hedef, odenen }` (serbest sözlük → şema/sürüm değişmez). Eski bina kuruludur (üretir, barındırır) bitişe kadar.
+- Bitiş (`adimInsaat` → `evrimBitir`): id=hedef, uid/konum/atama korunur, seviye=min(max(1,eski−1), hedef.maxSeviye, enYuksekSeviye). Bozuk kayıt → girdi düşer; sığmazsa iptal + iade.
+- Komutlar: `evrimYap`, `evrimCok(uidler)` (yalnız seçilenler). Kayıt/yükleme evrim sürerken desteklenir (test: `evrim.test.js`).
+- Uzun sim: `tests/yardimci/uzun_sim.js` (`degismezler`, `uzunOyna`).

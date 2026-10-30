@@ -15,6 +15,7 @@ export const SEVIYE_CARPAN = [1, 1.5, 2];
 export const YUKSELTME_MALIYET = [1.5, 2.5];  // Sv2, Sv3 (taban × …)
 export const YIKIM_IADE = 0.5;
 export const TASIMA_MALIYET = 0.2; // taşıma: taban maliyetin %20'si (yıkıp yeniden kurmaktan çok ucuz; seviye/işçi korunur)
+export const EVRIM_MALIYET = 0.70;   // Bina evrimi: hedef binanın normal inşa maliyetinin %70'i (yerinde dönüşüm; yıkıp yapmaktan ucuz)
 export const ONARIM = 0.25;
 export const ONARIM_SURE = 1;
 export const BITISIKLIK_MAX = 0.5;

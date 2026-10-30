@@ -1844,7 +1844,7 @@ export function modeliTemizle(grup) {
 export function durumKodu(durum = {}) {
   if (durum.insa != null) return `i${Math.min(3, Math.max(0, Math.floor(durum.insa * 4)))}`;
   if (durum.hasarli) return 'h';
-  if (durum.isi === 'yukselt') return 'y';
+  if (durum.isi === 'yukselt' || durum.isi === 'evrim') return 'y';
   if (durum.isi === 'onar') return 'o';
   if (durum.kapali) return 'k';
   return '';

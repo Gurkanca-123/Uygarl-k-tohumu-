@@ -37,7 +37,7 @@ export function dagitimOnerisi(d, oncelik = d.isDagitim?.oncelik || 'dengeli') {
   const yuvalar = [];
   for (const b of d.binalar) {
     const t = BINA[b.id], yuva = isciYuvasi(b);
-    if (!yuva || b.hasarli || binaIsi(d, b)) continue;
+    if (!yuva || b.hasarli || (binaIsi(d, b) && binaIsi(d, b) !== 'evrim')) continue;
     const bosYer = yuva - (d.atama[b.uid] || 0);
     if (bosYer > 0) yuvalar.push({ k: b.uid, kalan: bosYer, v: kisiDegeri(d, t, w), say: 0 });
   }
