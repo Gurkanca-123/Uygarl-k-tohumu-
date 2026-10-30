@@ -13,12 +13,12 @@ const gecerli = (g) => { for (const v of g.getAttribute('position').array) if (!
 test('mimari: varsayılan kapalı; kayıtlı binalar yeni motorla, diğerleri eski modelle', () => {
   assert.equal(mimariAcik(), false);
   for (const id of ['yari_ahsap_ev', 'katedral', 'degirmen', 'kale']) assert.equal(mimariKayitli(id), true, id);
-  assert.equal(mimariKayitli('lonca_binasi'), false);
+  assert.equal(mimariKayitli('olmayan_bina'), false);
   assert.equal(mimariVaryantAdet('yari_ahsap_ev'), 4);
   assert.equal(mimariVaryantAdet('katedral'), 3);
   assert.equal(mimariVaryantAdet('degirmen'), 3);
   assert.equal(mimariVaryantAdet('kale'), 3);
-  assert.equal(mimariVaryantAdet('lonca_binasi'), 1);
+  assert.equal(mimariVaryantAdet('olmayan_bina'), 1);
 });
 
 test('mimari: varyant seçimi uid\'e göre sabit ve dağılımlı', () => {

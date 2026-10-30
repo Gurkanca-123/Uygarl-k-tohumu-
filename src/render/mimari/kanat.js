@@ -16,7 +16,7 @@ export function yuzCercevesi(W, yuz, w, d, zOff, y, dis = 0) {
 const yuzMerkez = (yuz, cxU, czU) => ({ 'z+': cxU, 'x+': -czU, 'z-': -cxU, 'x-': czU }[yuz]);
 
 export function kanat(Y, S, o) {
-  const { Z, w, d, h1, h2, H, cx = 0, cz = 0, ry = 0, cikma = [], e = 0.048, yuz = {}, desen = 'carpraz', renk, doku, kabuk = S.kiris, baca: bc = null, dorm = null } = o;
+  const { Z, w, d, h1, h2, H, cx = 0, cz = 0, ry = 0, cikma = [], e = 0.048, yuz = {}, desen = 'carpraz', renk, doku, kabuk = S.kiris, baca: bc = null, dorm = null, alinKiris = true } = o;
   const W = Y.alt(cx, cz, ry);
   const yU = Z + h1 + 0.034, y2 = yU + h2;
   // üst kat dikdörtgeni (çıkma yönlerinde taşkın)
@@ -61,7 +61,7 @@ export function kanat(Y, S, o) {
     kirisKafes(U, S, { x0: x0u, w: uw, y0: 0, h: h2, delik: pj.map((p) => [x0u + p.x - p.w / 2 - 0.02, x0u + p.x + p.w / 2 + 0.02]), desen });
     for (const p of pj) pencere(U, S, { y: h2 * 0.28, h: h2 * 0.46, panjur: 'acik', ...p, x: x0u + p.x });
     // alın (üçgen) kirişleri: mahyaya dik yüzler
-    if (f[0] === 'x') {
+    if (f[0] === 'x' && alinKiris) {
       const A = U;
       const hh = H - 0.085;
       A.kiris([x0u - dU / 2 + 0.015, h2 + 0.01, 0.006], [x0u, h2 + hh, 0.006], 0.014, 0.016, 'kutuk', S.kiris);

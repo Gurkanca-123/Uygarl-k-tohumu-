@@ -9,6 +9,7 @@ import { manastir, VARYANT_ADET as MAN_VARYANT } from './tarifler/manastir.js';
 import { han, VARYANT_ADET as HAN_VARYANT } from './tarifler/han.js';
 import { demirci, eritmeFirini, dokumaAtolyesi, darphane, aletYapimcisi, VARYANT_ADET as ATL_VARYANT } from './tarifler/atolyeler.js';
 import { ciftlik, ambar, agil, tahilBahcesi, erzakCukuru, sulananTarla, bagBahce, kurutmaRafi, VARYANT_ADET as TAR_VARYANT } from './tarifler/ciftlik.js';
+import { loncaBinasi, darussifa, VARYANT_ADET as KAMU_VARYANT } from './tarifler/kamu.js';
 import { stilAl, mimariCag } from './cag_stilleri.js';
 import { varyantSec } from './varyasyon.js';
 
@@ -31,6 +32,8 @@ const KAYIT = {
   erzak_cukuru: { varyant: TAR_VARYANT, yap: erzakCukuru },
   sulanan_tarla: { varyant: TAR_VARYANT, yap: sulananTarla },
   bag_bahce: { varyant: TAR_VARYANT, yap: bagBahce },
+  lonca_binasi: { varyant: KAMU_VARYANT, yap: loncaBinasi },
+  darussifa: { varyant: KAMU_VARYANT, yap: darussifa },
   kurutma_rafi: { varyant: TAR_VARYANT, yap: kurutmaRafi },
 };
 
