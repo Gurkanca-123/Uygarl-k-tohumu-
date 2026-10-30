@@ -325,7 +325,8 @@ export function cagSekmesi(a) {
     h('div', { class: 'oge' },
       h('div', { class: 'baslik' }, h('span', {}, 'Çağ atlama ilerlemesi'), h('b', {}, `${tamam}/${satirlar.length}`)),
       h('div', { class: `cubuk buyuk${s.uygun ? ' tam' : ''}` }, h('i', { style: `width:${(100 * tamam) / satirlar.length}%` })),
-      satirlar.map((x) => ilerlemeSatiri(...x))),
+      satirlar.map((x) => ilerlemeSatiri(...x)),
+      s.ipuclari.map((m) => h('div', { class: 'neden', 'data-ipucu': 'cag' }, `💡 ${m}`))),
     h('button', { class: `tam-genislik${s.uygun ? ' vurgu' : ''}`, disabled: !s.uygun, onclick: () => a.cagAtla() }, s.uygun ? `Çağ atla → ${s.sonraki.ad}` : 'Şartlar eksik: yukarıdaki kırmızı satırlar'),
     h('div', { class: 'soluk kucuk', style: 'margin-top:6px' }, 'Çağ atlayınca kaynak maliyeti ödenir, yerleşim sınırı büyür, yeni bina ve buluşlar açılır.'));
 }

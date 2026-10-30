@@ -7,6 +7,7 @@ import { KAROLAR } from '../data/karolar.js';
 import { kesifli, yonAdi } from '../world/kesif.js';
 import { karoAt, merkezNokta } from '../world/harita.js';
 import { evrimAdaylari } from './insa.js';
+import { bozulmaOrani } from './tuketim.js';
 import { TEHDIT_CAG_SINIR, TEHDIT_CAG_NEFES } from '../data/denge.js';
 import {
   BINA, BULUS, CAG, kopya, mevcutCag, kuruluSayisi, kaynakYeter, eksikMetni, kaynakUygula, bildir,
@@ -15,11 +16,25 @@ import {
 
 export const sonrakiCag = (d) => CAGLAR.find((c) => c.sira === mevcutCag(d).sira + 1) || null;
 
-// Dönüş: { uygun, eksikler[] (Türkçe), sonraki }
+// Yiyecek bozulması stoku sınırlar: son turun net fazlası / bozulma oranı = ulaşılabilecek en yüksek stok (denge noktası).
+// Geçiş maliyeti bunun üstündeyse oyuncuyu uyar (yalnız bilgi; denge değişmez). Dönüş: Türkçe ipucu ya da null.
+function yiyecekIpucu(d, gerekli) {
+  if ((d.kaynaklar.yiyecek || 0) >= gerekli) return null;
+  const st = d.istatistik?.sonTur;
+  if (!st) return null;
+  const fazla = (st.uretim?.yiyecek || 0) - (st.tuketim?.yiyecek || 0);
+  const oran = bozulmaOrani(d);
+  const denge = Math.max(0, fazla) / oran;
+  if (denge >= gerekli) return null;
+  return `Yiyecek her tur %${Math.round(oran * 100)} bozulur: şimdiki fazlayla (${fazla.toFixed(1)}/tur) stok en çok ~${Math.floor(denge + 1e-6)} olur, gereken ${gerekli}. `
+    + 'Yiyecek üretimini artır ya da bozulmayı azaltan depo (Kurutma Rafı, Erzak Çukuru, Ambar) kur.';
+}
+
+// Dönüş: { uygun, eksikler[] (Türkçe), ipuclari[] (bilgi; şartı değiştirmez), sonraki }
 export function cagSartlari(d) {
   const c = mevcutCag(d);
   const sonraki = sonrakiCag(d);
-  if (!c.gecis || !sonraki) return { uygun: false, eksikler: ['Son çağdasın.'], sonraki: null };
+  if (!c.gecis || !sonraki) return { uygun: false, eksikler: ['Son çağdasın.'], ipuclari: [], sonraki: null };
   const g = c.gecis;
   const eksikler = [];
   if (d.nufus < g.nufus) eksikler.push(`Nüfus ${d.nufus}/${g.nufus}`);
@@ -29,7 +44,10 @@ export function cagSartlari(d) {
   }
   if (g.bulus && !d.buluslar.includes(g.bulus)) eksikler.push(`Buluş: ${BULUS[g.bulus].ad}`);
   if (!kaynakYeter(d, g.maliyet)) eksikler.push(`Kaynak eksik: ${eksikMetni(d, g.maliyet)}`);
-  return { uygun: eksikler.length === 0, eksikler, sonraki };
+  const ipuclari = [];
+  const yi = g.maliyet.yiyecek ? yiyecekIpucu(d, g.maliyet.yiyecek) : null;
+  if (yi) ipuclari.push(yi);
+  return { uygun: eksikler.length === 0, eksikler, ipuclari, sonraki };
 }
 
 export function cagAtla(durum) {

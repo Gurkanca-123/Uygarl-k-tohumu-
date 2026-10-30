@@ -1,7 +1,7 @@
 # PROJECT_STATE (kısa; ayrıntı: `docs/MIMARI.md`, tasarım: `docs/TASARIM.md`)
 
 **Durum (2026-10-28):** Ana oyun = ŞEHİR KURMA odaklı (tehdit/çit/iş dağıtımı dahil). Sefer, kahraman, komşu, ayı/tapınak (harabe) görevleri, mevsim görev kartları ve görsel savaş **ana daldan çıkarıldı**, `yan/savas-aksiyon` dalında duruyor (kullanıcı kararı: şehir kurmaya odaklan, bitince tekrar düşünülecek). Sıradaki: şehir kurma derinliği (bina/çağ içeriği, denge, bina modelleri).
-Testler: 227 (226 geçer + 1 `todo`). Tarayıcı testi: `npm run build && npm run e2e` (163 kontrol, `npm test`'e dahil değil). Varsayılan görünüm = stil BD (`?stil=eski` eski render; `?stil=a|b|c|d`).
+Testler: 229 (228 geçer + 1 `todo`). Tarayıcı testi: `npm run build && npm run e2e` (163 kontrol, `npm test`'e dahil değil). Varsayılan görünüm = stil BD (`?stil=eski` eski render; `?stil=a|b|c|d`).
 
 ## Oyun (özet)
 Sıra tabanlı (tur = gün, mevsim 5 gün, yıl 20 gün), 5 çağ, Önder eylemi/tur, yenilgi yok, zafer sonrası serbest kip. 64×64 harita, keşif sisi.

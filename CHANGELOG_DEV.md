@@ -1,5 +1,9 @@
 # CHANGELOG_DEV (yalnız son kayıtlar; eskiler `docs/CHANGELOG_ARSIV.md`)
 
+## 2026-10-30 — Denge düzeltmeleri (kullanıcı onaylı) (Sonnet 5.5)
+- Taş Ocağı: `karo:tasli` bitişiklik bonusu (+%25/karo, max 2). Çağ penceresi: yiyecek bozulması yüzünden ulaşılamayan geçiş maliyeti için 💡 ipucu (`cagSartlari().ipuclari`; şartı değiştirmez).
+- `tests/denge_ipuclari.test.js` (2); toplam 229 (228 geçer + 1 todo). `docs/VATANDAS.md`: bireysel vatandaş "defter" tasarım önerisi (UYGULANMADI, onay bekliyor).
+
 ## 2026-10-30 — Bina evrimi + uzun simülasyon altyapısı (Sonnet 5.5)
 - **Evrim (yerinde dönüşüm):** `binalar.js` `evrim:` alanı (çadır→kulübe→kerpiç→taş ev→yarı ahşap; tahıl bahçesi→sulanan tarla→çiftlik; alet yapımcısı→demirci; çit→sur; kurutma rafı→erzak çukuru).
   `denge.js` `EVRIM_MALIYET = 0.70`. `core/insa.js`: `evrimMaliyeti/evrimEdilebilirMi/evrimYap/evrimCok/evrimAdaylari`; kuyruk girdisi `evrim:<uid>` (eşzamanlı sınıra sayılmaz, eski bina çalışmaya devam eder),
